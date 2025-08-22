@@ -116,7 +116,7 @@ export default function LandingCarousel() {
             <CarouselItem key={index}>
               <div className="p-4 select-none">
                 <Card className="relative flex flex-col items-center justify-center p-0 animate-shadow-flow">
-                  <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 w-full h-[500px] bg-card rounded-lg overflow-hidden">
+                  <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 w-full md:h-[500px] h-[300px] bg-card rounded-lg overflow-hidden">
                     <span className="text-3xl md:text-5xl font-black text-center animate-gradient-flow z-5">
                       {item.name}
                     </span>
@@ -128,7 +128,7 @@ export default function LandingCarousel() {
                         <motion.img
                           src={`/${imgs[0]}`}
                           alt={`${item.name} top-left`}
-                          className="absolute top-0 left-0 w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                          className="absolute top-0 left-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="top-left"
                           variants={imageVariants}
                           initial="initial"
@@ -137,7 +137,7 @@ export default function LandingCarousel() {
                         <motion.img
                           src={`/${imgs[1]}`}
                           alt={`${item.name} top-right`}
-                          className="absolute top-0 right-0 w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                          className="absolute top-0 right-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="top-right"
                           variants={imageVariants}
                           initial="initial"
@@ -146,7 +146,7 @@ export default function LandingCarousel() {
                         <motion.img
                           src={`/${imgs[2]}`}
                           alt={`${item.name} bottom-left`}
-                          className="absolute bottom-0 left-0 w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                          className="absolute bottom-0 left-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="bottom-left"
                           variants={imageVariants}
                           initial="initial"
@@ -155,7 +155,7 @@ export default function LandingCarousel() {
                         <motion.img
                           src={`/${imgs[3]}`}
                           alt={`${item.name} bottom-right`}
-                          className="absolute bottom-0 right-0 w-48 h-48 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
+                          className="absolute bottom-0 right-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="bottom-right"
                           variants={imageVariants}
                           initial="initial"
