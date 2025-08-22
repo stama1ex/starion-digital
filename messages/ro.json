@@ -1,0 +1,92 @@
+{
+  "HomePage": {
+    "title": "Bun venit la ",
+    "description": "Creăm suveniruri unice cu realitate augmentată."
+  },
+  "ContactsPage": {
+    "title": "Iuri Stamat",
+    "description": "Fondator și lider al Starion Digital. Contactați-mă pentru colaborări, consultanțe și servicii.",
+    "contact_title": "Contactați-mă",
+    "services_title": "Servicii",
+    "phone": "Telefon: +373 (xxx) xxx-xxx",
+    "email": "Email: stamat.yuri@email.com",
+    "telegram": "Telegram: @stamatyuri",
+    "instagram": "Instagram: @stamatyuri",
+    "services": {
+      "ar_souvenirs": "Suveniruri AR personalizate",
+      "ar_vr_consulting": "Consultanță AR/VR",
+      "souvenir_design": "Design și dezvoltare de produse suvenir",
+      "workshops": "Organizarea de ateliere"
+    }
+  },
+  "Header": {
+    "logo": "Starion Digital",
+    "open_menu": "Deschide meniul",
+    "menu": "Meniu",
+    "home": "Acasă",
+    "categories": "Suveniruri",
+    "contacts": "Contacte",
+    "language": "Limbă",
+    "soon": "Curând"
+  },
+  "Categories": {
+    "magnet": {
+      "name": "Magneți",
+      "description": "Magneți vii cu realitate augmentată."
+    },
+    "plate": {
+      "name": "Farfurii",
+      "description": "Frumoase farfurii suvenir cu realitate augmentată."
+    },
+    "card": {
+      "name": "Cărți",
+      "description": "Cărți poștale cu realitate augmentată (AR)."
+    },
+    "statue": {
+      "name": "Statuete",
+      "description": "Figurine ale diferitelor personalități și locuri."
+    },
+    "ball": {
+      "name": "Globuri de sticlă",
+      "description": "Bile de sticlă cu diferite locații."
+    }
+  },
+  "Catalog": {
+    "magnets_title": "Catalog de magneți",
+    "plates_title": "Catalog de farfurii",
+    "fetch_error": "Nu s-a putut încărca {type}",
+    "error": "Eroare: {message}",
+    "number": "Nr. {number}",
+    "type": "Produs"
+  },
+  "LandingDrawer": {
+    "title": "De unde începem?",
+    "close": "Închide",
+    "view_souvenirs": "Vezi suveniruri"
+  },
+  "LandingCarousel": {
+    "title": "Produsele noastre"
+  },
+  "ExampleBlock": {
+    "try_product": "Încercați produsul",
+    "scan_qr": "Scanați codul QR și îndreptați camera spre imagine",
+    "hold_camera": "Mențineți camera îndreptată spre imagine până apare videoclipul",
+    "souvenir_number": "Suvenir nr. {number}",
+    "close": "Închide"
+  },
+  "Scene": {
+    "loading": "Încărcare {progress}%"
+  },
+  "Footer": {
+    "product": "Produs",
+    "company": "Companie",
+    "contacts": "Contacte",
+    "copyright": "© 2025 Starion-digital.com. Toate drepturile rezervate."
+  },
+  "ThemeToggle": {
+    "toggle": "Schimbă tema",
+    "light": "Luminos",
+    "dark": "Întunecat",
+    "system": "Sistem"
+  }
+}

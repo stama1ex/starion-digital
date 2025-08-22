@@ -1,0 +1,92 @@
+{
+  "HomePage": {
+    "title": "Добро пожаловать в ",
+    "description": "Создаем уникальные сувениры с дополненной реальностью."
+  },
+  "ContactsPage": {
+    "title": "Стамат Юрий",
+    "description": "Основатель и руководитель Starion Digital. Связаться со мной для сотрудничества, консультаций и услуг.",
+    "contact_title": "Связь со мной",
+    "services_title": "Услуги",
+    "phone": "Телефон: +373 (xxx) xxx-xxx",
+    "email": "Email: stamat.yuri@email.com",
+    "telegram": "Telegram: @stamatyuri",
+    "instagram": "Instagram: @stamatyuri",
+    "services": {
+      "ar_souvenirs": "AR сувениры под заказ",
+      "ar_vr_consulting": "Консультации по AR/VR",
+      "souvenir_design": "Дизайн и разработка сувенирной продукции",
+      "workshops": "Проведение мастер-классов"
+    }
+  },
+  "Header": {
+    "logo": "Starion Digital",
+    "open_menu": "Открыть меню",
+    "menu": "Меню",
+    "home": "Главная",
+    "categories": "Сувениры",
+    "contacts": "Контакты",
+    "language": "Язык",
+    "soon": "Скоро"
+  },
+  "Categories": {
+    "magnet": {
+      "name": "Магниты",
+      "description": "Живые магниты с дополненной реальностью."
+    },
+    "plate": {
+      "name": "Тарелки",
+      "description": "Красивые сувенирные тарелки с дополненной реальностью."
+    },
+    "card": {
+      "name": "Открытки",
+      "description": "Карточки с дополненной реальностью (AR)."
+    },
+    "statue": {
+      "name": "Статуэтки",
+      "description": "Фигурки различных личностей и мест."
+    },
+    "ball": {
+      "name": "Стеклянные шары",
+      "description": "Стеклянные шары с разными локациями."
+    }
+  },
+  "Catalog": {
+    "magnets_title": "Каталог магнитов",
+    "plates_title": "Каталог тарелок",
+    "fetch_error": "Не удалось загрузить {type}",
+    "error": "Ошибка: {message}",
+    "number": "№ {number}",
+    "type": "Товар"
+  },
+  "LandingDrawer": {
+    "title": "С чего начнем?",
+    "close": "Закрыть",
+    "view_souvenirs": "Смотреть сувениры"
+  },
+  "LandingCarousel": {
+    "title": "Наши продукты"
+  },
+  "ExampleBlock": {
+    "try_product": "Опробовать товар",
+    "scan_qr": "Отсканируйте QR-код и наведите камеру на изображение",
+    "hold_camera": "Удерживайте камеру на изображении, пока не появится видео",
+    "souvenir_number": "Сувенир № {number}",
+    "close": "Закрыть"
+  },
+  "Scene": {
+    "loading": "Загрузка {progress}%"
+  },
+  "Footer": {
+    "product": "Продукт",
+    "company": "Компания",
+    "contacts": "Контакты",
+    "copyright": "© 2025 Starion-digital.com. Все права защищены."
+  },
+  "ThemeToggle": {
+    "toggle": "Переключить тему",
+    "light": "Светлая",
+    "dark": "Темная",
+    "system": "Системная"
+  }
+}

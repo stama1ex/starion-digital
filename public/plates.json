@@ -1,0 +1,50 @@
+[
+  {
+    "number": "110",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/110.avif"
+  },
+  {
+    "number": "111",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/111.avif"
+  },
+  {
+    "number": "112",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/112.avif"
+  },
+  {
+    "number": "113",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/113.avif"
+  },
+  {
+    "number": "114",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/114.avif"
+  },
+  {
+    "number": "115",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/115.avif"
+  },
+  {
+    "number": "116",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/116.avif"
+  },
+  {
+    "number": "117",
+    "type": "plate",
+    "country": "md",
+    "image": "public/plates/117.avif"
+  }
+]

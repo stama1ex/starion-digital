@@ -1,0 +1,92 @@
+{
+  "HomePage": {
+    "title": "Welcome to ",
+    "description": "Creating unique souvenirs with augmented reality."
+  },
+  "ContactsPage": {
+    "title": "Yuri Stamat",
+    "description": "Founder and leader of Starion Digital. Contact me for collaboration, consultations, and services.",
+    "contact_title": "Get in Touch",
+    "services_title": "Services",
+    "phone": "Phone: +373 (xxx) xxx-xxx",
+    "email": "Email: stamat.yuri@email.com",
+    "telegram": "Telegram: @stamatyuri",
+    "instagram": "Instagram: @stamatyuri",
+    "services": {
+      "ar_souvenirs": "Custom AR souvenirs",
+      "ar_vr_consulting": "AR/VR consultations",
+      "souvenir_design": "Design and development of souvenir products",
+      "workshops": "Conducting workshops"
+    }
+  },
+  "Header": {
+    "logo": "Starion Digital",
+    "open_menu": "Open menu",
+    "menu": "Menu",
+    "home": "Home",
+    "categories": "Souvenirs",
+    "contacts": "Contacts",
+    "language": "Language",
+    "soon": "Coming Soon"
+  },
+  "Categories": {
+    "magnet": {
+      "name": "Magnets",
+      "description": "Live magnets with augmented reality."
+    },
+    "plate": {
+      "name": "Plates",
+      "description": "Beautiful souvenir plates with augmented reality."
+    },
+    "card": {
+      "name": "Cards",
+      "description": "Cards with augmented reality (AR)."
+    },
+    "statue": {
+      "name": "Statues",
+      "description": "Figurines of various personalities and places."
+    },
+    "ball": {
+      "name": "Glass Balls",
+      "description": "Glass balls with different locations."
+    }
+  },
+  "Catalog": {
+    "magnets_title": "Magnet Catalog",
+    "plates_title": "Plate Catalog",
+    "fetch_error": "Failed to fetch {type}",
+    "error": "Error: {message}",
+    "number": "No. {number}",
+    "type": "Product"
+  },
+  "LandingDrawer": {
+    "title": "Where to start?",
+    "close": "Close",
+    "view_souvenirs": "View Souvenirs"
+  },
+  "LandingCarousel": {
+    "title": "Our Products"
+  },
+  "ExampleBlock": {
+    "try_product": "Try the product",
+    "scan_qr": "Scan the QR code and point the camera at the image",
+    "hold_camera": "Hold the camera on the image until the video appears",
+    "souvenir_number": "Souvenir No. {number}",
+    "close": "Close"
+  },
+  "Scene": {
+    "loading": "Loading {progress}%"
+  },
+  "Footer": {
+    "product": "Product",
+    "company": "Company",
+    "contacts": "Contacts",
+    "copyright": "© 2025 Starion-digital.com. All rights reserved."
+  },
+  "ThemeToggle": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  }
+}
