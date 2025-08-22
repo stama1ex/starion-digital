@@ -117,7 +117,7 @@ export default function LandingCarousel() {
               <div className="p-4 select-none">
                 <Card className="relative flex flex-col items-center justify-center p-0 animate-shadow-flow">
                   <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 w-full h-[500px] bg-card rounded-lg overflow-hidden">
-                    <span className="text-3xl md:text-5xl font-semibold text-center animate-gradient-flow z-5">
+                    <span className="text-3xl md:text-5xl font-black text-center animate-gradient-flow z-5">
                       {item.name}
                     </span>
                     {[3, 4, 5].includes(item.id) && (
