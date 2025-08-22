@@ -1,3 +1,4 @@
+// components/shared/catalog.tsx
 'use client';
 
 import { Container } from '@/components/shared/container';
@@ -21,6 +22,7 @@ interface CatalogProps {
   dataSource: string;
   exampleProductNumber?: string;
   className?: string;
+  products?: Souvenir[]; // Add optional products prop
 }
 
 const Catalog: React.FC<CatalogProps> = ({
@@ -28,37 +30,47 @@ const Catalog: React.FC<CatalogProps> = ({
   dataSource,
   exampleProductNumber,
   className,
+  products: initialProducts,
 }) => {
   const t = useTranslations('Catalog');
-  const [products, setProducts] = useState<Souvenir[]>([]);
+  const [products, setProducts] = useState<Souvenir[]>(initialProducts || []);
   const [selectedProduct, setSelectedProduct] = useState<Souvenir | null>(null);
   const [exampleProduct, setExampleProduct] = useState<Souvenir | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!initialProducts); // Only load if no initialProducts
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setIsLoading(true);
-    fetch(dataSource)
-      .then((res) => {
-        if (!res.ok)
-          throw new Error(t('fetch_error', { type: title.toLowerCase() }));
-        return res.json();
-      })
-      .then((data: Souvenir[]) => {
-        setProducts(data);
-        if (exampleProductNumber) {
-          const foundProduct = data.find(
-            (product) => product.number === exampleProductNumber
-          );
-          setExampleProduct(foundProduct || null);
-        }
-        setIsLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setIsLoading(false);
-      });
-  }, [dataSource, exampleProductNumber, title, t]);
+    if (!initialProducts) {
+      // Fetch data only if initialProducts is not provided
+      setIsLoading(true);
+      fetch(dataSource)
+        .then((res) => {
+          if (!res.ok)
+            throw new Error(t('fetch_error', { type: title.toLowerCase() }));
+          return res.json();
+        })
+        .then((data: Souvenir[]) => {
+          setProducts(data);
+          if (exampleProductNumber) {
+            const foundProduct = data.find(
+              (product) => product.number === exampleProductNumber
+            );
+            setExampleProduct(foundProduct || null);
+          }
+          setIsLoading(false);
+        })
+        .catch((err) => {
+          setError(err.message);
+          setIsLoading(false);
+        });
+    } else if (exampleProductNumber) {
+      // Set exampleProduct from initialProducts
+      const foundProduct = initialProducts.find(
+        (product) => product.number === exampleProductNumber
+      );
+      setExampleProduct(foundProduct || null);
+    }
+  }, [dataSource, exampleProductNumber, title, t, initialProducts]);
 
   if (error) return <div>{t('error', { message: error })}</div>;
 

@@ -1,105 +1,142 @@
-'use client';
-
+// app/terms/page.tsx
+import { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
-import { useTranslations } from 'next-intl';
-import { Title } from '@/components/shared/title';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  FileText,
-  Shield,
-  AlertTriangle,
-  RefreshCw,
-  Globe,
-  Lock,
-} from 'lucide-react';
+import TermsContent from './terms-content';
 
-export default function TermsPage() {
-  const t = useTranslations('Terms');
-
-  const sections = [
-    {
-      id: 'useOfSite',
-      title: t('useOfSite.title'),
-      text: t('useOfSite.description'),
-      icon: <Globe className="w-6 h-6 text-primary" />,
-    },
-    {
-      id: 'intellectualProperty',
-      title: t('intellectualProperty.title'),
-      text: t('intellectualProperty.description'),
-      icon: <FileText className="w-6 h-6 text-primary" />,
-    },
-    {
-      id: 'prohibited',
-      title: t('prohibited.title'),
-      text: t('prohibited.description'),
-      icon: <Lock className="w-6 h-6 text-primary" />,
-      items: [
-        t('prohibited.illegal'),
-        t('prohibited.spam'),
-        t('prohibited.copy'),
+// Metadata generation (server-side)
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const t = await getTranslations({
+    locale: params.locale,
+    namespace: 'Terms',
+  });
+  return {
+    title: `${t('title')} - Starion Digital`,
+    description: t('meta.description'),
+    keywords: [
+      'Starion Digital terms of use',
+      'AR souvenirs terms',
+      'website terms',
+      params.locale === 'ru'
+        ? 'Условия использования Starion Digital'
+        : params.locale === 'ro'
+          ? 'Termeni de utilizare Starion Digital'
+          : 'Starion Digital terms of use',
+    ],
+    openGraph: {
+      title: `${t('title')} - Starion Digital`,
+      description: t('meta.description'),
+      url: `https://starion-digital.com/${params.locale}/terms`,
+      type: 'website',
+      images: [
+        {
+          url: '/og-image-terms.jpg',
+          width: 1200,
+          height: 630,
+          alt: t('title'),
+        },
       ],
     },
-    {
-      id: 'limitations',
-      title: t('limitations.title'),
-      text: t('limitations.description'),
-      icon: <AlertTriangle className="w-6 h-6 text-primary" />,
+    twitter: {
+      card: 'summary_large_image',
+      title: `${t('title')} - Starion Digital`,
+      description: t('meta.description'),
+      images: ['/og-image-terms.jpg'],
     },
-    {
-      id: 'governingLaw',
-      title: t('governingLaw.title'),
-      text: t('governingLaw.description'),
-      icon: <Shield className="w-6 h-6 text-primary" />,
+    alternates: {
+      canonical: `https://starion-digital.com/${params.locale}/terms`,
+      languages: {
+        ru: `https://starion-digital.com/ru/terms`,
+        en: `https://starion-digital.com/en/terms`,
+        ro: `https://starion-digital.com/ro/terms`,
+      },
     },
-    {
-      id: 'changes',
-      title: t('changes.title'),
-      text: t('changes.description'),
-      icon: <RefreshCw className="w-6 h-6 text-primary" />,
+    other: {
+      'application/ld+json': JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: t('title'),
+        description: t('meta.description'),
+        url: `https://starion-digital.com/${params.locale}/terms`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Starion Digital',
+          url: 'https://starion-digital.com',
+          logo: 'https://starion-digital.com/logo.png',
+          contactPoint: {
+            '@type': 'ContactPoint',
+            telephone: '+373 680 33 007',
+            contactType: 'Customer Service',
+            email: 'stamat2000@gmail.com',
+          },
+        },
+      }),
     },
-  ];
+  };
+}
+
+export default async function TermsPage({
+  params,
+}: {
+  params: { locale: string };
+}) {
+  const t = await getTranslations({
+    locale: params.locale,
+    namespace: 'Terms',
+  });
+
+  const translations = {
+    title: t('title'),
+    introduction: t('introduction'),
+    contact: t('contact'),
+    lastUpdated: t('lastUpdated'),
+    sections: [
+      {
+        id: 'useOfSite',
+        title: t('useOfSite.title'),
+        text: t('useOfSite.description'),
+      },
+      {
+        id: 'intellectualProperty',
+        title: t('intellectualProperty.title'),
+        text: t('intellectualProperty.description'),
+      },
+      {
+        id: 'prohibited',
+        title: t('prohibited.title'),
+        text: t('prohibited.description'),
+        items: [
+          t('prohibited.illegal'),
+          t('prohibited.spam'),
+          t('prohibited.copy'),
+        ],
+      },
+      {
+        id: 'limitations',
+        title: t('limitations.title'),
+        text: t('limitations.description'),
+      },
+      {
+        id: 'governingLaw',
+        title: t('governingLaw.title'),
+        text: t('governingLaw.description'),
+      },
+      {
+        id: 'changes',
+        title: t('changes.title'),
+        text: t('changes.description'),
+      },
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-background py-12 mx-4 md:mx-0">
       <Container className="max-w-4xl mx-auto">
-        <Title
-          text={t('title')}
-          className="w-full !text-4xl font-bold mb-8 text-center animate-gradient-flow"
-        />
-
-        <p className="text-muted-foreground text-center mb-12">
-          {t('introduction')}
-        </p>
-
-        <div className="space-y-8">
-          {sections.map((section) => (
-            <Card key={section.id} id={section.id} className="shadow-md">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  {section.icon}
-                  <h2 className="text-2xl font-semibold">{section.title}</h2>
-                </div>
-                <p className="text-muted-foreground">{section.text}</p>
-                {section.items && (
-                  <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
-                    {section.items.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <p className="mt-12 text-center text-sm text-muted-foreground">
-          {t('contact')}
-        </p>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          {t('lastUpdated')}: 22 August 2025
-        </p>
+        <TermsContent translations={translations} />
       </Container>
     </main>
   );

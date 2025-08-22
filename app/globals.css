@@ -196,3 +196,43 @@
   display: inline-block;
   animation: gradient-flow 12s linear infinite;
 }
+
+@property --deg {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
+@keyframes rotating {
+  from {
+    --deg: 0deg;
+  }
+  to {
+    --deg: 360deg;
+  }
+}
+
+.animate-shadow-flow {
+  position: relative;
+}
+
+.animate-shadow-flow::before {
+  content: '';
+  position: absolute;
+  top: -4px; /* Увеличиваем отступ для большего свечения */
+  left: -4px;
+  width: calc(100% + 8px); /* Увеличиваем размер */
+  height: calc(100% + 8px);
+  background: conic-gradient(
+    from var(--deg) at 50% 50%,
+    #00c3ff,
+    #4d0199,
+    #6300c6,
+    #00c3ff
+  );
+  border-radius: inherit;
+  filter: blur(12px); /* Мягкое размытие для эффекта свечения */
+  animation: rotating 5s linear infinite;
+  z-index: -1; /* Помещаем под карточку */
+  opacity: 0.7; /* Делаем свечение менее интенсивным */
+}

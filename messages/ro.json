@@ -1,12 +1,20 @@
 {
   "HomePage": {
-    "title": "Bun venit la ",
+    "meta": {
+      "title": "Bine ați venit la Starion Digital",
+      "description": "Creăm suveniruri unice cu realitate augmentată pentru experiențe de neuitat."
+    },
+    "title": "Bine ați venit la ",
     "description": "Creăm suveniruri unice cu realitate augmentată."
   },
   "ContactsPage": {
-    "title": "Iuri Stamat",
-    "description": "Fondator și lider al Starion Digital. Contactați-mă pentru colaborări, consultanțe și servicii.",
-    "contact_title": "Contactați-mă",
+    "meta": {
+      "title": "Contact Starion Digital",
+      "description": "Contactați-l pe Yuri Stamat, fondatorul Starion Digital, pentru colaborări, consultanță AR/VR și comenzi de suveniruri."
+    },
+    "title": "Yuri Stamat",
+    "description": "Fondator și lider al Starion Digital. Contactați-mă pentru colaborări, consultanță și servicii.",
+    "contact_title": "Luați legătura",
     "services_title": "Servicii",
     "phone": "Telefon: +373 680 33 007",
     "email": "Email: stamat2000@gmail.com",
@@ -15,45 +23,49 @@
     "services": {
       "ar_souvenirs": "Suveniruri AR personalizate",
       "ar_vr_consulting": "Consultanță AR/VR",
-      "souvenir_design": "Design și dezvoltare de produse suvenir",
-      "workshops": "Organizarea de ateliere"
+      "souvenir_design": "Design și dezvoltare de suveniruri",
+      "workshops": "Ateliere și cursuri"
     }
   },
   "Header": {
     "logo": "Starion Digital",
-    "open_menu": "Deschide meniul",
+    "open_menu": "Deschide Meniu",
     "menu": "Meniu",
     "home": "Acasă",
     "categories": "Suveniruri",
     "contacts": "Contacte",
     "language": "Limbă",
-    "soon": "Curând"
+    "soon": "În curând"
   },
   "Categories": {
     "magnet": {
-      "name": "Magneți",
-      "description": "Magneți vii cu realitate augmentată."
+      "name": "Magnete",
+      "description": "Magnete interactive cu realitate augmentată."
     },
     "plate": {
       "name": "Farfurii",
-      "description": "Frumoase farfurii suvenir cu realitate augmentată."
+      "description": "Farfurii suvenir frumoase cu realitate augmentată."
     },
     "card": {
-      "name": "Cărți",
-      "description": "Cărți poștale cu realitate augmentată (AR)."
+      "name": "Felicitări",
+      "description": "Felicitări cu realitate augmentată (AR)."
     },
     "statue": {
       "name": "Statuete",
-      "description": "Figurine ale diferitelor personalități și locuri."
+      "description": "Figurine ale diverselor personalități și locuri."
     },
     "ball": {
       "name": "Globuri de sticlă",
-      "description": "Bile de sticlă cu diferite locații."
+      "description": "Globuri de sticlă cu diverse locații."
     }
   },
   "Catalog": {
-    "magnets_title": "Catalog de magneți",
-    "plates_title": "Catalog de farfurii",
+    "meta": {
+      "description": "Explorați colecția noastră de magnete cu realitate augmentată, cu designuri unice din diverse țări.",
+      "description_plates": "Descoperiți colecția noastră de farfurii suvenir cu realitate augmentată, prezentând designuri unice din diverse țări."
+    },
+    "magnets_title": "Catalog Magnete",
+    "plates_title": "Catalog Farfurii",
     "fetch_error": "Nu s-a putut încărca {type}",
     "error": "Eroare: {message}",
     "number": "Nr. {number}",
@@ -62,16 +74,16 @@
   "LandingDrawer": {
     "title": "De unde începem?",
     "close": "Închide",
-    "view_souvenirs": "Vezi suveniruri"
+    "view_souvenirs": "Vezi Suveniruri"
   },
   "LandingCarousel": {
-    "title": "Produsele noastre"
+    "title": "Produsele Noastre"
   },
   "ExampleBlock": {
-    "try_product": "Încercați produsul",
+    "try_product": "Încearcă Produsul",
     "scan_qr": "Scanați codul QR și îndreptați camera spre imagine",
-    "hold_camera": "Mențineți camera îndreptată spre imagine până apare videoclipul",
-    "souvenir_number": "Suvenir nr. {number}",
+    "hold_camera": "Țineți camera deasupra imaginii până când apare videoclipul",
+    "souvenir_number": "Suvenir Nr. {number}",
     "close": "Închide"
   },
   "Scene": {
@@ -84,69 +96,76 @@
     "copyright": "© 2025 Starion-digital.com. Toate drepturile rezervate."
   },
   "ThemeToggle": {
-    "toggle": "Schimbă tema",
+    "toggle": "Schimbă Tema",
     "light": "Luminos",
     "dark": "Întunecat",
     "system": "Sistem"
   },
   "PrivacyPolicy": {
-    "title": "Politica de confidențialitate",
-    "introduction": "Respectăm confidențialitatea dumneavoastră și ne angajăm să protejăm datele personale.",
+    "meta": {
+      "title": "Politica de Confidențialitate",
+      "description": "Aflați cum Starion Digital vă protejează datele personale pe site-ul nostru de suveniruri cu realitate augmentată."
+    },
+    "title": "Politica de Confidențialitate",
+    "introduction": "Respectăm confidențialitatea dumneavoastră și ne angajăm să vă protejăm datele personale.",
     "dataCollection": {
-      "title": "Colectarea datelor",
+      "title": "Colectarea Datelor",
       "description": "Putem colecta următoarele categorii de date:",
       "cookies": "Cookie-uri pentru salvarea preferințelor de limbă și temă.",
-      "usageData": "Date anonime despre utilizarea site-ului (ex. paginile vizitate).",
-      "contactData": "Date furnizate voluntar atunci când ne contactați (nume, email)."
+      "usageData": "Date anonime despre utilizarea site-ului (de exemplu, paginile vizitate).",
+      "contactData": "Datele pe care le furnizați voluntar atunci când ne contactați (nume, email)."
     },
     "dataUsage": {
-      "title": "Utilizarea datelor",
-      "description": "Datele sunt utilizate pentru funcționarea site-ului, personalizarea experienței și îmbunătățirea serviciilor."
+      "title": "Utilizarea Datelor",
+      "description": "Datele sunt utilizate pentru funcționarea site-ului, personalizare și îmbunătățirea calității serviciilor."
     },
     "dataSharing": {
-      "title": "Partajarea datelor",
-      "description": "Nu partajăm datele dumneavoastră cu terți, decât dacă legea o cere."
+      "title": "Partajarea Datelor",
+      "description": "Nu partajăm datele dumneavoastră cu terțe părți, cu excepția cazurilor cerute de lege."
     },
     "dataStorage": {
-      "title": "Stocarea datelor",
-      "description": "Cookie-urile sunt stocate între 1 zi și 12 luni. Datele de contact sunt păstrate doar pe durata necesară pentru a răspunde solicitării."
+      "title": "Stocarea Datelor",
+      "description": "Cookie-urile sunt stocate între 1 zi și 12 luni. Datele de contact sunt păstrate doar pe durata procesării cererii dumneavoastră."
     },
     "userRights": {
-      "title": "Drepturile dumneavoastră",
-      "description": "Aveți dreptul să solicitați o copie a datelor, corectarea sau ștergerea acestora și să refuzați utilizarea cookie-urilor."
+      "title": "Drepturile Dumneavoastră",
+      "description": "Aveți dreptul de a solicita o copie a datelor, de a cere corectarea sau ștergerea acestora și de a renunța la utilizarea cookie-urilor."
     },
     "changes": {
       "title": "Modificări",
       "description": "Putem actualiza această politică. Toate modificările vor fi publicate aici."
     },
-    "contact": "Pentru întrebări, vă rugăm să ne contactați: stamat2000@gmail.com",
-    "lastUpdated": "Ultima actualizare"
+    "contact": "Pentru orice întrebări, trimiteți un email la: stamat2000@gmail.com",
+    "lastUpdated": "Ultima Actualizare"
   },
-
   "Terms": {
-    "title": "Termeni de utilizare",
+    "meta": {
+      "title": "Termeni de Utilizare",
+      "description": "Consultați termenii care guvernează utilizarea site-ului Starion Digital, dedicat suvenirurilor cu realitate augmentată."
+    },
+    "title": "Termeni de Utilizare",
     "introduction": "Prin utilizarea acestui site, sunteți de acord cu termenii de mai jos.",
     "useOfSite": {
-      "title": "Utilizarea site-ului",
-      "description": "Site-ul este furnizat 'ca atare'. Utilizați-l doar în scopuri legale."
+      "title": "Utilizarea Site-ului",
+      "description": "Site-ul este furnizat „așa cum este”. Utilizați-l doar în scopuri legale."
     },
     "intellectualProperty": {
-      "title": "Proprietate intelectuală",
-      "description": "Toate materialele (logo-uri, design, texte, imagini, modele 3D) aparțin Starion Digital și sunt protejate prin drepturi de autor."
+      "title": "Proprietate Intelectuală",
+      "description": "Toate materialele (logo-uri, design, texte, imagini, modele 3D) aparțin Starion Digital și sunt protejate de drepturi de autor."
     },
     "prohibited": {
-      "title": "Acțiuni interzise",
+      "title": "Acțiuni Interzise",
       "description": "Utilizatorilor le este interzis:",
       "illegal": "să folosească site-ul pentru activități ilegale;",
-      "spam": "să trimită spam sau să încerce atacuri informatice;",
+      "spam": "să trimită spam sau să încerce să pirateze;",
       "copy": "să copieze sau să modifice conținutul site-ului fără permisiune."
     },
     "limitations": {
-      "title": "Limitări ale răspunderii",
-      "description": "Nu ne asumăm răspunderea pentru daune cauzate de utilizarea site-ului și nu garantăm funcționarea neîntreruptă."
+      "title": "Limitarea Răspunderii",
+      "description": "Nu suntem responsabili pentru daunele cauzate de utilizarea site-ului și nu garantăm funcționarea neîntreruptă."
     },
     "governingLaw": {
-      "title": "Legea aplicabilă",
+      "title": "Lege Aplicabilă",
       "description": "Acești termeni sunt guvernați de legislația Republicii Moldova / UE."
     },
     "changes": {
@@ -154,11 +173,11 @@
       "description": "Termenii pot fi actualizați. Noua versiune va fi publicată pe această pagină."
     },
     "contact": "Contactați-ne: stamat2000@gmail.com",
-    "lastUpdated": "Ultima actualizare"
+    "lastUpdated": "Ultima Actualizare"
   },
   "CookieBanner": {
     "message": "Folosim cookie-uri pentru a vă îmbunătăți experiența. Continuând, sunteți de acord cu politica noastră.",
-    "accept": "Acceptă",
-    "decline": "Refuză"
+    "accept": "Accept",
+    "decline": "Refuz"
   }
 }

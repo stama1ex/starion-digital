@@ -1,5 +1,6 @@
 // components/LandingCarousel.tsx
 'use client';
+
 import { useEffect, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
@@ -114,9 +115,9 @@ export default function LandingCarousel() {
           return (
             <CarouselItem key={index}>
               <div className="p-4 select-none">
-                <Card className="shadow-2xl relative overflow-hidden flex flex-col items-center justify-center p-6">
-                  <CardContent className="relative flex flex-col items-center justify-center gap-4 w-full h-[448px]">
-                    <span className="text-3xl md:text-5xl font-semibold text-center text-primary z-5">
+                <Card className="relative flex flex-col items-center justify-center p-0 animate-shadow-flow">
+                  <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 w-full h-[500px] bg-card rounded-lg overflow-hidden">
+                    <span className="text-3xl md:text-5xl font-semibold text-center animate-gradient-flow z-5">
                       {item.name}
                     </span>
                     {[3, 4, 5].includes(item.id) && (

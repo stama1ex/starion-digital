@@ -1,9 +1,17 @@
 {
   "HomePage": {
+    "meta": {
+      "title": "Welcome to Starion Digital",
+      "description": "We create unique augmented reality souvenirs for unforgettable experiences."
+    },
     "title": "Welcome to ",
-    "description": "Creating unique souvenirs with augmented reality."
+    "description": "We create unique augmented reality souvenirs."
   },
   "ContactsPage": {
+    "meta": {
+      "title": "Starion Digital Contacts",
+      "description": "Contact Yuri Stamat, founder of Starion Digital, for collaboration, AR/VR consultations, and souvenir orders."
+    },
     "title": "Yuri Stamat",
     "description": "Founder and leader of Starion Digital. Contact me for collaboration, consultations, and services.",
     "contact_title": "Get in Touch",
@@ -15,13 +23,13 @@
     "services": {
       "ar_souvenirs": "Custom AR souvenirs",
       "ar_vr_consulting": "AR/VR consultations",
-      "souvenir_design": "Design and development of souvenir products",
-      "workshops": "Conducting workshops"
+      "souvenir_design": "Souvenir design and development",
+      "workshops": "Workshops and training"
     }
   },
   "Header": {
     "logo": "Starion Digital",
-    "open_menu": "Open menu",
+    "open_menu": "Open Menu",
     "menu": "Menu",
     "home": "Home",
     "categories": "Souvenirs",
@@ -32,35 +40,39 @@
   "Categories": {
     "magnet": {
       "name": "Magnets",
-      "description": "Live magnets with augmented reality."
+      "description": "Interactive magnets with augmented reality."
     },
     "plate": {
       "name": "Plates",
       "description": "Beautiful souvenir plates with augmented reality."
     },
     "card": {
-      "name": "Cards",
-      "description": "Cards with augmented reality (AR)."
+      "name": "Postcards",
+      "description": "Postcards with augmented reality (AR)."
     },
     "statue": {
-      "name": "Statues",
+      "name": "Statuettes",
       "description": "Figurines of various personalities and places."
     },
     "ball": {
       "name": "Glass Balls",
-      "description": "Glass balls with different locations."
+      "description": "Glass balls featuring different locations."
     }
   },
   "Catalog": {
-    "magnets_title": "Magnet Catalog",
-    "plates_title": "Plate Catalog",
-    "fetch_error": "Failed to fetch {type}",
+    "meta": {
+      "description": "Browse our collection of augmented reality magnets, featuring unique designs from various countries.",
+      "description_plates": "Discover our collection of augmented reality souvenir plates, showcasing unique designs from various countries."
+    },
+    "magnets_title": "Magnets Catalog",
+    "plates_title": "Plates Catalog",
+    "fetch_error": "Failed to load {type}",
     "error": "Error: {message}",
-    "number": "No. {number}",
+    "number": "№ {number}",
     "type": "Product"
   },
   "LandingDrawer": {
-    "title": "Where to start?",
+    "title": "Where to Start?",
     "close": "Close",
     "view_souvenirs": "View Souvenirs"
   },
@@ -68,10 +80,10 @@
     "title": "Our Products"
   },
   "ExampleBlock": {
-    "try_product": "Try the product",
-    "scan_qr": "Scan the QR code and point the camera at the image",
-    "hold_camera": "Hold the camera on the image until the video appears",
-    "souvenir_number": "Souvenir No. {number}",
+    "try_product": "Try the Product",
+    "scan_qr": "Scan the QR code and point your camera at the image",
+    "hold_camera": "Hold the camera over the image until the video appears",
+    "souvenir_number": "Souvenir № {number}",
     "close": "Close"
   },
   "Scene": {
@@ -84,24 +96,28 @@
     "copyright": "© 2025 Starion-digital.com. All rights reserved."
   },
   "ThemeToggle": {
-    "toggle": "Toggle theme",
+    "toggle": "Toggle Theme",
     "light": "Light",
     "dark": "Dark",
     "system": "System"
   },
   "PrivacyPolicy": {
+    "meta": {
+      "title": "Privacy Policy",
+      "description": "Learn how Starion Digital protects your personal data on our augmented reality souvenir website."
+    },
     "title": "Privacy Policy",
     "introduction": "We respect your privacy and are committed to protecting your personal data.",
     "dataCollection": {
       "title": "Data Collection",
       "description": "We may collect the following categories of data:",
-      "cookies": "Cookies to store language and theme preferences.",
-      "usageData": "Anonymous usage data (e.g., pages you visit).",
+      "cookies": "Cookies to save language and theme preferences.",
+      "usageData": "Anonymous website usage data (e.g., pages visited).",
       "contactData": "Data you voluntarily provide when contacting us (name, email)."
     },
     "dataUsage": {
-      "title": "Use of Data",
-      "description": "Data is used to operate the site, personalize your experience, and improve services."
+      "title": "Data Usage",
+      "description": "Data is used to operate the website, personalize, and improve service quality."
     },
     "dataSharing": {
       "title": "Data Sharing",
@@ -109,30 +125,33 @@
     },
     "dataStorage": {
       "title": "Data Storage",
-      "description": "Cookies are stored from 1 day to 12 months. Contact data is kept only as long as needed to respond to your request."
+      "description": "Cookies are stored for 1 day to 12 months. Contact data is kept only for the duration of processing your request."
     },
     "userRights": {
       "title": "Your Rights",
-      "description": "You have the right to request a copy of your data, demand correction or deletion, and opt out of cookies."
+      "description": "You have the right to request a copy of your data, request corrections or deletion, and opt out of cookies."
     },
     "changes": {
       "title": "Changes",
-      "description": "We may update this policy. All changes will be published here."
+      "description": "We may update this policy. All changes will be posted here."
     },
-    "contact": "For any questions, please contact: stamat2000@gmail.com",
-    "lastUpdated": "Last updated"
+    "contact": "For any questions, email: stamat2000@gmail.com",
+    "lastUpdated": "Last Updated"
   },
-
   "Terms": {
+    "meta": {
+      "title": "Terms of Use",
+      "description": "Review the terms governing the use of Starion Digital’s augmented reality souvenir website."
+    },
     "title": "Terms of Use",
-    "introduction": "By using this site, you agree to the terms below.",
+    "introduction": "By using this website, you agree to the terms below.",
     "useOfSite": {
       "title": "Use of the Site",
-      "description": "The site is provided 'as is'. Use it only for lawful purposes."
+      "description": "The site is provided 'as is.' Use it only for lawful purposes."
     },
     "intellectualProperty": {
       "title": "Intellectual Property",
-      "description": "All materials (logos, design, texts, images, 3D models) belong to Starion Digital and are protected by copyright."
+      "description": "All materials (logos, designs, texts, images, 3D models) belong to Starion Digital and are protected by copyright."
     },
     "prohibited": {
       "title": "Prohibited Actions",
@@ -142,8 +161,8 @@
       "copy": "copying or modifying site content without permission."
     },
     "limitations": {
-      "title": "Limitations of Liability",
-      "description": "We are not liable for damages caused by the use of the site and do not guarantee uninterrupted operation."
+      "title": "Limitation of Liability",
+      "description": "We are not liable for damages caused by site use and do not guarantee uninterrupted operation."
     },
     "governingLaw": {
       "title": "Governing Law",
@@ -151,13 +170,13 @@
     },
     "changes": {
       "title": "Changes",
-      "description": "The terms may be updated. The new version will be published on this page."
+      "description": "Terms may be updated. The new version will be posted on this page."
     },
     "contact": "Contact us: stamat2000@gmail.com",
-    "lastUpdated": "Last updated"
+    "lastUpdated": "Last Updated"
   },
   "CookieBanner": {
-    "message": "We use cookies to improve your experience. By continuing, you agree to our policy.",
+    "message": "We use cookies to enhance your experience. By continuing, you agree to our policy.",
     "accept": "Accept",
     "decline": "Decline"
   }

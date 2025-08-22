@@ -1,105 +1,143 @@
-'use client';
-
+// app/privacy-policy/page.tsx
+import { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
-import { useTranslations } from 'next-intl';
-import { Title } from '@/components/shared/title';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Shield,
-  User,
-  FileText,
-  RefreshCw,
-  Mail,
-  Database,
-} from 'lucide-react';
+import PrivacyPolicyContent from './privacy-policy-content';
 
-export default function PrivacyPolicyPage() {
-  const t = useTranslations('PrivacyPolicy');
-
-  const sections = [
-    {
-      id: 'dataCollection',
-      title: t('dataCollection.title'),
-      text: t('dataCollection.description'),
-      icon: <Database className="w-6 h-6 text-primary" />,
-      items: [
-        t('dataCollection.cookies'),
-        t('dataCollection.usageData'),
-        t('dataCollection.contactData'),
+// Metadata generation (server-side)
+export async function generateMetadata({
+  params,
+}: {
+  params: { locale: string };
+}): Promise<Metadata> {
+  const t = await getTranslations({
+    locale: params.locale,
+    namespace: 'PrivacyPolicy',
+  });
+  return {
+    title: `${t('title')} - Starion Digital`,
+    description: t('meta.description'),
+    keywords: [
+      'Starion Digital privacy policy',
+      'AR souvenirs privacy',
+      'data protection',
+      'website privacy policy',
+      params.locale === 'ru'
+        ? 'Политика конфиденциальности Starion Digital'
+        : params.locale === 'ro'
+          ? 'Politica de confidențialitate Starion Digital'
+          : 'Starion Digital privacy policy',
+    ],
+    openGraph: {
+      title: `${t('title')} - Starion Digital`,
+      description: t('meta.description'),
+      url: `https://starion-digital.com/${params.locale}/privacy-policy`,
+      type: 'website',
+      images: [
+        {
+          url: '/og-image-privacy.jpg',
+          width: 1200,
+          height: 630,
+          alt: t('title'),
+        },
       ],
     },
-    {
-      id: 'dataUsage',
-      title: t('dataUsage.title'),
-      text: t('dataUsage.description'),
-      icon: <Shield className="w-6 h-6 text-primary" />,
+    twitter: {
+      card: 'summary_large_image',
+      title: `${t('title')} - Starion Digital`,
+      description: t('meta.description'),
+      images: ['/og-image-privacy.jpg'],
     },
-    {
-      id: 'dataSharing',
-      title: t('dataSharing.title'),
-      text: t('dataSharing.description'),
-      icon: <FileText className="w-6 h-6 text-primary" />,
+    alternates: {
+      canonical: `https://starion-digital.com/${params.locale}/privacy-policy`,
+      languages: {
+        ru: `https://starion-digital.com/ru/privacy-policy`,
+        en: `https://starion-digital.com/en/privacy-policy`,
+        ro: `https://starion-digital.com/ro/privacy-policy`,
+      },
     },
-    {
-      id: 'dataStorage',
-      title: t('dataStorage.title'),
-      text: t('dataStorage.description'),
-      icon: <User className="w-6 h-6 text-primary" />,
+    other: {
+      'application/ld+json': JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: t('title'),
+        description: t('meta.description'),
+        url: `https://starion-digital.com/${params.locale}/privacy-policy`,
+        publisher: {
+          '@type': 'Organization',
+          name: 'Starion Digital',
+          url: 'https://starion-digital.com',
+          logo: 'https://starion-digital.com/logo.png',
+          contactPoint: {
+            '@type': 'ContactPoint',
+            telephone: '+373 680 33 007',
+            contactType: 'Customer Service',
+            email: 'stamat2000@gmail.com',
+          },
+        },
+      }),
     },
-    {
-      id: 'userRights',
-      title: t('userRights.title'),
-      text: t('userRights.description'),
-      icon: <User className="w-6 h-6 text-primary" />,
-    },
-    {
-      id: 'changes',
-      title: t('changes.title'),
-      text: t('changes.description'),
-      icon: <RefreshCw className="w-6 h-6 text-primary" />,
-    },
-  ];
+  };
+}
+
+export default async function PrivacyPolicyPage({
+  params,
+}: {
+  params: { locale: string };
+}) {
+  const t = await getTranslations({
+    locale: params.locale,
+    namespace: 'PrivacyPolicy',
+  });
+
+  const translations = {
+    title: t('title'),
+    introduction: t('introduction'),
+    contact: t('contact'),
+    lastUpdated: t('lastUpdated'),
+    sections: [
+      {
+        id: 'dataCollection',
+        title: t('dataCollection.title'),
+        text: t('dataCollection.description'),
+        items: [
+          t('dataCollection.cookies'),
+          t('dataCollection.usageData'),
+          t('dataCollection.contactData'),
+        ],
+      },
+      {
+        id: 'dataUsage',
+        title: t('dataUsage.title'),
+        text: t('dataUsage.description'),
+      },
+      {
+        id: 'dataSharing',
+        title: t('dataSharing.title'),
+        text: t('dataSharing.description'),
+      },
+      {
+        id: 'dataStorage',
+        title: t('dataStorage.title'),
+        text: t('dataStorage.description'),
+      },
+      {
+        id: 'userRights',
+        title: t('userRights.title'),
+        text: t('userRights.description'),
+      },
+      {
+        id: 'changes',
+        title: t('changes.title'),
+        text: t('changes.description'),
+      },
+    ],
+  };
 
   return (
     <main className="min-h-screen bg-background py-12 mx-4 md:mx-0">
       <Container className="max-w-4xl mx-auto">
-        <Title
-          text={t('title')}
-          className="w-full !text-4xl font-bold mb-8 text-center animate-gradient-flow"
-        />
-
-        <p className="text-muted-foreground text-center mb-12">
-          {t('introduction')}
-        </p>
-
-        <div className="space-y-8 ">
-          {sections.map((section) => (
-            <Card key={section.id} id={section.id} className="shadow-md">
-              <CardContent className="p-6 space-y-4">
-                <div className="flex items-center gap-3">
-                  {section.icon}
-                  <h2 className="text-2xl font-semibold">{section.title}</h2>
-                </div>
-                <p className="text-muted-foreground">{section.text}</p>
-                {section.items && (
-                  <ul className="list-disc pl-6 space-y-1 text-muted-foreground">
-                    {section.items.map((item, i) => (
-                      <li key={i}>{item}</li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <p className="mt-12 text-center text-sm text-muted-foreground">
-          {t('contact')} <Mail className="inline w-4 h-4 ml-1" />
-        </p>
-
-        <p className="mt-4 text-center text-xs text-muted-foreground">
-          {t('lastUpdated')}: 22 August 2025
-        </p>
+        <PrivacyPolicyContent translations={translations} />
       </Container>
     </main>
   );
