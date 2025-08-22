@@ -8,10 +8,10 @@
     "description": "Founder and leader of Starion Digital. Contact me for collaboration, consultations, and services.",
     "contact_title": "Get in Touch",
     "services_title": "Services",
-    "phone": "Phone: +373 (xxx) xxx-xxx",
-    "email": "Email: stamat.yuri@email.com",
-    "telegram": "Telegram: @stamatyuri",
-    "instagram": "Instagram: @stamatyuri",
+    "phone": "Phone: +373 680 33 007",
+    "email": "Email: stamat2000@gmail.com",
+    "telegram": "Telegram: @Viar_tech",
+    "instagram": "Instagram: @magnetar_souvenir",
     "services": {
       "ar_souvenirs": "Custom AR souvenirs",
       "ar_vr_consulting": "AR/VR consultations",
@@ -88,5 +88,77 @@
     "light": "Light",
     "dark": "Dark",
     "system": "System"
+  },
+  "PrivacyPolicy": {
+    "title": "Privacy Policy",
+    "introduction": "We respect your privacy and are committed to protecting your personal data.",
+    "dataCollection": {
+      "title": "Data Collection",
+      "description": "We may collect the following categories of data:",
+      "cookies": "Cookies to store language and theme preferences.",
+      "usageData": "Anonymous usage data (e.g., pages you visit).",
+      "contactData": "Data you voluntarily provide when contacting us (name, email)."
+    },
+    "dataUsage": {
+      "title": "Use of Data",
+      "description": "Data is used to operate the site, personalize your experience, and improve services."
+    },
+    "dataSharing": {
+      "title": "Data Sharing",
+      "description": "We do not share your data with third parties, except as required by law."
+    },
+    "dataStorage": {
+      "title": "Data Storage",
+      "description": "Cookies are stored from 1 day to 12 months. Contact data is kept only as long as needed to respond to your request."
+    },
+    "userRights": {
+      "title": "Your Rights",
+      "description": "You have the right to request a copy of your data, demand correction or deletion, and opt out of cookies."
+    },
+    "changes": {
+      "title": "Changes",
+      "description": "We may update this policy. All changes will be published here."
+    },
+    "contact": "For any questions, please contact: stamat2000@gmail.com",
+    "lastUpdated": "Last updated"
+  },
+
+  "Terms": {
+    "title": "Terms of Use",
+    "introduction": "By using this site, you agree to the terms below.",
+    "useOfSite": {
+      "title": "Use of the Site",
+      "description": "The site is provided 'as is'. Use it only for lawful purposes."
+    },
+    "intellectualProperty": {
+      "title": "Intellectual Property",
+      "description": "All materials (logos, design, texts, images, 3D models) belong to Starion Digital and are protected by copyright."
+    },
+    "prohibited": {
+      "title": "Prohibited Actions",
+      "description": "Users are prohibited from:",
+      "illegal": "using the site for illegal activities;",
+      "spam": "sending spam or attempting to hack;",
+      "copy": "copying or modifying site content without permission."
+    },
+    "limitations": {
+      "title": "Limitations of Liability",
+      "description": "We are not liable for damages caused by the use of the site and do not guarantee uninterrupted operation."
+    },
+    "governingLaw": {
+      "title": "Governing Law",
+      "description": "These terms are governed by the laws of the Republic of Moldova / EU."
+    },
+    "changes": {
+      "title": "Changes",
+      "description": "The terms may be updated. The new version will be published on this page."
+    },
+    "contact": "Contact us: stamat2000@gmail.com",
+    "lastUpdated": "Last updated"
+  },
+  "CookieBanner": {
+    "message": "We use cookies to improve your experience. By continuing, you agree to our policy.",
+    "accept": "Accept",
+    "decline": "Decline"
   }
 }

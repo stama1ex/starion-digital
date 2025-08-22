@@ -8,10 +8,10 @@
     "description": "Fondator și lider al Starion Digital. Contactați-mă pentru colaborări, consultanțe și servicii.",
     "contact_title": "Contactați-mă",
     "services_title": "Servicii",
-    "phone": "Telefon: +373 (xxx) xxx-xxx",
-    "email": "Email: stamat.yuri@email.com",
-    "telegram": "Telegram: @stamatyuri",
-    "instagram": "Instagram: @stamatyuri",
+    "phone": "Telefon: +373 680 33 007",
+    "email": "Email: stamat2000@gmail.com",
+    "telegram": "Telegram: @Viar_tech",
+    "instagram": "Instagram: @magnetar_souvenir",
     "services": {
       "ar_souvenirs": "Suveniruri AR personalizate",
       "ar_vr_consulting": "Consultanță AR/VR",
@@ -88,5 +88,77 @@
     "light": "Luminos",
     "dark": "Întunecat",
     "system": "Sistem"
+  },
+  "PrivacyPolicy": {
+    "title": "Politica de confidențialitate",
+    "introduction": "Respectăm confidențialitatea dumneavoastră și ne angajăm să protejăm datele personale.",
+    "dataCollection": {
+      "title": "Colectarea datelor",
+      "description": "Putem colecta următoarele categorii de date:",
+      "cookies": "Cookie-uri pentru salvarea preferințelor de limbă și temă.",
+      "usageData": "Date anonime despre utilizarea site-ului (ex. paginile vizitate).",
+      "contactData": "Date furnizate voluntar atunci când ne contactați (nume, email)."
+    },
+    "dataUsage": {
+      "title": "Utilizarea datelor",
+      "description": "Datele sunt utilizate pentru funcționarea site-ului, personalizarea experienței și îmbunătățirea serviciilor."
+    },
+    "dataSharing": {
+      "title": "Partajarea datelor",
+      "description": "Nu partajăm datele dumneavoastră cu terți, decât dacă legea o cere."
+    },
+    "dataStorage": {
+      "title": "Stocarea datelor",
+      "description": "Cookie-urile sunt stocate între 1 zi și 12 luni. Datele de contact sunt păstrate doar pe durata necesară pentru a răspunde solicitării."
+    },
+    "userRights": {
+      "title": "Drepturile dumneavoastră",
+      "description": "Aveți dreptul să solicitați o copie a datelor, corectarea sau ștergerea acestora și să refuzați utilizarea cookie-urilor."
+    },
+    "changes": {
+      "title": "Modificări",
+      "description": "Putem actualiza această politică. Toate modificările vor fi publicate aici."
+    },
+    "contact": "Pentru întrebări, vă rugăm să ne contactați: stamat2000@gmail.com",
+    "lastUpdated": "Ultima actualizare"
+  },
+
+  "Terms": {
+    "title": "Termeni de utilizare",
+    "introduction": "Prin utilizarea acestui site, sunteți de acord cu termenii de mai jos.",
+    "useOfSite": {
+      "title": "Utilizarea site-ului",
+      "description": "Site-ul este furnizat 'ca atare'. Utilizați-l doar în scopuri legale."
+    },
+    "intellectualProperty": {
+      "title": "Proprietate intelectuală",
+      "description": "Toate materialele (logo-uri, design, texte, imagini, modele 3D) aparțin Starion Digital și sunt protejate prin drepturi de autor."
+    },
+    "prohibited": {
+      "title": "Acțiuni interzise",
+      "description": "Utilizatorilor le este interzis:",
+      "illegal": "să folosească site-ul pentru activități ilegale;",
+      "spam": "să trimită spam sau să încerce atacuri informatice;",
+      "copy": "să copieze sau să modifice conținutul site-ului fără permisiune."
+    },
+    "limitations": {
+      "title": "Limitări ale răspunderii",
+      "description": "Nu ne asumăm răspunderea pentru daune cauzate de utilizarea site-ului și nu garantăm funcționarea neîntreruptă."
+    },
+    "governingLaw": {
+      "title": "Legea aplicabilă",
+      "description": "Acești termeni sunt guvernați de legislația Republicii Moldova / UE."
+    },
+    "changes": {
+      "title": "Modificări",
+      "description": "Termenii pot fi actualizați. Noua versiune va fi publicată pe această pagină."
+    },
+    "contact": "Contactați-ne: stamat2000@gmail.com",
+    "lastUpdated": "Ultima actualizare"
+  },
+  "CookieBanner": {
+    "message": "Folosim cookie-uri pentru a vă îmbunătăți experiența. Continuând, sunteți de acord cu politica noastră.",
+    "accept": "Acceptă",
+    "decline": "Refuză"
   }
 }

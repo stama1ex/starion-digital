@@ -6,6 +6,7 @@ import { Footer } from '@/components/shared/footer';
 import { ThemeProvider } from '@/components/theme-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { CookieBanner } from '@/components/ui/cookie-banner';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -46,6 +47,7 @@ export default async function RootLayout({
             <Header />
             {children}
             <Footer />
+            <CookieBanner />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

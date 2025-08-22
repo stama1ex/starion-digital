@@ -1,7 +1,13 @@
 // components/shared/footer.tsx
 'use client';
 import React from 'react';
-import { FaFacebook, FaInstagram, FaLinkedin, FaTwitter } from 'react-icons/fa';
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaTelegram,
+  FaTwitter,
+} from 'react-icons/fa';
 import { Container } from './container';
 import { Soon } from './soon';
 import { useTranslations } from 'next-intl';
@@ -34,15 +40,21 @@ const defaultLogo = {
 };
 
 const defaultSocialLinks = [
-  { icon: <FaInstagram className="size-5" />, href: '#', label: 'Instagram' },
-  { icon: <FaFacebook className="size-5" />, href: '#', label: 'Facebook' },
-  { icon: <FaTwitter className="size-5" />, href: '#', label: 'Twitter' },
-  { icon: <FaLinkedin className="size-5" />, href: '#', label: 'LinkedIn' },
+  {
+    icon: <FaInstagram className="size-5" />,
+    href: 'https://www.instagram.com/magnetar_souvenir?igsh=MW5ka2QzMzJtOHMybw==',
+    label: 'Instagram',
+  },
+  {
+    icon: <FaTelegram className="size-5" />,
+    href: 'https://t.me/Viar_tech',
+    label: 'Telegram',
+  },
 ];
 
 const defaultLegalLinks = [
-  { name: 'Terms and Conditions', href: '#' },
-  { name: 'Privacy Policy', href: '#' },
+  { name: 'Terms and Conditions', href: '/terms' },
+  { name: 'Privacy Policy', href: '/privacy-policy' },
 ];
 
 const Footer: React.FC<FooterProps> = ({
@@ -94,7 +106,10 @@ const Footer: React.FC<FooterProps> = ({
             </p>
             <ul className="text-muted-foreground flex items-center space-x-6">
               {socialLinks.map((social, idx) => (
-                <li key={idx} className="hover:text-primary font-medium">
+                <li
+                  key={idx}
+                  className="hover:text-primary hover:scale-110 transition duration-200 font-medium"
+                >
                   <a
                     href={social.href}
                     aria-label={social.label}
@@ -144,7 +159,21 @@ const Footer: React.FC<FooterProps> = ({
           </div>
         </div>
         <div className="text-muted-foreground mt-8 flex flex-col justify-between gap-4 border-t py-8 text-xs font-medium md:flex-row md:items-center md:gap-4">
-          <p className="order-2 md:order-1 mx-auto">{t('copyright')}</p>
+          <p className="order-2 md:order-1 text-center md:text-start">
+            {t('copyright')}
+          </p>
+          <ul className="order-1 md:order-2 flex flex-wrap justify-center gap-4">
+            {legalLinks.map((link, idx) => (
+              <li key={idx}>
+                <Link
+                  href={link.href}
+                  className="hover:text-primary transition"
+                >
+                  {link.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       </Container>
     </footer>
