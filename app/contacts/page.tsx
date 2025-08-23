@@ -83,7 +83,6 @@ export default async function ContactsPage({
       ar_souvenirs: t('services.ar_souvenirs'),
       ar_vr_consulting: t('services.ar_vr_consulting'),
       souvenir_design: t('services.souvenir_design'),
-      workshops: t('services.workshops'),
     },
   };
 

@@ -9,30 +9,36 @@ import {
   Html,
   useProgress,
 } from '@react-three/drei';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Progress } from '@/components/ui/progress';
 import { Vector3 } from 'three';
 import { useTranslations } from 'next-intl';
+import { toast } from 'sonner'; // ✅ sonner
 
 interface SceneProps {
-  modelPath: string; // Path to the 3D model (e.g., '/3d/magnet.glb')
-  scale?: number | [number, number, number]; // Scale of the model
-  objectPosition?: Vector3 | [number, number, number]; // Position of the model
-  cameraPosition?: Vector3 | [number, number, number]; // Camera position
-  directionalLightIntensity?: number; // Intensity of directional light
-  environmentPreset?: string; // Environment preset (e.g., 'dawn', 'studio')
+  modelPath: string;
+  scale?: number | [number, number, number];
+  objectPosition?: Vector3 | [number, number, number];
+  cameraPosition?: Vector3 | [number, number, number];
+  directionalLightIntensity?: number;
+  environmentPreset?: string;
 }
 
 const Model: React.FC<{
   url: string;
   scale: number | [number, number, number];
   position: Vector3 | [number, number, number];
-}> = ({ url, scale, position }) => {
+  onLoaded?: () => void;
+}> = ({ url, scale, position, onLoaded }) => {
   const { scene } = useGLTF(url, true);
+
+  useEffect(() => {
+    if (onLoaded) onLoaded();
+  }, [onLoaded]);
+
   return <primitive object={scene} scale={scale} position={position} />;
 };
 
-// Лоадер с прогресс-баром
 const Loader = () => {
   const { progress } = useProgress();
   const t = useTranslations('Scene');
@@ -57,6 +63,17 @@ const Scene: React.FC<SceneProps> = ({
   directionalLightIntensity = 0.3,
   environmentPreset = 'dawn',
 }) => {
+  const t = useTranslations('Scene');
+  const [modelLoaded, setModelLoaded] = useState(false);
+
+  useEffect(() => {
+    if (modelLoaded) {
+      toast(t('tooltip'), {
+        duration: 6000,
+      });
+    }
+  }, [modelLoaded, t]);
+
   return (
     <Canvas
       style={{ height: '100%', width: '100%' }}
@@ -68,7 +85,12 @@ const Scene: React.FC<SceneProps> = ({
         intensity={directionalLightIntensity}
       />
       <Suspense fallback={<Loader />}>
-        <Model url={modelPath} scale={scale} position={objectPosition} />
+        <Model
+          url={modelPath}
+          scale={scale}
+          position={objectPosition}
+          onLoaded={() => setModelLoaded(true)}
+        />
         <Environment preset={environmentPreset as any} />
       </Suspense>
       <OrbitControls enablePan={false} />

@@ -93,7 +93,7 @@ const Catalog: React.FC<CatalogProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 my-8 mx-4 md:mx-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 my-8 px-4 md:px-0">
           {isLoading
             ? Array.from({ length: 8 }).map((_, idx) => (
                 <Skeleton

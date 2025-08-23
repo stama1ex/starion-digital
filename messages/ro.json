@@ -5,7 +5,15 @@
       "description": "Creăm suveniruri unice cu realitate augmentată pentru experiențe de neuitat."
     },
     "title": "Bine ați venit la ",
-    "description": "Creăm suveniruri unice cu realitate augmentată."
+    "description": "Creăm suveniruri unice cu realitate augmentată pentru experiențe de neuitat.",
+    "choose": "Alegeți",
+    "categories": [
+      "MAGNEȚI",
+      "FARFURII",
+      "FELICITĂRI",
+      "STATUETE",
+      "GLOBURI DE STICLĂ"
+    ]
   },
   "ContactsPage": {
     "meta": {
@@ -23,8 +31,7 @@
     "services": {
       "ar_souvenirs": "Suveniruri AR personalizate",
       "ar_vr_consulting": "Consultanță AR/VR",
-      "souvenir_design": "Design și dezvoltare de suveniruri",
-      "workshops": "Ateliere și cursuri"
+      "souvenir_design": "Design și dezvoltare de suveniruri"
     }
   },
   "Header": {
@@ -87,7 +94,8 @@
     "close": "Închide"
   },
   "Scene": {
-    "loading": "Încărcare {progress}%"
+    "loading": "Încărcare {progress}%",
+    "tooltip": "Aceasta este o scenă 3D. O puteți roti cu mouse-ul și mări cu rotița de scroll"
   },
   "Footer": {
     "product": "Produs",
@@ -179,5 +187,10 @@
     "message": "Folosim cookie-uri pentru a vă îmbunătăți experiența. Continuând, sunteți de acord cu politica noastră.",
     "accept": "Accept",
     "decline": "Refuz"
+  },
+  "NotFound": {
+    "title": "Pagină negăsită",
+    "description": "Hopa! Pagina pe care o căutați nu există. Hai să vă întoarcem la explorarea suvenirurilor noastre cu realitate augmentată!",
+    "home_button": "Întoarce-te acasă"
   }
 }

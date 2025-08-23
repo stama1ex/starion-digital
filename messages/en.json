@@ -5,7 +5,15 @@
       "description": "We create unique augmented reality souvenirs for unforgettable experiences."
     },
     "title": "Welcome to ",
-    "description": "We create unique augmented reality souvenirs."
+    "description": "We create unique augmented reality souvenirs for unforgettable experiences.",
+    "choose": "Choose",
+    "categories": [
+      "MAGNETS",
+      "PLATES",
+      "POSTCARDS",
+      "STATUETTES",
+      "GLASS BALLS"
+    ]
   },
   "ContactsPage": {
     "meta": {
@@ -23,8 +31,7 @@
     "services": {
       "ar_souvenirs": "Custom AR souvenirs",
       "ar_vr_consulting": "AR/VR consultations",
-      "souvenir_design": "Souvenir design and development",
-      "workshops": "Workshops and training"
+      "souvenir_design": "Souvenir design and development"
     }
   },
   "Header": {
@@ -87,7 +94,8 @@
     "close": "Close"
   },
   "Scene": {
-    "loading": "Loading {progress}%"
+    "loading": "Loading {progress}%",
+    "tooltip": "This is a 3D scene. You can rotate it with the mouse and zoom with the scroll wheel"
   },
   "Footer": {
     "product": "Product",
@@ -179,5 +187,10 @@
     "message": "We use cookies to enhance your experience. By continuing, you agree to our policy.",
     "accept": "Accept",
     "decline": "Decline"
+  },
+  "NotFound": {
+    "title": "Page Not Found",
+    "description": "Oops! The page you're looking for doesn't exist. Let's get you back to exploring our augmented reality souvenirs!",
+    "home_button": "Return to Home"
   }
 }

@@ -134,7 +134,7 @@ export default async function TermsPage({
   };
 
   return (
-    <main className="min-h-screen bg-background py-12 mx-4 md:mx-0">
+    <main className="min-h-screen bg-background py-12 px-4 md:px-0">
       <Container className="max-w-4xl mx-auto">
         <TermsContent translations={translations} />
       </Container>

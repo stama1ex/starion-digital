@@ -17,7 +17,6 @@ interface ContactsContentProps {
       ar_souvenirs: string;
       ar_vr_consulting: string;
       souvenir_design: string;
-      workshops: string;
     };
   };
 }
@@ -26,7 +25,7 @@ export default function ContactsContent({
   translations,
 }: ContactsContentProps) {
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col px-4 md:px-0">
       {/* Заголовок + картинка */}
       <div className="flex flex-col md:flex-row gap-16 items-center w-full">
         <motion.div
@@ -36,7 +35,7 @@ export default function ContactsContent({
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
           <motion.h1
-            className="text-4xl mt-12 text-center md:text-start md:mt-0 md:text-6xl font-extrabold leading-tight animate-gradient-flow"
+            className="text-4xl !mt-12 !md:mt-0 text-center md:text-start md:text-6xl font-extrabold leading-tight animate-gradient-flow"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
@@ -57,7 +56,7 @@ export default function ContactsContent({
           className="flex-1 w-full max-w-xl mx-auto flex justify-center"
           initial={{ opacity: 0, x: 100 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 1, ease: 'easeOut', delay: 0.5 }}
+          transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
         >
           <Image
             src="/stamat-yuri.webp"
@@ -71,14 +70,14 @@ export default function ContactsContent({
       </div>
 
       {/* Разделитель */}
-      <hr className="mb-12 w-full border-muted-foreground" />
+      <hr className="mb-12 w-full border" />
 
       {/* Контакты + Услуги */}
       <motion.div
         className="grid grid-cols-1 md:grid-cols-2 gap-12 mt-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 1, ease: 'easeOut', delay: 1 }}
+        transition={{ duration: 1, ease: 'easeOut', delay: 0.5 }}
       >
         <div>
           <h2 className="text-2xl font-bold mb-4 text-center md:text-start">
@@ -100,7 +99,6 @@ export default function ContactsContent({
             <li>{translations.services.ar_souvenirs}</li>
             <li>{translations.services.ar_vr_consulting}</li>
             <li>{translations.services.souvenir_design}</li>
-            <li>{translations.services.workshops}</li>
           </ul>
         </div>
       </motion.div>

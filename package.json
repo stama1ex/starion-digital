@@ -31,6 +31,8 @@
     "react-dom": "19.1.0",
     "react-icons": "^5.5.0",
     "react-parallax-tilt": "^1.7.304",
+    "react-type-animation": "^3.2.0",
+    "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "three": "^0.179.1",
     "vanta": "^0.5.24",

@@ -4,7 +4,6 @@ import { getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
 import HomeContent from './home-content';
 
-// Metadata generation (server-side)
 export async function generateMetadata({
   params,
 }: {
@@ -55,17 +54,17 @@ export async function generateMetadata({
   };
 }
 
-// Server component
 export default async function Page({ params }: { params: { locale: string } }) {
   const t = await getTranslations({
     locale: params.locale,
     namespace: 'HomePage',
   });
 
-  // Pass translations to client component
   const translations = {
     title: t('title'),
     description: t('description'),
+    choose: t('choose'),
+    categories: t.raw('categories') as string[],
   };
 
   return (

@@ -14,9 +14,9 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Souvenir } from '@/types';
 import VantaFogBackground from '../ui/vanta-background';
-import { Skeleton } from '../ui/skeleton';
 import Scene from '../scene';
 import { useTranslations } from 'next-intl';
+import { ExampleBlockSkeleton } from './example-block-skeleton';
 
 interface ExampleBlockProps {
   souvenir: Souvenir;
@@ -43,16 +43,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
   const t = useTranslations('ExampleBlock');
 
   if (isLoading) {
-    return (
-      <Skeleton className="my-6 md:my-12 mx-4 md:mx-0 rounded-lg shadow-md border p-8 flex flex-col md:flex-row items-center gap-8">
-        <div className="w-60 h-60 md:w-64 md:h-64 bg-muted rounded animate-pulse mb-4" />
-        <div className="flex flex-col gap-4 flex-1">
-          <div className="w-48 h-8 bg-muted rounded animate-pulse" />
-          <div className="w-64 h-6 bg-muted rounded animate-pulse" />
-          <div className="w-32 h-4 bg-muted rounded animate-pulse" />
-        </div>
-      </Skeleton>
-    );
+    return <ExampleBlockSkeleton reverse={reverse} className={className} />;
   }
 
   // Define scene settings based on souvenir type

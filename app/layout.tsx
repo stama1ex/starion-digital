@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { CookieBanner } from '@/components/ui/cookie-banner';
+import { Toaster } from '@/components/ui/sonner';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -46,6 +47,7 @@ export default async function RootLayout({
           >
             <Header />
             {children}
+            <Toaster />
             <Footer />
             <CookieBanner />
           </ThemeProvider>

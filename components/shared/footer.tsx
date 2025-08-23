@@ -141,7 +141,7 @@ const Footer: React.FC<FooterProps> = ({
                             : 'hover:text-primary font-medium'
                         }
                       >
-                        <a
+                        <Link
                           href={isSoon ? '#' : link.href}
                           tabIndex={isSoon ? -1 : 0}
                           aria-disabled={isSoon ? 'true' : 'false'}
@@ -149,7 +149,7 @@ const Footer: React.FC<FooterProps> = ({
                         >
                           {link.name}
                           {isSoon && <Soon className="ml-2" />}
-                        </a>
+                        </Link>
                       </li>
                     );
                   })}

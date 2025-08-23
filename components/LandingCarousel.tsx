@@ -20,7 +20,6 @@ import { Soon } from './shared/soon';
 import { useTranslations } from 'next-intl';
 
 export default function LandingCarousel() {
-  const t = useTranslations('LandingCarousel');
   const tCategories = useTranslations('Categories');
   const categories = getCategories().map((category) => ({
     ...category,
@@ -117,9 +116,16 @@ export default function LandingCarousel() {
               <div className="p-4 select-none">
                 <Card className="relative flex flex-col items-center justify-center p-0 animate-shadow-flow">
                   <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 w-full md:h-[500px] h-[300px] bg-card rounded-lg overflow-hidden">
-                    <span className="text-3xl md:text-5xl font-black text-center animate-gradient-flow z-5">
-                      {item.name}
-                    </span>
+                    {[3, 4, 5].includes(item.id) ? (
+                      <span className="text-3xl md:text-5xl font-black text-center text-primary/50 z-5">
+                        {item.name}
+                      </span>
+                    ) : (
+                      <span className="text-3xl md:text-5xl font-black text-center animate-gradient-flow z-5">
+                        {item.name}
+                      </span>
+                    )}
+
                     {[3, 4, 5].includes(item.id) && (
                       <Soon className="text-xl" />
                     )}

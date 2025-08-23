@@ -26,9 +26,10 @@ import { ThemeToggleButton } from './theme-toggle-button';
 import ReactCountryFlag from 'react-country-flag';
 import { Soon } from './soon';
 import { DialogTitle } from '../ui/dialog';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/store/useLocaleStore';
+import { HeaderSkeleton } from './header-skeleton';
 
 interface Props {
   className?: string;
@@ -51,13 +52,12 @@ const languages = [
 export const Header: React.FC<Props> = ({ className }) => {
   const [mounted, setMounted] = React.useState(false);
   const pathname = usePathname();
-  const router = useRouter();
   const t = useTranslations('Header');
   const tCategories = useTranslations('Categories');
   const setLocale = useLocaleStore((state) => state.setLocale);
 
   React.useEffect(() => setMounted(true), []);
-  if (!mounted) return null;
+  if (!mounted) return <HeaderSkeleton />;
 
   const isActive = (href: string) => {
     // Remove locale prefix (e.g., /en, /ru) from pathname for comparison
@@ -74,7 +74,7 @@ export const Header: React.FC<Props> = ({ className }) => {
 
   const changeLocale = (newLocale: string) => {
     setLocale(newLocale);
-    router.refresh();
+    window.location.reload();
   };
 
   // Check if any category is active to highlight the Categories trigger

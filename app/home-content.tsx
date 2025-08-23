@@ -1,7 +1,8 @@
-// components/HomeContent.tsx
+// app/home-content.tsx
 'use client';
 
 import { motion } from 'framer-motion';
+import { TypeAnimation } from 'react-type-animation';
 import LandingDrawer from '@/components/LandingDrawer';
 import LandingCarousel from '@/components/LandingCarousel';
 
@@ -9,6 +10,8 @@ interface HomeContentProps {
   translations: {
     title: string;
     description: string;
+    choose: string;
+    categories: string[];
   };
 }
 
@@ -29,7 +32,7 @@ export default function HomeContent({ translations }: HomeContentProps) {
           transition={{ duration: 0.9, ease: 'easeOut', delay: 0.2 }}
         >
           {translations.title}
-          <span className="animate-gradient-flow">Starion Digital</span>
+          <span className="animate-gradient-flow !my-0">Starion Digital</span>
         </motion.h1>
 
         <motion.p
@@ -41,10 +44,29 @@ export default function HomeContent({ translations }: HomeContentProps) {
           {translations.description}
         </motion.p>
 
+        <motion.p
+          className="text-center md:text-start text-md md:text-lg text-muted-foreground max-w-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.9, ease: 'easeOut', delay: 0.6 }}
+        >
+          {translations.choose}{' '}
+          <TypeAnimation
+            sequence={translations.categories.flatMap((category) => [
+              category,
+              2000, // Задержка 2 секунды перед сменой
+            ])}
+            wrapper="span"
+            speed={50}
+            repeat={Infinity}
+            className="font-bold text-primary"
+          />
+        </motion.p>
+
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.8 }}
           className="flex justify-center md:justify-start"
         >
           <LandingDrawer />
