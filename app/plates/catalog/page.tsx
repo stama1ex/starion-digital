@@ -1,18 +1,39 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { Dropbox } from 'dropbox';
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import PlatesCatalogContent from './plates-catalog-content';
+import { Souvenir } from '@/types';
+import fetch from 'node-fetch'; // Import node-fetch
+import fs from 'fs/promises';
+import path from 'path';
 
-// Define the params type explicitly
 interface PageParams {
   locale: string;
+}
+
+async function getModelUrl(fileName: string) {
+  const dbx = new Dropbox({
+    accessToken: process.env.DROPBOX_ACCESS_TOKEN,
+    fetch: fetch as any, // Pass node-fetch to Dropbox SDK
+  });
+  try {
+    const { result } = await dbx.filesGetTemporaryLink({
+      path: `/${fileName}`,
+    });
+    return result.link;
+  } catch (error) {
+    console.error(`Error fetching Dropbox link for ${fileName}:`, error);
+    return '';
+  }
 }
 
 export async function generateMetadata({
   params,
 }: {
-  params: Promise<PageParams>; // Use Promise<PageParams>
+  params: Promise<PageParams>;
 }): Promise<Metadata> {
-  const resolvedParams = await params; // Await the Promise
+  const resolvedParams = await params;
   const t = await getTranslations({
     locale: resolvedParams.locale,
     namespace: 'Catalog',
@@ -61,7 +82,7 @@ export async function generateMetadata({
 export default async function PlatesCatalogPage({
   params,
 }: {
-  params: Promise<PageParams>; // Use Promise<PageParams>
+  params: Promise<PageParams>;
 }) {
   const resolvedParams = await params;
   const t = await getTranslations({
@@ -73,7 +94,22 @@ export default async function PlatesCatalogPage({
     plates_title: t('plates_title'),
   };
 
-  const products = (await import('../../../public/plates.json')).default;
+  // Fetch product data server-side
+  let products: Souvenir[] = [];
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'plates.json');
+    const fileContent = await fs.readFile(filePath, 'utf-8');
+    products = JSON.parse(fileContent) as Souvenir[];
+  } catch (error) {
+    console.error('Error reading plates.json:', error);
+    products = []; // Fallback to empty array
+  }
+
+  // Fetch Dropbox URLs
+  const modelUrls = {
+    magnet: await getModelUrl('magnet.glb'),
+    plate: await getModelUrl('plate.glb'),
+  };
 
   return (
     <main>
@@ -82,6 +118,7 @@ export default async function PlatesCatalogPage({
         dataSource="/plates.json"
         exampleProductNumber="112"
         products={products}
+        modelUrls={modelUrls}
       />
     </main>
   );

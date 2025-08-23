@@ -1,4 +1,3 @@
-// components/MagnetsCatalogContent.tsx
 'use client';
 
 import Catalog from '@/components/shared/catalog';
@@ -11,6 +10,7 @@ interface MagnetsCatalogContentProps {
   dataSource: string;
   exampleProductNumber: string;
   products: Souvenir[];
+  modelUrls: Record<string, string>; // New prop for Dropbox URLs
 }
 
 export default function MagnetsCatalogContent({
@@ -18,6 +18,7 @@ export default function MagnetsCatalogContent({
   dataSource,
   exampleProductNumber,
   products,
+  modelUrls, // Receive Dropbox URLs
 }: MagnetsCatalogContentProps) {
   return (
     <Catalog
@@ -25,6 +26,7 @@ export default function MagnetsCatalogContent({
       dataSource={dataSource}
       exampleProductNumber={exampleProductNumber}
       products={products}
+      modelUrls={modelUrls} // Pass modelUrls to Catalog
     />
   );
 }

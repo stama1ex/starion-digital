@@ -1,4 +1,3 @@
-// components/PlatesCatalogContent.tsx
 'use client';
 
 import Catalog from '@/components/shared/catalog';
@@ -11,6 +10,7 @@ interface PlatesCatalogContentProps {
   dataSource: string;
   exampleProductNumber: string;
   products: Souvenir[];
+  modelUrls: Record<string, string>; // New prop for Dropbox URLs
 }
 
 export default function PlatesCatalogContent({
@@ -18,6 +18,7 @@ export default function PlatesCatalogContent({
   dataSource,
   exampleProductNumber,
   products,
+  modelUrls, // Receive Dropbox URLs
 }: PlatesCatalogContentProps) {
   return (
     <Catalog
@@ -25,6 +26,7 @@ export default function PlatesCatalogContent({
       dataSource={dataSource}
       exampleProductNumber={exampleProductNumber}
       products={products}
+      modelUrls={modelUrls} // Pass modelUrls to Catalog
     />
   );
 }

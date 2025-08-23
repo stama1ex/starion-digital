@@ -1,4 +1,3 @@
-// components/shared/catalog.tsx
 'use client';
 
 import { Container } from '@/components/shared/container';
@@ -22,7 +21,8 @@ interface CatalogProps {
   dataSource: string;
   exampleProductNumber?: string;
   className?: string;
-  products?: Souvenir[]; // Add optional products prop
+  products?: Souvenir[];
+  modelUrls: Record<string, string>; // New prop for Dropbox URLs
 }
 
 const Catalog: React.FC<CatalogProps> = ({
@@ -31,17 +31,17 @@ const Catalog: React.FC<CatalogProps> = ({
   exampleProductNumber,
   className,
   products: initialProducts,
+  modelUrls, // Receive Dropbox URLs
 }) => {
   const t = useTranslations('Catalog');
   const [products, setProducts] = useState<Souvenir[]>(initialProducts || []);
   const [selectedProduct, setSelectedProduct] = useState<Souvenir | null>(null);
   const [exampleProduct, setExampleProduct] = useState<Souvenir | null>(null);
-  const [isLoading, setIsLoading] = useState(!initialProducts); // Only load if no initialProducts
+  const [isLoading, setIsLoading] = useState(!initialProducts);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialProducts) {
-      // Fetch data only if initialProducts is not provided
       setIsLoading(true);
       fetch(dataSource)
         .then((res) => {
@@ -64,7 +64,6 @@ const Catalog: React.FC<CatalogProps> = ({
           setIsLoading(false);
         });
     } else if (exampleProductNumber) {
-      // Set exampleProduct from initialProducts
       const foundProduct = initialProducts.find(
         (product) => product.number === exampleProductNumber
       );
@@ -83,6 +82,7 @@ const Catalog: React.FC<CatalogProps> = ({
             souvenir={exampleProduct}
             reverse={false}
             className="my-6 md:my-12"
+            modelUrl={modelUrls[exampleProduct.type] || ''} // Pass the correct model URL
           />
         )}
         <hr className="my-12" />

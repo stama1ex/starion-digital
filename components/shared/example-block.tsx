@@ -23,6 +23,7 @@ interface ExampleBlockProps {
   reverse?: boolean;
   className?: string;
   isLoading?: boolean;
+  modelUrl: string; // New prop for the Dropbox temporary URL
 }
 
 interface SceneSettings {
@@ -39,6 +40,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
   reverse = false,
   className,
   isLoading = false,
+  modelUrl, // Receive the Dropbox URL
 }) => {
   const t = useTranslations('ExampleBlock');
 
@@ -49,7 +51,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
   // Define scene settings based on souvenir type
   const sceneSettings: Record<string, SceneSettings> = {
     magnet: {
-      modelPath: `/3d/${souvenir.type}.glb`, // e.g., '/3d/magnet.glb'
+      modelPath: modelUrl, // Use the passed Dropbox URL
       scale: [5, 5, 5],
       objectPosition: [0, -1.5, 0],
       cameraPosition: [0, 0, 5],
@@ -57,12 +59,12 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
       environmentPreset: 'city',
     },
     plate: {
-      modelPath: `/3d/${souvenir.type}.glb`, // e.g., '/3d/plate.glb'
+      modelPath: modelUrl, // Use the passed Dropbox URL
       scale: [3, 3, 3],
       objectPosition: [0, 0, 0],
       cameraPosition: [0, 0, 8],
-      directionalLightIntensity: 10, // Match magnet's lighting
-      environmentPreset: 'city', // Match magnet's lighting
+      directionalLightIntensity: 10,
+      environmentPreset: 'city',
     },
   };
 
