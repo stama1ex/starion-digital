@@ -1,18 +1,23 @@
-// app/plates/catalog/page.tsx
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import PlatesCatalogContent from './plates-catalog-content';
 
-// Metadata generation (server-side)
+// Define the params type explicitly
+interface PageParams {
+  locale: string;
+}
+
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<PageParams>; // Use Promise<PageParams>
 }): Promise<Metadata> {
+  const resolvedParams = await params; // Await the Promise
   const t = await getTranslations({
-    locale: params.locale,
+    locale: resolvedParams.locale,
     namespace: 'Catalog',
   });
+
   return {
     title: `${t('plates_title')} - Starion Digital`,
     description: t('meta.description_plates'),
@@ -21,20 +26,20 @@ export async function generateMetadata({
       'souvenir plates',
       'Starion Digital plates',
       'augmented reality souvenirs',
-      params.locale === 'ru'
+      resolvedParams.locale === 'ru'
         ? 'Тарелки с дополненной реальностью'
-        : params.locale === 'ro'
+        : resolvedParams.locale === 'ro'
           ? 'Farfurii AR'
           : 'AR plates',
     ],
     openGraph: {
       title: `${t('plates_title')} - Starion Digital`,
       description: t('meta.description_plates'),
-      url: `https://starion-digital.com/${params.locale}/plates/catalog`,
+      url: `https://starion-digital.com/${resolvedParams.locale}/plates/catalog`,
       images: [{ url: '/plates/110.avif', width: 500, height: 500 }],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${params.locale}/plates/catalog`,
+      canonical: `https://starion-digital.com/${resolvedParams.locale}/plates/catalog`,
       languages: {
         ru: `https://starion-digital.com/ru/plates/catalog`,
         en: `https://starion-digital.com/en/plates/catalog`,
@@ -47,7 +52,7 @@ export async function generateMetadata({
         '@type': 'ProductGroup',
         name: 'AR Plates',
         description: t('meta.description_plates'),
-        url: `https://starion-digital.com/${params.locale}/plates/catalog`,
+        url: `https://starion-digital.com/${resolvedParams.locale}/plates/catalog`,
       }),
     },
   };
@@ -56,10 +61,11 @@ export async function generateMetadata({
 export default async function PlatesCatalogPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<PageParams>; // Use Promise<PageParams>
 }) {
+  const resolvedParams = await params;
   const t = await getTranslations({
-    locale: params.locale,
+    locale: resolvedParams.locale,
     namespace: 'Catalog',
   });
 
@@ -67,7 +73,6 @@ export default async function PlatesCatalogPage({
     plates_title: t('plates_title'),
   };
 
-  // Fetch product data server-side
   const products = (await import('../../../public/plates.json')).default;
 
   return (

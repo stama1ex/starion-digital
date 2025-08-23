@@ -1,16 +1,13 @@
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
 import NotFoundContent from '@/components/shared/not-found-content';
 
 // Metadata generation (server-side)
-export async function generateMetadata({
-  params,
-}: {
-  params: { locale: string };
-}): Promise<Metadata> {
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = (await getLocale()) ?? 'ru'; // Fallback to default if unresolved
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'NotFound',
   });
   return {
@@ -19,16 +16,16 @@ export async function generateMetadata({
     keywords: [
       'Starion Digital 404',
       'page not found',
-      params.locale === 'ru'
+      locale === 'ru'
         ? 'Страница не найдена'
-        : params.locale === 'ro'
+        : locale === 'ro'
           ? 'Pagină negăsită'
           : 'Page not found',
     ],
     openGraph: {
       title: `${t('title')} - Starion Digital`,
       description: t('description'),
-      url: `https://starion-digital.com/${params.locale}/404`,
+      url: `https://starion-digital.com/${locale}/404`,
       type: 'website',
       images: [
         {
@@ -40,7 +37,7 @@ export async function generateMetadata({
       ],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${params.locale}/404`,
+      canonical: `https://starion-digital.com/${locale}/404`,
       languages: {
         ru: `https://starion-digital.com/ru/404`,
         en: `https://starion-digital.com/en/404`,
@@ -53,7 +50,7 @@ export async function generateMetadata({
         '@type': 'WebPage',
         name: t('title'),
         description: t('description'),
-        url: `https://starion-digital.com/${params.locale}/404`,
+        url: `https://starion-digital.com/${locale}/404`,
         publisher: {
           '@type': 'Organization',
           name: 'Starion Digital',
@@ -65,13 +62,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function NotFoundPage({
-  params,
-}: {
-  params: { locale: string };
-}) {
+export default async function NotFoundPage() {
+  const locale = (await getLocale()) ?? 'ru'; // Fallback to default if unresolved
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'NotFound',
   });
 

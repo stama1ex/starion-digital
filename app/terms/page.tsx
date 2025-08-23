@@ -1,17 +1,22 @@
-// app/terms/page.tsx
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
 import TermsContent from './terms-content';
 
+// Define the params type explicitly
+interface PageParams {
+  locale: string;
+}
+
 // Metadata generation (server-side)
 export async function generateMetadata({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<PageParams>; // Use Promise<PageParams>
 }): Promise<Metadata> {
+  const resolvedParams = await params; // Await the Promise
   const t = await getTranslations({
-    locale: params.locale,
+    locale: resolvedParams.locale,
     namespace: 'Terms',
   });
   return {
@@ -21,16 +26,16 @@ export async function generateMetadata({
       'Starion Digital terms of use',
       'AR souvenirs terms',
       'website terms',
-      params.locale === 'ru'
+      resolvedParams.locale === 'ru'
         ? 'Условия использования Starion Digital'
-        : params.locale === 'ro'
+        : resolvedParams.locale === 'ro'
           ? 'Termeni de utilizare Starion Digital'
           : 'Starion Digital terms of use',
     ],
     openGraph: {
       title: `${t('title')} - Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${params.locale}/terms`,
+      url: `https://starion-digital.com/${resolvedParams.locale}/terms`,
       type: 'website',
       images: [
         {
@@ -48,7 +53,7 @@ export async function generateMetadata({
       images: ['/og-image-terms.jpg'],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${params.locale}/terms`,
+      canonical: `https://starion-digital.com/${resolvedParams.locale}/terms`,
       languages: {
         ru: `https://starion-digital.com/ru/terms`,
         en: `https://starion-digital.com/en/terms`,
@@ -61,7 +66,7 @@ export async function generateMetadata({
         '@type': 'WebPage',
         name: t('title'),
         description: t('meta.description'),
-        url: `https://starion-digital.com/${params.locale}/terms`,
+        url: `https://starion-digital.com/${resolvedParams.locale}/terms`,
         publisher: {
           '@type': 'Organization',
           name: 'Starion Digital',
@@ -82,10 +87,11 @@ export async function generateMetadata({
 export default async function TermsPage({
   params,
 }: {
-  params: { locale: string };
+  params: Promise<PageParams>; // Use Promise<PageParams>
 }) {
+  const resolvedParams = await params; // Await the Promise
   const t = await getTranslations({
-    locale: params.locale,
+    locale: resolvedParams.locale,
     namespace: 'Terms',
   });
 

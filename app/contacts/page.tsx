@@ -4,38 +4,42 @@ import { getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
 import ContactsContent from './contacts-content';
 
+type PageProps = {
+  params: Promise<{ locale: string }>; // 👈 у Next.js params асинхронный
+};
+
 // Metadata generation (server-side)
 export async function generateMetadata({
   params,
-}: {
-  params: { locale: string };
-}): Promise<Metadata> {
+}: PageProps): Promise<Metadata> {
+  const { locale } = await params; // 👈 деструктурируем из промиса
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'ContactsPage',
   });
+
   return {
-    title: `${t('meta.title')}`,
+    title: t('meta.title'),
     description: t('meta.description'),
     keywords: [
       'Yuri Stamat',
       'Starion Digital contact',
       'AR souvenirs',
       'AR/VR consulting',
-      params.locale === 'ru'
+      locale === 'ru'
         ? 'Контакты Starion Digital'
-        : params.locale === 'ro'
+        : locale === 'ro'
           ? 'Contact Starion Digital'
           : 'Starion Digital contact',
     ],
     openGraph: {
       title: `${t('meta.title')} - Contact Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${params.locale}/contacts`,
+      url: `https://starion-digital.com/${locale}/contacts`,
       images: [{ url: '/stamat-yuri.webp', width: 400, height: 400 }],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${params.locale}/contacts`,
+      canonical: `https://starion-digital.com/${locale}/contacts`,
       languages: {
         ru: `https://starion-digital.com/ru/contacts`,
         en: `https://starion-digital.com/en/contacts`,
@@ -50,7 +54,7 @@ export async function generateMetadata({
         jobTitle: 'Founder of Starion Digital',
         telephone: '+373 680 33 007',
         email: 'stamat2000@gmail.com',
-        url: `https://starion-digital.com/${params.locale}/contacts`,
+        url: `https://starion-digital.com/${locale}/contacts`,
         sameAs: [
           'https://t.me/Viar_tech',
           'https://www.instagram.com/magnetar_souvenir',
@@ -60,13 +64,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function ContactsPage({
-  params,
-}: {
-  params: { locale: string };
-}) {
+export default async function ContactsPage({ params }: PageProps) {
+  const { locale } = await params; // 👈 здесь тоже await
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'ContactsPage',
   });
 

@@ -1,13 +1,7 @@
 // components/shared/footer.tsx
 'use client';
 import React from 'react';
-import {
-  FaFacebook,
-  FaInstagram,
-  FaLinkedin,
-  FaTelegram,
-  FaTwitter,
-} from 'react-icons/fa';
+import { FaInstagram, FaTelegram } from 'react-icons/fa';
 import { Container } from './container';
 import { Soon } from './soon';
 import { useTranslations } from 'next-intl';

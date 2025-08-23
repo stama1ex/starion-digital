@@ -4,15 +4,19 @@ import { getTranslations } from 'next-intl/server';
 import { Container } from '@/components/shared/container';
 import HomeContent from './home-content';
 
+type PageProps = {
+  params: Promise<{ locale: string }>;
+};
+
 export async function generateMetadata({
   params,
-}: {
-  params: { locale: string };
-}): Promise<Metadata> {
+}: PageProps): Promise<Metadata> {
+  const { locale } = await params; // 👈 деструктурируем из промиса
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'HomePage',
   });
+
   return {
     title: `${t('meta.title')} | Starion Digital`,
     description: t('meta.description'),
@@ -25,11 +29,11 @@ export async function generateMetadata({
     openGraph: {
       title: `${t('meta.title')} | Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${params.locale}`,
+      url: `https://starion-digital.com/${locale}`,
       images: [{ url: '/og-image-home.jpg', width: 1200, height: 630 }],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${params.locale}`,
+      canonical: `https://starion-digital.com/${locale}`,
       languages: {
         ru: `https://starion-digital.com/ru`,
         en: `https://starion-digital.com/en`,
@@ -54,9 +58,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: { params: { locale: string } }) {
+export default async function Page({ params }: PageProps) {
+  const { locale } = await params; // 👈 ждём промис
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'HomePage',
   });
 

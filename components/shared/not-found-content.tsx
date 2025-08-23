@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import { Title } from '@/components/shared/title';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import VantaFogBackground from '@/components/ui/vanta-background';
 import { HomeIcon } from 'lucide-react';
 
 interface NotFoundContentProps {

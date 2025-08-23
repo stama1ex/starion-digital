@@ -3,16 +3,20 @@ import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import MagnetsCatalogContent from './magnets-catalog-content';
 
+type PageProps = {
+  params: Promise<{ locale: string }>; // 👈 асинхронный params
+};
+
 // Metadata generation (server-side)
 export async function generateMetadata({
   params,
-}: {
-  params: { locale: string };
-}): Promise<Metadata> {
+}: PageProps): Promise<Metadata> {
+  const { locale } = await params; // 👈 деструктурируем из промиса
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'Catalog',
   });
+
   return {
     title: `${t('magnets_title')} - Starion Digital`,
     description: t('meta.description'),
@@ -21,20 +25,20 @@ export async function generateMetadata({
       'souvenir magnets',
       'Starion Digital magnets',
       'augmented reality souvenirs',
-      params.locale === 'ru'
+      locale === 'ru'
         ? 'Магниты с дополненной реальностью'
-        : params.locale === 'ro'
+        : locale === 'ro'
           ? 'Magnete AR'
           : 'AR magnets',
     ],
     openGraph: {
       title: `${t('magnets_title')} - Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${params.locale}/magnets/catalog`,
+      url: `https://starion-digital.com/${locale}/magnets/catalog`,
       images: [{ url: '/magnets/01.avif', width: 500, height: 500 }],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${params.locale}/magnets/catalog`,
+      canonical: `https://starion-digital.com/${locale}/magnets/catalog`,
       languages: {
         ru: `https://starion-digital.com/ru/magnets/catalog`,
         en: `https://starion-digital.com/en/magnets/catalog`,
@@ -47,19 +51,16 @@ export async function generateMetadata({
         '@type': 'ProductGroup',
         name: 'AR Magnets',
         description: t('meta.description'),
-        url: `https://starion-digital.com/${params.locale}/magnets/catalog`,
+        url: `https://starion-digital.com/${locale}/magnets/catalog`,
       }),
     },
   };
 }
 
-export default async function MagnetsCatalogPage({
-  params,
-}: {
-  params: { locale: string };
-}) {
+export default async function MagnetsCatalogPage({ params }: PageProps) {
+  const { locale } = await params; // 👈 тоже await
   const t = await getTranslations({
-    locale: params.locale,
+    locale,
     namespace: 'Catalog',
   });
 
