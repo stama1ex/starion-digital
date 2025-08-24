@@ -7,20 +7,25 @@ import { Souvenir } from '@/types';
 import fetch from 'node-fetch'; // Import node-fetch
 import fs from 'fs/promises';
 import path from 'path';
+import { getAccessToken } from '@/lib/dropbox';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
 };
 
 async function getModelUrl(fileName: string) {
-  const dbx = new Dropbox({
-    accessToken: process.env.DROPBOX_ACCESS_TOKEN,
-    fetch: fetch as any, // Pass node-fetch to Dropbox SDK
-  });
   try {
+    const accessToken = await getAccessToken();
+
+    const dbx = new Dropbox({
+      accessToken,
+      fetch: fetch as any,
+    });
+
     const { result } = await dbx.filesGetTemporaryLink({
       path: `/${fileName}`,
     });
+
     return result.link;
   } catch (error) {
     console.error(`Error fetching Dropbox link for ${fileName}:`, error);
