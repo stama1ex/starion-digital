@@ -1,4 +1,3 @@
-// components/shared/cart-drawer.tsx
 'use client';
 
 import {
@@ -15,9 +14,11 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { ShoppingCart } from 'lucide-react';
-import router from 'next/router';
+import { useTranslations } from 'next-intl';
+import { toast } from 'sonner';
 
 export default function CartDrawer() {
+  const t = useTranslations('Cart');
   const { items, removeItem, clear } = useCartStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comment, setComment] = useState('');
@@ -45,18 +46,16 @@ export default function CartDrawer() {
       });
 
       if (!res.ok) {
-        console.error(await res.text());
-        alert('Не удалось отправить заказ');
+        toast.error(t('error'));
         return;
       }
 
       clear();
       setComment('');
-      alert('Заказ отправлен. Мы свяжемся с вами.');
+      toast.success(t('success'));
       window.location.replace('/my-orders');
-    } catch (e) {
-      console.error(e);
-      alert('Ошибка отправки заказа');
+    } catch {
+      toast.error(t('error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -67,19 +66,19 @@ export default function CartDrawer() {
       <DrawerTrigger asChild>
         <Button variant="outline">
           <ShoppingCart />
-          Корзина ({totalItems})
+          {t('cart')} ({totalItems})
         </Button>
       </DrawerTrigger>
 
       <DrawerContent className="max-h-[80vh]">
         <DrawerHeader>
-          <DrawerTitle>Корзина</DrawerTitle>
+          <DrawerTitle>{t('cart')}</DrawerTitle>
         </DrawerHeader>
 
         <div className="px-4 flex flex-col gap-3 overflow-y-auto max-h-[55vh]">
           {!items.length && (
             <p className="text-sm text-muted-foreground md:text-center">
-              Корзина пуста.
+              {t('empty')}
             </p>
           )}
 
@@ -101,7 +100,7 @@ export default function CartDrawer() {
                 <div>
                   <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
                   <div className="text-xs text-muted-foreground">
-                    Количество: {item.quantity}
+                    {t('qty')}: {item.quantity}
                   </div>
                   <div className="text-xs text-primary font-semibold">
                     {item.price} × {item.quantity} ={' '}
@@ -124,7 +123,7 @@ export default function CartDrawer() {
         <div className="px-4 mt-3">
           <textarea
             className="w-full text-sm border rounded-md p-2 bg-background"
-            placeholder="Комментарий к заказу (опционально)"
+            placeholder={t('comment_placeholder')}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
           />
@@ -133,11 +132,11 @@ export default function CartDrawer() {
         <DrawerFooter>
           <div className="flex flex-col text-sm text-muted-foreground gap-1 w-full">
             <div className="flex justify-between">
-              <span>Всего позиций:</span>
+              <span>{t('positions')}:</span>
               <span>{totalItems}</span>
             </div>
             <div className="flex justify-between font-semibold text-primary">
-              <span>Итоговая сумма:</span>
+              <span>{t('total_price')}:</span>
               <span>{totalPrice} MDL</span>
             </div>
           </div>
@@ -147,11 +146,11 @@ export default function CartDrawer() {
               disabled={!items.length || isSubmitting}
               onClick={handleSubmit}
             >
-              {isSubmitting ? 'Отправка...' : 'Отправить заказ'}
+              {isSubmitting ? t('sending') : t('submit')}
             </Button>
 
             <DrawerClose asChild>
-              <Button variant="outline">Закрыть</Button>
+              <Button variant="outline">{t('close')}</Button>
             </DrawerClose>
           </div>
         </DrawerFooter>

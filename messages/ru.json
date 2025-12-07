@@ -210,18 +210,27 @@
     "total_price": "Общая сумма: {price} MDL",
     "items_count": "Позиций: {count}",
     "empty": "У вас пока нет заказов.",
+    "items": "Товары",
+    "loading": "Загрузка заказов...",
+    "order": "Заказ",
+    "number": "№",
+    "pcs": "шт.",
+    "total": "Итого",
     "status": {
       "NEW": "Новый",
       "APPROVED": "Подтверждён",
       "DONE": "Выполнен",
       "CANCELLED": "Отменён"
-    }
+    },
+    "number_raw": "{id}",
+    "pcs_raw": "{count}",
+    "currency_raw": "MDL"
   },
-
   "Cart": {
     "cart": "Корзина",
     "empty": "Корзина пуста.",
     "quantity": "Количество",
+    "qty": "шт.",
     "comment_placeholder": "Комментарий к заказу (необязательно)",
     "send_order": "Отправить заказ",
     "sending": "Отправка...",
@@ -229,14 +238,28 @@
     "positions": "Всего позиций",
     "sum": "Итоговая сумма",
     "toast_added": "Добавлено в корзину!",
-    "toast_error": "Ошибка добавления"
+    "toast_error": "Ошибка добавления",
+    "success": "Заказ успешно оформлен",
+    "remove": "Убрать",
+    "total_price": "Итоговая сумма",
+    "submit": "Отправить заказ"
   },
 
   "Login": {
     "title": "Вход партнёра",
     "login": "Логин",
     "password": "Пароль",
+    "login_placeholder": "Название фирмы",
+    "password_placeholder": "Пароль",
     "submit": "Войти",
-    "invalid": "Неверный логин или пароль"
+    "loading": "Вход...",
+    "invalid": "Неверный логин или пароль",
+    "success": "Успешный вход"
+  },
+  "PartnerUI": {
+    "logout_success": "Вы успешно вышли из аккаунта",
+    "no_access": "Доступ только для партнёров",
+    "login": "Войти",
+    "logout": "Выйти"
   }
 }

@@ -61,7 +61,6 @@ export default async function PlatesCatalogPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background">
       <PlatesCatalogContent
-        translations={{ plates_title: t('plates_title') }}
         products={products}
         modelUrls={modelUrls}
         exampleProductNumber={products[0]?.number}

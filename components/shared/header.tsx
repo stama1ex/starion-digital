@@ -41,24 +41,27 @@ interface Props {
 const categories = [
   { title: 'magnet', href: '/magnets/catalog' },
   { title: 'plate', href: '/plates/catalog' },
-  { title: 'card', href: '/cards/catalog' },
+  { title: 'card', href: '#' },
   { title: 'statue', href: '#' },
   { title: 'ball', href: '#' },
 ];
 
 const languages = [
-  { full: 'Русский', short: 'ru' },
-  { full: 'English', short: 'en' },
-  { full: 'Română', short: 'ro' },
+  { full: 'Русский', short: 'ru', code: 'ru' },
+  { full: 'English', short: 'en', code: 'us' },
+  { full: 'Română', short: 'ro', code: 'ro' },
 ];
 
 export const Header: React.FC<Props> = ({ className }) => {
   const [mounted, setMounted] = React.useState(false);
   const pathname = usePathname();
+
   const t = useTranslations('Header');
   const tCategories = useTranslations('Categories');
-  const setLocale = useLocaleStore((state) => state.setLocale);
+  const tOrders = useTranslations('Orders');
+  const tPartner = useTranslations('PartnerUI');
 
+  const setLocale = useLocaleStore((state) => state.setLocale);
   const { isPartner } = usePartner();
 
   React.useEffect(() => setMounted(true), []);
@@ -68,17 +71,14 @@ export const Header: React.FC<Props> = ({ className }) => {
     await fetch('/api/logout', { method: 'POST' });
     localStorage.removeItem('cart-storage');
     window.location.reload();
-    toast.success('Вы вышли');
+    toast.success(tPartner('logout_success'));
   };
 
   const isActive = (href: string) => {
-    // Remove locale prefix (e.g., /en, /ru) from pathname for comparison
     const normalizedPathname = pathname.replace(/^\/[a-z]{2}(\/|$)/, '/');
-    // Handle root path
     if (href === '/') {
       return normalizedPathname === '/' || normalizedPathname === '';
     }
-    // Check if the current pathname starts with the href or matches it
     return (
       normalizedPathname === href || normalizedPathname.startsWith(href + '/')
     );
@@ -89,7 +89,6 @@ export const Header: React.FC<Props> = ({ className }) => {
     window.location.reload();
   };
 
-  // Check if any category is active to highlight the Categories trigger
   const isAnyCategoryActive = categories.some((item) => isActive(item.href));
 
   return (
@@ -100,13 +99,14 @@ export const Header: React.FC<Props> = ({ className }) => {
       )}
     >
       <Container className="flex items-center justify-between py-4 sm:py-6 gap-4 relative">
-        {/* Logo */}
+        {/* LOGO */}
         <div className="relative flex items-center justify-between w-full sm:w-auto">
           <Link href="/" className="hidden sm:flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl uppercase font-black text-foreground">
               {t('logo')}
             </h1>
           </Link>
+
           <Link
             href="/"
             className="absolute left-1/2 -translate-x-1/2 sm:hidden flex items-center gap-2"
@@ -116,7 +116,7 @@ export const Header: React.FC<Props> = ({ className }) => {
             </h1>
           </Link>
 
-          {/* Burger Menu for Mobile */}
+          {/* MOBILE BURGER */}
           <Sheet>
             <SheetTrigger asChild>
               <Button
@@ -128,13 +128,15 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <Menu size={24} />
               </Button>
             </SheetTrigger>
+
             <SheetContent
               side="right"
               className="w-[80vw] max-w-[400px] h-full rounded-none bg-background text-card-foreground overflow-scroll"
             >
               <DialogTitle className="hidden">{t('menu')}</DialogTitle>
+
               <div className="flex flex-col gap-4 p-4 mt-4">
-                {/* Home link */}
+                {/* HOME */}
                 <Link
                   href="/"
                   className={cn(
@@ -145,7 +147,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                   {t('home')}
                 </Link>
 
-                {/* Categories */}
+                {/* CATEGORIES */}
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="categories">
                     <AccordionTrigger
@@ -156,6 +158,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                     >
                       {t('categories')}
                     </AccordionTrigger>
+
                     <AccordionContent>
                       <ul className="flex flex-col first:border-t">
                         {categories.map((item, idx) => {
@@ -188,7 +191,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                   </AccordionItem>
                 </Accordion>
 
-                {/* Contacts */}
+                {/* CONTACTS */}
                 <Link
                   href="/contacts"
                   className={cn(
@@ -196,15 +199,17 @@ export const Header: React.FC<Props> = ({ className }) => {
                     isActive('/contacts') && 'text-primary font-bold'
                   )}
                 >
+                  <Button></Button>
                   {t('contacts')}
                 </Link>
 
-                {/* Languages */}
+                {/* LANGUAGES */}
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="languages">
                     <AccordionTrigger className="font-semibold text-lg">
                       {t('language')}
                     </AccordionTrigger>
+
                     <AccordionContent>
                       <ul className="flex flex-col first:border-t">
                         {languages.map((lang) => (
@@ -215,9 +220,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                             >
                               <div className="flex items-center font-medium">
                                 <ReactCountryFlag
-                                  countryCode={
-                                    lang.short === 'en' ? 'us' : lang.short
-                                  }
+                                  countryCode={lang.code}
                                   svg
                                   className="mr-2"
                                 />
@@ -231,35 +234,59 @@ export const Header: React.FC<Props> = ({ className }) => {
                   </AccordionItem>
                 </Accordion>
 
-                {/* Theme toggle */}
+                {/* THEME TOGGLE */}
                 <div className="flex justify-start">
                   <ThemeToggleButton />
                 </div>
+
+                {/* PARTNER ACTIONS MOBILE */}
+                {isPartner && (
+                  <Link href="/my-orders">
+                    <Button variant="outline" className="w-full mt-2">
+                      {tOrders('title')}
+                    </Button>
+                  </Link>
+                )}
+
+                {isPartner ? (
+                  <Button
+                    variant="destructive"
+                    className="w-full"
+                    onClick={logout}
+                  >
+                    {tPartner('logout')}
+                  </Button>
+                ) : (
+                  <Link href="/login">
+                    <Button variant="outline" className="w-full">
+                      {tPartner('login')}
+                    </Button>
+                  </Link>
+                )}
               </div>
             </SheetContent>
           </Sheet>
         </div>
 
-        {/* Desktop Navigation */}
+        {/* DESKTOP NAVIGATION */}
         <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
           <NavigationMenu viewport={false}>
             <NavigationMenuList>
-              {/* Home */}
+              {/* HOME */}
               <NavigationMenuItem>
                 <NavigationMenuLink
                   asChild
                   className={cn(
+                    '!bg-transparent',
                     navigationMenuTriggerStyle(),
                     isActive('/') && 'text-primary font-bold'
                   )}
                 >
-                  <Link href="/" className="font-semibold bg-transparent">
-                    {t('home')}
-                  </Link>
+                  <Link href="/">{t('home')}</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
-              {/* Categories */}
+              {/* CATEGORIES */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={cn(
@@ -269,6 +296,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                 >
                   {t('categories')}
                 </NavigationMenuTrigger>
+
                 <NavigationMenuContent className="bg-background/70 backdrop-blur-xl border border-border rounded-md shadow-lg">
                   <ul className="grid w-[400px] gap-2 md:w-[500px] md:grid-cols-2 lg:w-[600px] p-2">
                     {categories.map((item, idx) => {
@@ -302,29 +330,26 @@ export const Header: React.FC<Props> = ({ className }) => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              {/* Contacts */}
+              {/* CONTACTS */}
               <NavigationMenuItem>
                 <NavigationMenuLink
                   asChild
                   className={cn(
+                    '!bg-transparent',
                     navigationMenuTriggerStyle(),
                     isActive('/contacts') && 'text-primary font-bold'
                   )}
                 >
-                  <Link
-                    href="/contacts"
-                    className="font-semibold bg-transparent"
-                  >
-                    {t('contacts')}
-                  </Link>
+                  <Link href="/contacts">{t('contacts')}</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
 
-              {/* Languages */}
+              {/* LANGUAGE */}
               <NavigationMenuItem>
                 <NavigationMenuTrigger className="bg-transparent transition-colors duration-200">
                   <Globe className="mr-2 h-4 w-4" />
                 </NavigationMenuTrigger>
+
                 <NavigationMenuContent>
                   <ul className="grid w-[100px] gap-2">
                     {languages.map((lang) => (
@@ -336,9 +361,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                           >
                             <div className="flex items-center font-medium">
                               <ReactCountryFlag
-                                countryCode={
-                                  lang.short === 'en' ? 'us' : lang.short
-                                }
+                                countryCode={lang.code}
                                 svg
                                 className="mr-2"
                               />
@@ -352,28 +375,29 @@ export const Header: React.FC<Props> = ({ className }) => {
                 </NavigationMenuContent>
               </NavigationMenuItem>
 
-              {/* Theme toggle */}
+              {/* THEME */}
               <NavigationMenuItem>
                 <ThemeToggleButton />
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
 
+          {/* PARTNER ACTIONS DESKTOP */}
           {isPartner && (
             <>
               <CartDrawer />
               <Link href="/my-orders">
-                <Button variant="outline">Мои заказы</Button>
+                <Button variant="outline">{tOrders('title')}</Button>
               </Link>
             </>
           )}
           {isPartner ? (
             <Button variant="destructive" onClick={logout}>
-              Выйти
+              {tPartner('logout')}
             </Button>
           ) : (
             <Link href="/login">
-              <Button variant="outline">Я партнёр</Button>
+              <Button variant="outline">{tPartner('login')}</Button>
             </Link>
           )}
         </div>
