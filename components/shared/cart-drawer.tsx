@@ -15,6 +15,7 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { ShoppingCart } from 'lucide-react';
+import router from 'next/router';
 
 export default function CartDrawer() {
   const { items, removeItem, clear } = useCartStore();
@@ -22,6 +23,7 @@ export default function CartDrawer() {
   const [comment, setComment] = useState('');
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   const handleSubmit = async () => {
     if (!items.length || isSubmitting) return;
@@ -51,6 +53,7 @@ export default function CartDrawer() {
       clear();
       setComment('');
       alert('Заказ отправлен. Мы свяжемся с вами.');
+      window.location.replace('/my-orders');
     } catch (e) {
       console.error(e);
       alert('Ошибка отправки заказа');
@@ -67,6 +70,7 @@ export default function CartDrawer() {
           Корзина ({totalItems})
         </Button>
       </DrawerTrigger>
+
       <DrawerContent className="max-h-[80vh]">
         <DrawerHeader>
           <DrawerTitle>Корзина</DrawerTitle>
@@ -81,7 +85,7 @@ export default function CartDrawer() {
 
           {items.map((item) => (
             <div
-              key={item.number}
+              key={item.id}
               className="flex items-center justify-between gap-3 border rounded-md p-2"
             >
               <div className="flex items-center gap-3">
@@ -91,19 +95,21 @@ export default function CartDrawer() {
                     width={60}
                     height={60}
                     className="rounded-md object-cover"
-                    alt={''}
+                    alt=""
                   />
                 )}
                 <div>
                   <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
                   <div className="text-xs text-muted-foreground">
-                    № {item.number} · {item.type}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
                     Количество: {item.quantity}
+                  </div>
+                  <div className="text-xs text-primary font-semibold">
+                    {item.price} × {item.quantity} ={' '}
+                    {item.price * item.quantity} MDL
                   </div>
                 </div>
               </div>
+
               <Button
                 variant="ghost"
                 size="icon"
@@ -125,10 +131,17 @@ export default function CartDrawer() {
         </div>
 
         <DrawerFooter>
-          <div className="flex justify-between md:justify-start md:gap-1 md text-sm text-muted-foreground">
-            <span>Всего позиций:</span>
-            <span>{totalItems}</span>
+          <div className="flex flex-col text-sm text-muted-foreground gap-1 w-full">
+            <div className="flex justify-between">
+              <span>Всего позиций:</span>
+              <span>{totalItems}</span>
+            </div>
+            <div className="flex justify-between font-semibold text-primary">
+              <span>Итоговая сумма:</span>
+              <span>{totalPrice} MDL</span>
+            </div>
           </div>
+
           <div className="flex flex-col md:flex-row justify-center gap-2">
             <Button
               disabled={!items.length || isSubmitting}

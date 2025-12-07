@@ -2,6 +2,35 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 
+export async function GET() {
+  const session = (await cookies()).get('session')?.value;
+  if (!session) return new Response('Unauthorized', { status: 401 });
+
+  const partnerId = Number(session);
+
+  const orders = await prisma.order.findMany({
+    where: { partnerId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      totalPrice: true,
+      createdAt: true,
+      status: true,
+      items: {
+        select: {
+          quantity: true,
+          sum: true,
+          product: {
+            select: { number: true, image: true, country: true },
+          },
+        },
+      },
+    },
+  });
+
+  return Response.json({ orders });
+}
+
 export async function POST(req: Request) {
   try {
     // 1) Проверка партнёра

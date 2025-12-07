@@ -1,3 +1,4 @@
+// store/cart-store.ts
 'use client';
 
 import { create } from 'zustand';
@@ -7,14 +8,15 @@ import { Product } from '@prisma/client';
 export interface CartItem {
   id: number;
   number: string;
-  type: string; // magnet | plate (строкой)
+  type: string;
   image: string | null;
   quantity: number;
+  price: number; // NEW
 }
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product, quantity: number) => void;
+  addItem: (product: Product & { price?: number }, quantity: number) => void;
   removeItem: (id: number) => void;
   clear: () => void;
 }
@@ -27,6 +29,7 @@ export const useCartStore = create<CartState>()(
       addItem: (product, quantity) =>
         set((state) => {
           const existing = state.items.find((i) => i.id === product.id);
+
           if (existing) {
             return {
               items: state.items.map((i) =>
@@ -36,15 +39,17 @@ export const useCartStore = create<CartState>()(
               ),
             };
           }
+
           return {
             items: [
               ...state.items,
               {
                 id: product.id,
                 number: product.number,
-                type: product.type.toLowerCase(), // enum → string
+                type: product.type.toLowerCase(),
                 image: product.image,
                 quantity,
+                price: product.price ?? 0, // NEW
               },
             ],
           };
@@ -57,10 +62,9 @@ export const useCartStore = create<CartState>()(
 
       clear: () => set({ items: [] }),
     }),
-
     {
       name: 'cart-storage',
-      version: 2,
+      version: 3,
       partialize: (state) => ({ items: state.items }),
     }
   )

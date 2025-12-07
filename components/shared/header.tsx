@@ -359,9 +359,16 @@ export const Header: React.FC<Props> = ({ className }) => {
             </NavigationMenuList>
           </NavigationMenu>
 
-          {isPartner && <CartDrawer />}
+          {isPartner && (
+            <>
+              <CartDrawer />
+              <Link href="/my-orders">
+                <Button variant="outline">Мои заказы</Button>
+              </Link>
+            </>
+          )}
           {isPartner ? (
-            <Button variant="outline" onClick={logout}>
+            <Button variant="destructive" onClick={logout}>
               Выйти
             </Button>
           ) : (

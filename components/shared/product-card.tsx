@@ -28,9 +28,12 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
   const addItem = useCartStore((s) => s.addItem);
   const t = useTranslations('Catalog');
 
-  const price = getPrice(product);
+  const rawPrice = getPrice(product);
+  const price = rawPrice ?? 0;
+
   const imgSrc = '/' + product.image.replace(/^public\//, '');
-  const total = price ? price * quantity : null;
+
+  const total = price * quantity;
 
   const tiltImage = useMemo(
     () => (
@@ -46,6 +49,8 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
     ),
     [imgSrc, product.number]
   );
+
+  const handleQuantity = (v: number) => setQuantity(Math.max(1, v));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -64,9 +69,7 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
           </div>
 
           {isPartner && (
-            <div className="text-sm font-bold text-primary">
-              {price ? `${price} MDL` : '—'}
-            </div>
+            <div className="text-sm font-bold text-primary">{price} MDL</div>
           )}
 
           <div className="text-xs text-primary/60">
@@ -93,13 +96,13 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
         {isPartner && (
           <div className="flex flex-col justify-between w-full">
             <div className="text-lg font-bold text-center mb-2">
-              {total ? `${total} MDL` : '—'}
+              {total} MDL
             </div>
 
             <div className="flex items-center gap-3 mb-4 mx-auto">
               <Button
                 variant="outline"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                onClick={() => handleQuantity(quantity - 1)}
               >
                 -
               </Button>
@@ -108,15 +111,13 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
                 type="number"
                 min={1}
                 value={quantity}
-                onChange={(e) =>
-                  setQuantity(Math.max(1, parseInt(e.target.value)))
-                }
+                onChange={(e) => handleQuantity(parseInt(e.target.value) || 1)}
                 className="w-16 text-center border rounded py-1"
               />
 
               <Button
                 variant="outline"
-                onClick={() => setQuantity(quantity + 1)}
+                onClick={() => handleQuantity(quantity + 1)}
               >
                 +
               </Button>
@@ -124,7 +125,7 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
 
             <Button
               onClick={() => {
-                addItem(product, quantity);
+                addItem({ ...product, price }, quantity);
                 setOpen(false);
                 setQuantity(1);
               }}
