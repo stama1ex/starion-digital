@@ -22,7 +22,7 @@ export async function sendToTelegram(order: {
   const itemsFormatted = order.items
     .map(
       (i) =>
-        `• <b>${escape(i.number)}</b> — ${escape(i.qty)} шт × ${escape(
+        `• <b>${escape(i.number)}</b>: ${escape(i.qty)} шт × ${escape(
           i.price
         )} = <b>${escape(i.sum)} MDL</b>`
     )

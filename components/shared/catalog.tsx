@@ -8,7 +8,7 @@ import { Product } from '@prisma/client';
 import { ProductCard } from './product-card';
 
 interface CatalogProps {
-  title: string;
+  titleKey: string;
   exampleProductNumber?: string;
   className?: string;
   products: Product[];
@@ -21,7 +21,7 @@ interface CatalogProps {
 }
 
 const Catalog: React.FC<CatalogProps> = ({
-  title,
+  titleKey,
   exampleProductNumber,
   className,
   products,
@@ -64,7 +64,7 @@ const Catalog: React.FC<CatalogProps> = ({
 
         <div className="flex justify-center w-full h-full">
           <Title
-            text={title}
+            text={t(titleKey)}
             className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
           />
         </div>

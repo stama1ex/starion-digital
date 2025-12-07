@@ -5,7 +5,6 @@ import Catalog from '@/components/shared/catalog';
 import { Product, ProductType, Material } from '@prisma/client';
 
 interface PlatesCatalogContentProps {
-  translations: { plates_title: string };
   exampleProductNumber: string;
   products: Product[];
   modelUrls: Record<string, string>;
@@ -17,7 +16,6 @@ interface PlatesCatalogContentProps {
 }
 
 export default function PlatesCatalogContent({
-  translations,
   exampleProductNumber,
   products,
   modelUrls,
@@ -25,7 +23,7 @@ export default function PlatesCatalogContent({
 }: PlatesCatalogContentProps) {
   return (
     <Catalog
-      title={translations.plates_title}
+      titleKey="plates_title"
       exampleProductNumber={exampleProductNumber}
       products={products}
       modelUrls={modelUrls}

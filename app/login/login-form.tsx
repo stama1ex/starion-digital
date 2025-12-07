@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { useTranslations } from 'next-intl';
 
 export default function LoginForm() {
+  const t = useTranslations('Login');
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,46 +27,47 @@ export default function LoginForm() {
     setLoading(false);
 
     if (res.ok) {
-      toast.success('Успешный вход');
+      toast.success(t('success'));
       window.location.replace('/');
       return;
     }
 
-    toast.error('Неверный логин или пароль');
+    toast.error(t('error'));
   };
 
   return (
     <Card className="w-full max-w-sm shadow-lg">
       <CardHeader>
         <CardTitle className="text-center text-2xl font-bold">
-          Вход для партнёров
+          {t('title')}
         </CardTitle>
       </CardHeader>
+
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
           <div>
-            <Label className="mb-2">Логин</Label>
+            <Label className="mb-2">{t('login')}</Label>
             <Input
               required
               value={login}
               onChange={(e) => setLogin(e.target.value)}
-              placeholder="Название фирмы"
+              placeholder={t('login_placeholder')}
             />
           </div>
 
           <div>
-            <Label className="mb-2">Пароль</Label>
+            <Label className="mb-2">{t('password')}</Label>
             <Input
               required
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Пароль"
+              placeholder={t('password_placeholder')}
             />
           </div>
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Вход...' : 'Войти'}
+            {loading ? t('loading') : t('submit')}
           </Button>
         </form>
       </CardContent>

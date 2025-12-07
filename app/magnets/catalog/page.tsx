@@ -61,7 +61,6 @@ export default async function MagnetsCatalogPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-background">
       <MagnetsCatalogContent
-        translations={{ magnets_title: t('magnets_title') }}
         products={products}
         modelUrls={modelUrls}
         exampleProductNumber={products[0]?.number}

@@ -24,15 +24,16 @@ interface Props {
 export function ProductCard({ product, modelUrls, getPrice }: Props) {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+
   const { isPartner } = usePartner();
   const addItem = useCartStore((s) => s.addItem);
+
   const t = useTranslations('Catalog');
 
   const rawPrice = getPrice(product);
   const price = rawPrice ?? 0;
 
   const imgSrc = '/' + product.image.replace(/^public\//, '');
-
   const total = price * quantity;
 
   const tiltImage = useMemo(

@@ -206,22 +206,31 @@
 
   "Orders": {
     "title": "Comenzile mele",
-    "order_number": "Comanda Nr. {id}",
-    "total_price": "Total: {price} MDL",
+    "order_number": "Comanda nr. {id}",
+    "total_price": "Suma totală: {price} MDL",
     "items_count": "Produse: {count}",
-    "empty": "Nu aveți comenzi încă.",
+    "empty": "Nu aveți încă nicio comandă.",
+    "items": "Produse",
+    "loading": "Se încarcă comenzile...",
+    "order": "Comandă",
+    "number": "Nr.",
+    "pcs": "buc.",
+    "total": "Total",
     "status": {
       "NEW": "Nouă",
       "APPROVED": "Aprobată",
       "DONE": "Finalizată",
       "CANCELLED": "Anulată"
-    }
+    },
+    "number_raw": "{id}",
+    "pcs_raw": "{count}",
+    "currency_raw": "MDL"
   },
-
   "Cart": {
     "cart": "Coș",
     "empty": "Coșul este gol.",
     "quantity": "Cantitate",
+    "qty": "buc.",
     "comment_placeholder": "Comentariu comandă (opțional)",
     "send_order": "Trimite comanda",
     "sending": "Se trimite...",
@@ -229,14 +238,28 @@
     "positions": "Total poziții",
     "sum": "Suma totală",
     "toast_added": "Adăugat în coș!",
-    "toast_error": "Eroare la adăugare"
+    "toast_error": "Eroare la adăugare",
+    "success": "Comanda a fost plasată cu succes",
+    "remove": "Șterge",
+    "total_price": "Suma totală",
+    "submit": "Trimite comanda"
   },
 
   "Login": {
-    "title": "Autentificare Partener",
+    "title": "Autentificare partener",
     "login": "Login",
     "password": "Parolă",
+    "login_placeholder": "Numele companiei",
+    "password_placeholder": "Parolă",
     "submit": "Autentificare",
-    "invalid": "Login sau parolă incorectă"
+    "loading": "Se conectează...",
+    "invalid": "Login sau parolă incorectă",
+    "success": "Autentificare reușită"
+  },
+  "PartnerUI": {
+    "logout_success": "V-ați deconectat cu succes",
+    "no_access": "Acces doar pentru parteneri",
+    "login": "Autentificare",
+    "logout": "Deconectare"
   }
 }

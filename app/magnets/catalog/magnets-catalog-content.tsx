@@ -5,7 +5,6 @@ import Catalog from '@/components/shared/catalog';
 import { Product, ProductType, Material } from '@prisma/client';
 
 interface MagnetsCatalogContentProps {
-  translations: { magnets_title: string };
   exampleProductNumber: string;
   products: Product[];
   modelUrls: Record<string, string>;
@@ -17,7 +16,6 @@ interface MagnetsCatalogContentProps {
 }
 
 export default function MagnetsCatalogContent({
-  translations,
   exampleProductNumber,
   products,
   modelUrls,
@@ -25,7 +23,7 @@ export default function MagnetsCatalogContent({
 }: MagnetsCatalogContentProps) {
   return (
     <Catalog
-      title={translations.magnets_title}
+      titleKey="magnets_title"
       exampleProductNumber={exampleProductNumber}
       products={products}
       modelUrls={modelUrls}

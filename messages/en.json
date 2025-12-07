@@ -206,22 +206,31 @@
 
   "Orders": {
     "title": "My Orders",
-    "order_number": "Order #{id}",
-    "total_price": "Total: {price} MDL",
+    "order_number": "Order No. {id}",
+    "total_price": "Total amount: {price} MDL",
     "items_count": "Items: {count}",
-    "empty": "You have no orders yet.",
+    "empty": "You don't have any orders yet.",
+    "items": "Items",
+    "loading": "Loading orders...",
+    "order": "Order",
+    "number": "No.",
+    "pcs": "pcs",
+    "total": "Total",
     "status": {
       "NEW": "New",
       "APPROVED": "Approved",
       "DONE": "Completed",
       "CANCELLED": "Cancelled"
-    }
+    },
+    "number_raw": "{id}",
+    "pcs_raw": "{count}",
+    "currency_raw": "MDL"
   },
-
   "Cart": {
     "cart": "Cart",
     "empty": "Your cart is empty.",
     "quantity": "Quantity",
+    "qty": "pcs",
     "comment_placeholder": "Order comment (optional)",
     "send_order": "Send Order",
     "sending": "Sending...",
@@ -229,14 +238,28 @@
     "positions": "Total items",
     "sum": "Total amount",
     "toast_added": "Added to cart!",
-    "toast_error": "Error while adding"
+    "toast_error": "Error while adding",
+    "success": "Order placed successfully",
+    "remove": "Remove",
+    "total_price": "Total amount",
+    "submit": "Place order"
   },
 
   "Login": {
     "title": "Partner Login",
     "login": "Login",
     "password": "Password",
+    "login_placeholder": "Company name",
+    "password_placeholder": "Password",
     "submit": "Sign In",
-    "invalid": "Invalid login or password"
+    "loading": "Signing in...",
+    "invalid": "Invalid login or password",
+    "success": "Logged in successfully"
+  },
+  "PartnerUI": {
+    "logout_success": "You have successfully logged out",
+    "no_access": "Access restricted to partners",
+    "login": "Log in",
+    "logout": "Log out"
   }
 }
