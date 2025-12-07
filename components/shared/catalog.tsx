@@ -15,6 +15,8 @@ import ExampleBlock from '@/components/shared/example-block';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Souvenir } from '@/types';
 import { useTranslations } from 'next-intl';
+import { useCartStore } from '@/store/cart-store';
+import { usePartner } from '@/app/providers/partner-provider';
 
 interface CatalogProps {
   title: string;
@@ -39,6 +41,10 @@ const Catalog: React.FC<CatalogProps> = ({
   const [exampleProduct, setExampleProduct] = useState<Souvenir | null>(null);
   const [isLoading, setIsLoading] = useState(!initialProducts);
   const [error, setError] = useState<string | null>(null);
+
+  const addItem = useCartStore((s) => s.addItem);
+  const [quantity, setQuantity] = useState(1);
+  const { isPartner } = usePartner();
 
   useEffect(() => {
     if (!initialProducts) {
@@ -165,6 +171,57 @@ const Catalog: React.FC<CatalogProps> = ({
                         {product.country.toUpperCase()}
                       </div>
                     </div>
+                    {/* Правая часть: заказ (ТОЛЬКО для партнера) */}
+                    {isPartner && (
+                      <div className="flex flex-col justify-between w-full">
+                        <div className="flex items-center gap-3 mb-4 mx-auto">
+                          <button
+                            className="px-3 py-1 border rounded text-lg"
+                            onClick={() =>
+                              setQuantity(Math.max(1, quantity - 1))
+                            }
+                          >
+                            -
+                          </button>
+
+                          <input
+                            type="number"
+                            min={1}
+                            value={quantity}
+                            onChange={(e) =>
+                              setQuantity(Math.max(1, parseInt(e.target.value)))
+                            }
+                            className="w-16 text-center border rounded py-1"
+                          />
+
+                          <button
+                            className="px-3 py-1 border rounded text-lg"
+                            onClick={() => setQuantity(quantity + 1)}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            addItem(
+                              {
+                                number: product.number,
+                                image: product.image,
+                                country: product.country,
+                                type: product.type,
+                              },
+                              quantity
+                            );
+                            setSelectedProduct(null); // закрываем диалог
+                            setQuantity(1); // сбрасываем
+                          }}
+                          className="bg-primary text-white py-2 rounded-md hover:bg-primary/80 transition-all"
+                        >
+                          {t('add_to_order')}
+                        </button>
+                      </div>
+                    )}
                   </DialogContent>
                 </Dialog>
               ))}

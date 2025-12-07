@@ -1,0 +1,135 @@
+// components/shared/cart-drawer.tsx
+'use client';
+
+import {
+  Drawer,
+  DrawerTrigger,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerFooter,
+  DrawerClose,
+} from '@/components/ui/drawer';
+import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+import { useState } from 'react';
+import { useCartStore } from '@/store/cart-store';
+
+export default function CartDrawer() {
+  const { items, removeItem, clear } = useCartStore();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [comment, setComment] = useState('');
+
+  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+
+  const handleSubmit = async () => {
+    if (!items.length || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items, comment }),
+      });
+
+      if (!res.ok) {
+        console.error(await res.text());
+        alert('Не удалось отправить заказ');
+        return;
+      }
+
+      clear();
+      setComment('');
+      alert('Заказ отправлен. Мы свяжемся с вами.');
+    } catch (e) {
+      console.error(e);
+      alert('Ошибка отправки заказа');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Drawer>
+      <DrawerTrigger asChild>
+        <Button variant="outline" size="sm">
+          Корзина ({totalItems})
+        </Button>
+      </DrawerTrigger>
+      <DrawerContent className="max-h-[80vh]">
+        <DrawerHeader>
+          <DrawerTitle>Корзина</DrawerTitle>
+        </DrawerHeader>
+
+        <div className="px-4 flex flex-col gap-3 overflow-y-auto max-h-[55vh]">
+          {!items.length && (
+            <p className="text-sm text-muted-foreground">Корзина пуста.</p>
+          )}
+
+          {items.map((item) => (
+            <div
+              key={item.number}
+              className="flex items-center justify-between gap-3 border rounded-md p-2"
+            >
+              <div className="flex items-center gap-3">
+                {item.image && (
+                  <Image
+                    src={`/${item.image.replace('public/', '')}`}
+                    width={60}
+                    height={60}
+                    className="rounded-md object-cover"
+                    alt={''}
+                  />
+                )}
+                <div>
+                  <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
+                  <div className="text-xs text-muted-foreground">
+                    № {item.number} · {item.type}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Количество: {item.quantity}
+                  </div>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeItem(item.number)}
+              >
+                ✕
+              </Button>
+            </div>
+          ))}
+        </div>
+
+        <div className="px-4 mt-3">
+          <textarea
+            className="w-full text-sm border rounded-md p-2 bg-background"
+            placeholder="Комментарий к заказу (опционально)"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+          />
+        </div>
+
+        <DrawerFooter>
+          <div className="flex justify-between md:justify-start md:gap-1 md text-sm text-muted-foreground">
+            <span>Всего позиций:</span>
+            <span>{totalItems}</span>
+          </div>
+          <div className="flex flex-col md:flex-row justify-center gap-2">
+            <Button
+              disabled={!items.length || isSubmitting}
+              onClick={handleSubmit}
+            >
+              {isSubmitting ? 'Отправка...' : 'Отправить заказ'}
+            </Button>
+
+            <DrawerClose asChild>
+              <Button variant="outline">Закрыть</Button>
+            </DrawerClose>
+          </div>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  );
+}

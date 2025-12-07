@@ -30,6 +30,10 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/store/useLocaleStore';
 import { HeaderSkeleton } from './header-skeleton';
+import CartDrawer from './cart-drawer';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { usePartner } from '@/app/providers/partner-provider';
 
 interface Props {
   className?: string;
@@ -56,8 +60,18 @@ export const Header: React.FC<Props> = ({ className }) => {
   const tCategories = useTranslations('Categories');
   const setLocale = useLocaleStore((state) => state.setLocale);
 
+  const { isPartner } = usePartner();
+  const router = useRouter();
+
   React.useEffect(() => setMounted(true), []);
   if (!mounted) return <HeaderSkeleton />;
+
+  const logout = async () => {
+    await fetch('/api/logout', { method: 'POST' });
+    localStorage.removeItem('cart-storage');
+    router.refresh();
+    toast.success('Вы вышли');
+  };
 
   const isActive = (href: string) => {
     // Remove locale prefix (e.g., /en, /ru) from pathname for comparison
@@ -346,6 +360,17 @@ export const Header: React.FC<Props> = ({ className }) => {
               </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
+
+          {isPartner && <CartDrawer />}
+          {isPartner ? (
+            <Button variant="outline" onClick={logout}>
+              Выйти
+            </Button>
+          ) : (
+            <Link href="/login">
+              <Button variant="outline">Я партнер</Button>
+            </Link>
+          )}
         </div>
       </Container>
     </header>

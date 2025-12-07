@@ -8,6 +8,8 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { CookieBanner } from '@/components/ui/cookie-banner';
 import { Toaster } from '@/components/ui/sonner';
+import { cookies } from 'next/headers';
+import { PartnerProvider } from './providers/partner-provider';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,6 +35,10 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
+  const cookieStore = cookies();
+  const session = (await cookieStore).get('session')?.value;
+  const isPartner = Boolean(session);
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
@@ -45,8 +51,11 @@ export default async function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <Header />
-            {children}
+            <PartnerProvider isPartner={isPartner}>
+              <Header />
+              {children}
+            </PartnerProvider>
+
             <Toaster />
             <Footer />
             <CookieBanner />

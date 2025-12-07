@@ -18,7 +18,7 @@ export default function MagnetsCatalogContent({
   dataSource,
   exampleProductNumber,
   products,
-  modelUrls, // Receive Dropbox URLs
+  modelUrls,
 }: MagnetsCatalogContentProps) {
   return (
     <Catalog
@@ -26,7 +26,7 @@ export default function MagnetsCatalogContent({
       dataSource={dataSource}
       exampleProductNumber={exampleProductNumber}
       products={products}
-      modelUrls={modelUrls} // Pass modelUrls to Catalog
+      modelUrls={modelUrls}
     />
   );
 }

@@ -8,6 +8,7 @@ import fetch from 'node-fetch'; // Import node-fetch
 import fs from 'fs/promises';
 import path from 'path';
 import { getAccessToken } from '@/lib/dropbox';
+import { cookies } from 'next/headers';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -53,8 +54,8 @@ export async function generateMetadata({
       locale === 'ru'
         ? 'Магниты с дополненной реальностью'
         : locale === 'ro'
-          ? 'Magnete AR'
-          : 'AR magnets',
+        ? 'Magnete AR'
+        : 'AR magnets',
     ],
     openGraph: {
       title: `${t('magnets_title')} - Starion Digital`,
@@ -111,11 +112,11 @@ export default async function MagnetsCatalogPage({ params }: PageProps) {
   };
 
   return (
-    <main>
+    <main className="min-h-screen bg-background">
       <MagnetsCatalogContent
         translations={translations}
         dataSource="/magnets.json"
-        exampleProductNumber="45"
+        exampleProductNumber="01"
         products={products}
         modelUrls={modelUrls}
       />
