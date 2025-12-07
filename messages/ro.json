@@ -76,7 +76,8 @@
     "fetch_error": "Nu s-a putut încărca {type}",
     "error": "Eroare: {message}",
     "number": "Nr. {number}",
-    "type": "Produs"
+    "type": "Produs",
+    "add_to_order": "Adaugă în comandă"
   },
   "LandingDrawer": {
     "title": "De unde începem?",
@@ -192,5 +193,50 @@
     "title": "Pagină negăsită",
     "description": "Hopa! Pagina pe care o căutați nu există. Hai să vă întoarcem la explorarea suvenirurilor noastre cu realitate augmentată!",
     "home_button": "Întoarce-te acasă"
+  },
+  "DashboardCommon": {
+    "dashboard": "Panou Partener",
+    "my_orders": "Comenzile mele",
+    "logout": "Deconectare",
+    "status": "Statut",
+    "total": "Total",
+    "date": "Data",
+    "no_data": "Nu există date de afișat"
+  },
+
+  "Orders": {
+    "title": "Comenzile mele",
+    "order_number": "Comanda Nr. {id}",
+    "total_price": "Total: {price} MDL",
+    "items_count": "Produse: {count}",
+    "empty": "Nu aveți comenzi încă.",
+    "status": {
+      "NEW": "Nouă",
+      "APPROVED": "Aprobată",
+      "DONE": "Finalizată",
+      "CANCELLED": "Anulată"
+    }
+  },
+
+  "Cart": {
+    "cart": "Coș",
+    "empty": "Coșul este gol.",
+    "quantity": "Cantitate",
+    "comment_placeholder": "Comentariu comandă (opțional)",
+    "send_order": "Trimite comanda",
+    "sending": "Se trimite...",
+    "close": "Închide",
+    "positions": "Total poziții",
+    "sum": "Suma totală",
+    "toast_added": "Adăugat în coș!",
+    "toast_error": "Eroare la adăugare"
+  },
+
+  "Login": {
+    "title": "Autentificare Partener",
+    "login": "Login",
+    "password": "Parolă",
+    "submit": "Autentificare",
+    "invalid": "Login sau parolă incorectă"
   }
 }
