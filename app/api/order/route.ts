@@ -1,67 +1,84 @@
-// app/api/order/route.ts
-import { NextRequest, NextResponse } from 'next/server';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
-import { sendToTelegram } from '@/lib/telegram';
 
-interface OrderItem {
-  number: string;
-  name: string;
-  type: string;
-  quantity: number;
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get('session')?.value;
+    // 1) Проверка партнёра
+    const session = (await cookies()).get('session')?.value;
+    if (!session) return new Response('Unauthorized', { status: 401 });
 
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const partnerId = Number(session);
+    if (Number.isNaN(partnerId)) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
-    // если session — JSON вида {"partnerId":"...","company":"..."}
-    let partner: { partnerId?: string; company?: string } = {};
-    try {
-      partner = JSON.parse(session);
-    } catch {
-      // если пока там просто строка — оставляем пустым
-    }
-
+    // 2) Валидация входящих данных
     const body = await req.json();
-    const items: OrderItem[] = body.items || [];
-    const comment: string = body.comment || '';
+    const items = body.items as { productId: number; qty: number }[];
 
-    if (!items.length) {
-      return NextResponse.json({ error: 'Empty order' }, { status: 400 });
+    if (!Array.isArray(items) || items.length === 0) {
+      return new Response('Empty order', { status: 400 });
     }
 
-    const lines = items.map(
-      (item, index) =>
-        `${index + 1}) ${item.name} (№ ${item.number}, ${item.type}) — ${
-          item.quantity
-        } шт.`
-    );
+    // 3) Подготавливаем все productId
+    const productIds = items.map((i) => i.productId);
 
-    const message = [
-      '🧾 НОВЫЙ ЗАКАЗ С САЙТА STARION',
-      '',
-      partner.company
-        ? `Компания: ${partner.company}`
-        : 'Компания: [не указана]',
-      partner.partnerId ? `Партнёр ID: ${partner.partnerId}` : undefined,
-      '',
-      'Позиции:',
-      ...lines,
-      comment ? `\nКомментарий: ${comment}` : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    // 4) Запрашиваем все товары разом (один запрос)
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
 
-    await sendToTelegram(message);
+    if (products.length !== items.length) {
+      return new Response('Some products not found', { status: 400 });
+    }
 
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('Order error:', error);
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    // 5) Запрашиваем все цены сразу
+    const prices = await prisma.price.findMany({
+      where: { partnerId },
+    });
+
+    // 6) Обрабатываем позиции
+    const dbItems = items.map((i) => {
+      const product = products.find((p) => p.id === i.productId)!;
+      const foundPrice = prices.find(
+        (p) => p.type === product.type && p.material === product.material
+      );
+
+      if (!foundPrice) {
+        throw new Error(
+          `Missing price for ${product.type}/${product.material}`
+        );
+      }
+
+      const qty = Math.max(1, Number(i.qty)); // защита от qty < 1
+      const price = Number(foundPrice.price);
+      const sum = price * qty;
+
+      return {
+        productId: product.id,
+        quantity: qty,
+        pricePerItem: price,
+        sum,
+      };
+    });
+
+    const total = dbItems.reduce((s, i) => s + i.sum, 0);
+
+    // 7) Создаём заказ атомарно (транзакция)
+    const order = await prisma.$transaction(async (trx) => {
+      return await trx.order.create({
+        data: {
+          partnerId,
+          totalPrice: total,
+          items: { create: dbItems },
+        },
+      });
+    });
+
+    return Response.json({ ok: true, orderId: order.id });
+  } catch (e: any) {
+    console.error(e);
+    return new Response(e.message ?? 'Order error', { status: 400 });
   }
 }

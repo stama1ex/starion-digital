@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
+import { ShoppingCart } from 'lucide-react';
 
 export default function CartDrawer() {
   const { items, removeItem, clear } = useCartStore();
@@ -25,11 +26,20 @@ export default function CartDrawer() {
   const handleSubmit = async () => {
     if (!items.length || isSubmitting) return;
     setIsSubmitting(true);
+
     try {
+      const payload = {
+        items: items.map((i) => ({
+          productId: i.id,
+          qty: i.quantity,
+        })),
+        comment,
+      };
+
       const res = await fetch('/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items, comment }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -52,7 +62,8 @@ export default function CartDrawer() {
   return (
     <Drawer>
       <DrawerTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline">
+          <ShoppingCart />
           Корзина ({totalItems})
         </Button>
       </DrawerTrigger>
@@ -63,7 +74,9 @@ export default function CartDrawer() {
 
         <div className="px-4 flex flex-col gap-3 overflow-y-auto max-h-[55vh]">
           {!items.length && (
-            <p className="text-sm text-muted-foreground">Корзина пуста.</p>
+            <p className="text-sm text-muted-foreground md:text-center">
+              Корзина пуста.
+            </p>
           )}
 
           {items.map((item) => (
@@ -94,7 +107,7 @@ export default function CartDrawer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => removeItem(item.number)}
+                onClick={() => removeItem(item.id)}
               >
                 ✕
               </Button>

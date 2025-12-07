@@ -1,50 +1,35 @@
+import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
     const { login, password } = await req.json();
 
-    // 1) Базовая проверка
     if (!login || !password) {
       return new Response('Missing credentials', { status: 400 });
     }
 
-    // 2) Читаем список разрешённых логинов из ENV
-    let allowed: string[];
-    try {
-      allowed = JSON.parse(process.env.AUTHORIZED_USERS ?? '[]');
-    } catch {
-      return new Response('Server configuration error', { status: 500 });
-    }
+    // Ищем партнёра в БД
+    const partner = await prisma.partner.findUnique({
+      where: { login },
+    });
 
-    // 3) Проверяем, что логин есть в списке
-    if (!allowed.includes(login)) {
+    if (!partner) {
       return new Response('Forbidden', { status: 403 });
     }
 
-    // 4) Читаем пароль из ENV
-    // login = "firma1" → ожидаем переменную FIRMA1_PWD
-    const key = `${login.toUpperCase()}_PWD`;
-    const expectedPassword = process.env[key];
-
-    if (!expectedPassword) {
-      return new Response('Password not configured', { status: 500 });
-    }
-
-    // 5) Сравниваем простой пароль (без хэшей)
-    if (password !== expectedPassword) {
+    // Проверяем пароль (без хэша)
+    if (password !== partner.password) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    // 6) Ставим cookie session
-    const isProd = process.env.NODE_ENV === 'production';
-
-    (await cookies()).set('session', login, {
+    // Создаём cookie
+    (await cookies()).set('session', String(partner.id), {
       httpOnly: true,
-      secure: isProd, // на localhost будет false
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7,
+      maxAge: 60 * 60 * 24 * 7, // 7 дней
     });
 
     return Response.json({ ok: true });

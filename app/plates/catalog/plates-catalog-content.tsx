@@ -1,32 +1,35 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import { Souvenir } from '@/types';
+import { Product } from '@prisma/client';
 
 interface PlatesCatalogContentProps {
-  translations: {
-    plates_title: string;
-  };
-  dataSource: string;
+  translations: { plates_title: string };
   exampleProductNumber: string;
-  products: Souvenir[];
-  modelUrls: Record<string, string>; // New prop for Dropbox URLs
+  products: Product[];
+  modelUrls: Record<string, string>;
+  prices: {
+    type: Product['type'];
+    material: Product['material'];
+    price: number;
+  }[];
 }
 
 export default function PlatesCatalogContent({
   translations,
-  dataSource,
   exampleProductNumber,
   products,
-  modelUrls, // Receive Dropbox URLs
+  modelUrls,
+  prices,
 }: PlatesCatalogContentProps) {
   return (
     <Catalog
       title={translations.plates_title}
-      dataSource={dataSource}
       exampleProductNumber={exampleProductNumber}
       products={products}
-      modelUrls={modelUrls} // Pass modelUrls to Catalog
+      modelUrls={modelUrls}
+      prices={prices}
     />
   );
 }

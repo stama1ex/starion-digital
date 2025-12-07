@@ -31,7 +31,6 @@ import { useTranslations } from 'next-intl';
 import { useLocaleStore } from '@/store/useLocaleStore';
 import { HeaderSkeleton } from './header-skeleton';
 import CartDrawer from './cart-drawer';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { usePartner } from '@/app/providers/partner-provider';
 
@@ -61,7 +60,6 @@ export const Header: React.FC<Props> = ({ className }) => {
   const setLocale = useLocaleStore((state) => state.setLocale);
 
   const { isPartner } = usePartner();
-  const router = useRouter();
 
   React.useEffect(() => setMounted(true), []);
   if (!mounted) return <HeaderSkeleton />;
@@ -69,7 +67,7 @@ export const Header: React.FC<Props> = ({ className }) => {
   const logout = async () => {
     await fetch('/api/logout', { method: 'POST' });
     localStorage.removeItem('cart-storage');
-    router.refresh();
+    window.location.reload();
     toast.success('Вы вышли');
   };
 
@@ -368,7 +366,7 @@ export const Header: React.FC<Props> = ({ className }) => {
             </Button>
           ) : (
             <Link href="/login">
-              <Button variant="outline">Я партнер</Button>
+              <Button variant="outline">Я партнёр</Button>
             </Link>
           )}
         </div>

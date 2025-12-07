@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @next/next/no-img-element */
 'use client';
 import * as React from 'react';
@@ -19,7 +20,7 @@ import { useTranslations } from 'next-intl';
 import { ExampleBlockSkeleton } from './example-block-skeleton';
 
 interface ExampleBlockProps {
-  souvenir: Souvenir;
+  souvenir: any;
   reverse?: boolean;
   className?: string;
   isLoading?: boolean;

@@ -1,32 +1,35 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import { Souvenir } from '@/types';
+import { Product } from '@prisma/client';
 
 interface MagnetsCatalogContentProps {
-  translations: {
-    magnets_title: string;
-  };
-  dataSource: string;
+  translations: { magnets_title: string };
   exampleProductNumber: string;
-  products: Souvenir[];
-  modelUrls: Record<string, string>; // New prop for Dropbox URLs
+  products: Product[];
+  modelUrls: Record<string, string>;
+  prices: {
+    type: Product['type'];
+    material: Product['material'];
+    price: number;
+  }[];
 }
 
 export default function MagnetsCatalogContent({
   translations,
-  dataSource,
   exampleProductNumber,
   products,
   modelUrls,
+  prices,
 }: MagnetsCatalogContentProps) {
   return (
     <Catalog
       title={translations.magnets_title}
-      dataSource={dataSource}
       exampleProductNumber={exampleProductNumber}
       products={products}
       modelUrls={modelUrls}
+      prices={prices}
     />
   );
 }
