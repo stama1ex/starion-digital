@@ -1,0 +1,86 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Partner {
+  id        Int      @id @default(autoincrement())
+  name      String
+  login     String   @unique
+  password  String   // bcrypt hash
+  createdAt DateTime @default(now())
+
+  prices    Price[]
+  orders    Order[]
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  type      ProductType
+  number    String   @unique
+  country   String
+  image     String
+  material  Material
+
+  items     OrderItem[]
+}
+
+model Price {
+  id        Int      @id @default(autoincrement())
+  partnerId Int
+  type      ProductType
+  material  Material
+  price     Decimal  @db.Decimal(10,2)
+
+  partner   Partner  @relation(fields: [partnerId], references: [id])
+
+  @@unique([partnerId, type, material]) // У одного партнёра только одна цена на каждую комбинацию
+}
+
+model Order {
+  id         Int        @id @default(autoincrement())
+  partnerId  Int
+  totalPrice Decimal     @db.Decimal(12,2)
+  status     OrderStatus @default(NEW)
+  createdAt  DateTime    @default(now())
+
+  partner    Partner     @relation(fields: [partnerId], references: [id])
+  items      OrderItem[]
+}
+
+model OrderItem {
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  productId    Int
+  quantity     Int
+  pricePerItem Decimal   @db.Decimal(10,2)
+  sum          Decimal   @db.Decimal(12,2)
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+enum ProductType {
+  MAGNET
+  PLATE
+  POSTCARD
+  STATUE
+  BALL
+}
+
+enum Material {
+  MARBLE
+  WOOD
+  ACRYLIC
+}
+
+enum OrderStatus {
+  NEW
+  APPROVED
+  DONE
+  CANCELLED
+}

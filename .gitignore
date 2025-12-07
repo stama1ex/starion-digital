@@ -44,3 +44,4 @@ flatten-project.js
 project.txt
 magnet.glb
 plate.glb
+/lib/generated/prisma
