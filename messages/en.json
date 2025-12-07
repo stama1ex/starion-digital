@@ -76,7 +76,8 @@
     "fetch_error": "Failed to load {type}",
     "error": "Error: {message}",
     "number": "№ {number}",
-    "type": "Product"
+    "type": "Product",
+    "add_to_order": "Add to order"
   },
   "LandingDrawer": {
     "title": "Where to Start?",
@@ -192,5 +193,50 @@
     "title": "Page Not Found",
     "description": "Oops! The page you're looking for doesn't exist. Let's get you back to exploring our augmented reality souvenirs!",
     "home_button": "Return to Home"
+  },
+  "DashboardCommon": {
+    "dashboard": "Partner Dashboard",
+    "my_orders": "My Orders",
+    "logout": "Logout",
+    "status": "Status",
+    "total": "Total",
+    "date": "Date",
+    "no_data": "No data available"
+  },
+
+  "Orders": {
+    "title": "My Orders",
+    "order_number": "Order #{id}",
+    "total_price": "Total: {price} MDL",
+    "items_count": "Items: {count}",
+    "empty": "You have no orders yet.",
+    "status": {
+      "NEW": "New",
+      "APPROVED": "Approved",
+      "DONE": "Completed",
+      "CANCELLED": "Cancelled"
+    }
+  },
+
+  "Cart": {
+    "cart": "Cart",
+    "empty": "Your cart is empty.",
+    "quantity": "Quantity",
+    "comment_placeholder": "Order comment (optional)",
+    "send_order": "Send Order",
+    "sending": "Sending...",
+    "close": "Close",
+    "positions": "Total items",
+    "sum": "Total amount",
+    "toast_added": "Added to cart!",
+    "toast_error": "Error while adding"
+  },
+
+  "Login": {
+    "title": "Partner Login",
+    "login": "Login",
+    "password": "Password",
+    "submit": "Sign In",
+    "invalid": "Invalid login or password"
   }
 }

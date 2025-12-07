@@ -2,7 +2,7 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import { Product } from '@prisma/client';
+import { Product, ProductType, Material } from '@prisma/client';
 
 interface PlatesCatalogContentProps {
   translations: { plates_title: string };
@@ -10,8 +10,8 @@ interface PlatesCatalogContentProps {
   products: Product[];
   modelUrls: Record<string, string>;
   prices: {
-    type: Product['type'];
-    material: Product['material'];
+    type: ProductType;
+    material: Material;
     price: number;
   }[];
 }

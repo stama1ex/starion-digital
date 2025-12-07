@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getModelUrl } from '@/lib/models';
 import { cookies } from 'next/headers';
 import MagnetsCatalogContent from './magnets-catalog-content';
+import type { ProductType, Material } from '@prisma/client';
 
 type PageProps = {
   params: Promise<{ locale: string }>;
@@ -34,14 +35,21 @@ export default async function MagnetsCatalogPage({ params }: PageProps) {
     orderBy: { number: 'asc' },
   });
 
-  // Загружаем цены партнёра
+  // Загружаем цены партнёра, если вошёл
   const session = (await cookies()).get('session')?.value;
-  let prices: any[] = [];
+  let prices: { type: ProductType; material: Material; price: number }[] = [];
+
   if (session) {
-    prices = await prisma.price.findMany({
+    const raw = await prisma.price.findMany({
       where: { partnerId: parseInt(session) },
       select: { type: true, material: true, price: true },
     });
+
+    prices = raw.map((p) => ({
+      type: p.type as ProductType,
+      material: p.material as Material,
+      price: Number(p.price),
+    }));
   }
 
   // Dropbox модели
