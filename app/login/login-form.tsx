@@ -36,37 +36,43 @@ export default function LoginForm() {
   };
 
   return (
-    <Card className="w-full max-w-sm shadow-lg">
+    <Card className="w-full max-w-sm shadow-xl border-border/40 bg-card/80 backdrop-blur-md animate-fade-in mb-24">
       <CardHeader>
-        <CardTitle className="text-center text-2xl font-bold">
+        <CardTitle className="text-center text-2xl font-black tracking-tight">
           {t('title')}
         </CardTitle>
       </CardHeader>
 
       <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <Label className="mb-2">{t('login')}</Label>
+        <form onSubmit={onSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label>{t('login')}</Label>
             <Input
               required
               value={login}
               onChange={(e) => setLogin(e.target.value)}
               placeholder={t('login_placeholder')}
+              className="h-11"
             />
           </div>
 
-          <div>
-            <Label className="mb-2">{t('password')}</Label>
+          <div className="space-y-2">
+            <Label>{t('password')}</Label>
             <Input
               required
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t('password_placeholder')}
+              className="h-11"
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button
+            type="submit"
+            className="w-full h-11 text-base"
+            disabled={loading}
+          >
             {loading ? t('loading') : t('submit')}
           </Button>
         </form>

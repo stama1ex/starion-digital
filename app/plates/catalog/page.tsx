@@ -8,14 +8,14 @@ import PlatesCatalogContent from './plates-catalog-content';
 import type { ProductType, Material } from '@prisma/client';
 
 type PageProps = {
-  params: Promise<{ locale: string }>;
+  params: { locale: string };
 };
 
 // --- SEO ---
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { locale } = await params;
+  const { locale } = params;
   const t = await getTranslations({ locale, namespace: 'Catalog' });
 
   return {
@@ -26,8 +26,8 @@ export async function generateMetadata({
 
 // --- PAGE ---
 export default async function PlatesCatalogPage({ params }: PageProps) {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'Catalog' });
+  const { locale } = params;
+  await getTranslations({ locale, namespace: 'Catalog' });
 
   // Получаем товары
   const products = await prisma.product.findMany({

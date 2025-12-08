@@ -57,7 +57,7 @@ export default function OrdersContent() {
   let lastDate = '';
 
   return (
-    <Container className="py-12">
+    <Container className="py-12 px-4 md:px-0">
       <div className="flex justify-center w-full h-full">
         <Title
           text={t('title')}

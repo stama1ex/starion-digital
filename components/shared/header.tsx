@@ -101,7 +101,7 @@ export const Header: React.FC<Props> = ({ className }) => {
       <Container className="flex items-center justify-between py-4 sm:py-6 gap-4 relative">
         {/* LOGO */}
         <div className="relative flex items-center justify-between w-full sm:w-auto">
-          <Link href="/" className="hidden sm:flex items-center gap-2">
+          <Link href="/" className="hidden md:flex items-center gap-2">
             <h1 className="text-2xl sm:text-3xl uppercase font-black text-foreground">
               {t('logo')}
             </h1>
@@ -109,7 +109,7 @@ export const Header: React.FC<Props> = ({ className }) => {
 
           <Link
             href="/"
-            className="absolute left-1/2 -translate-x-1/2 sm:hidden flex items-center gap-2"
+            className="absolute left-1/2 -translate-x-1/2 md:hidden flex items-center gap-2"
           >
             <h1 className="text-lg uppercase font-black text-foreground">
               {t('logo')}
@@ -122,7 +122,7 @@ export const Header: React.FC<Props> = ({ className }) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="sm:hidden ml-auto mr-3 text-foreground hover:bg-accent hover:text-accent-foreground"
+                className="md:hidden ml-auto mr-3 text-foreground hover:bg-accent hover:text-accent-foreground"
                 aria-label={t('open_menu')}
               >
                 <Menu size={24} />
@@ -199,7 +199,6 @@ export const Header: React.FC<Props> = ({ className }) => {
                     isActive('/contacts') && 'text-primary font-bold'
                   )}
                 >
-                  <Button></Button>
                   {t('contacts')}
                 </Link>
 
@@ -269,7 +268,7 @@ export const Header: React.FC<Props> = ({ className }) => {
         </div>
 
         {/* DESKTOP NAVIGATION */}
-        <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
           <NavigationMenu viewport={false}>
             <NavigationMenuList>
               {/* HOME */}
@@ -277,9 +276,9 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuLink
                   asChild
                   className={cn(
-                    '!bg-transparent',
+                    '!bg-transparent !font-bold',
                     navigationMenuTriggerStyle(),
-                    isActive('/') && 'text-primary font-bold'
+                    isActive('/') && '!text-primary'
                   )}
                 >
                   <Link href="/">{t('home')}</Link>
@@ -335,9 +334,9 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuLink
                   asChild
                   className={cn(
-                    '!bg-transparent',
+                    '!bg-transparent !font-bold',
                     navigationMenuTriggerStyle(),
-                    isActive('/contacts') && 'text-primary font-bold'
+                    isActive('/contacts') && '!text-primary'
                   )}
                 >
                   <Link href="/contacts">{t('contacts')}</Link>
@@ -374,11 +373,6 @@ export const Header: React.FC<Props> = ({ className }) => {
                   </ul>
                 </NavigationMenuContent>
               </NavigationMenuItem>
-
-              {/* THEME */}
-              <NavigationMenuItem>
-                <ThemeToggleButton />
-              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
 
@@ -391,6 +385,8 @@ export const Header: React.FC<Props> = ({ className }) => {
               </Link>
             </>
           )}
+          <ThemeToggleButton />
+
           {isPartner ? (
             <Button variant="destructive" onClick={logout}>
               {tPartner('logout')}
@@ -401,6 +397,13 @@ export const Header: React.FC<Props> = ({ className }) => {
             </Link>
           )}
         </div>
+        {/* MOBILE CART BUTTON (absolute) */}
+        {isPartner && (
+          <div className="md:hidden absolute right-4 bottom-[-48px] z-20">
+            {' '}
+            <CartDrawer isOutline={false} />
+          </div>
+        )}
       </Container>
     </header>
   );
