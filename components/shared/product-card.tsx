@@ -21,7 +21,7 @@ interface Props {
   getPrice: (p: Product) => number | null;
 }
 
-export function ProductCard({ product, modelUrls, getPrice }: Props) {
+export function ProductCard({ product, getPrice }: Props) {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
 

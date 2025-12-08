@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -7,15 +8,9 @@ import { cookies } from 'next/headers';
 import MagnetsCatalogContent from './magnets-catalog-content';
 import type { ProductType, Material } from '@prisma/client';
 
-type PageProps = {
-  params: { locale: string };
-};
-
 // --- SEO ---
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const { locale } = params;
+export async function generateMetadata({ params }: any): Promise<Metadata> {
+  const locale = (await params).locale;
   const t = await getTranslations({ locale, namespace: 'Catalog' });
 
   return {
@@ -25,17 +20,12 @@ export async function generateMetadata({
 }
 
 // --- PAGE ---
-export default async function MagnetsCatalogPage({ params }: PageProps) {
-  const { locale } = params;
-  await getTranslations({ locale, namespace: 'Catalog' });
-
-  // Получаем товары
+export default async function MagnetsCatalogPage({ params }: any) {
   const products = await prisma.product.findMany({
     where: { type: 'MAGNET' },
     orderBy: { number: 'asc' },
   });
 
-  // Загружаем цены партнёра, если вошёл
   const session = (await cookies()).get('session')?.value;
   let prices: { type: ProductType; material: Material; price: number }[] = [];
 
@@ -46,13 +36,12 @@ export default async function MagnetsCatalogPage({ params }: PageProps) {
     });
 
     prices = raw.map((p) => ({
-      type: p.type as ProductType,
-      material: p.material as Material,
+      type: p.type,
+      material: p.material,
       price: Number(p.price),
     }));
   }
 
-  // Dropbox модели
   const modelUrls = {
     magnet: await getModelUrl('magnet.glb'),
     plate: await getModelUrl('plate.glb'),
