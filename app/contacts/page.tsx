@@ -5,14 +5,14 @@ import { Container } from '@/components/shared/container';
 import ContactsContent from './contacts-content';
 
 type PageProps = {
-  params: Promise<{ locale: string }>; // 👈 у Next.js params асинхронный
+  params: Promise<{ locale: string }>;
 };
 
 // Metadata generation (server-side)
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { locale } = await params; // 👈 деструктурируем из промиса
+  const { locale } = await params;
   const t = await getTranslations({
     locale,
     namespace: 'ContactsPage',
@@ -29,8 +29,8 @@ export async function generateMetadata({
       locale === 'ru'
         ? 'Контакты Starion Digital'
         : locale === 'ro'
-          ? 'Contact Starion Digital'
-          : 'Starion Digital contact',
+        ? 'Contact Starion Digital'
+        : 'Starion Digital contact',
     ],
     openGraph: {
       title: `${t('meta.title')} - Contact Starion Digital`,
