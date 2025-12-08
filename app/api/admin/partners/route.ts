@@ -95,10 +95,30 @@ export async function POST(request: NextRequest) {
     if (marbleId && woodId) {
       await prisma.price.createMany({
         data: [
-          { partnerId: partner.id, type: 'MAGNET', materialId: marbleId, price: 20 },
-          { partnerId: partner.id, type: 'MAGNET', materialId: woodId, price: 12 },
-          { partnerId: partner.id, type: 'PLATE', materialId: marbleId, price: 120 },
-          { partnerId: partner.id, type: 'PLATE', materialId: woodId, price: 90 },
+          {
+            partnerId: partner.id,
+            type: 'MAGNET',
+            materialId: marbleId,
+            price: 20,
+          },
+          {
+            partnerId: partner.id,
+            type: 'MAGNET',
+            materialId: woodId,
+            price: 12,
+          },
+          {
+            partnerId: partner.id,
+            type: 'PLATE',
+            materialId: marbleId,
+            price: 120,
+          },
+          {
+            partnerId: partner.id,
+            type: 'PLATE',
+            materialId: woodId,
+            price: 90,
+          },
         ],
       });
     }
