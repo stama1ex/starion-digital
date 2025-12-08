@@ -60,6 +60,11 @@ export default function SalesAnalytics({
       return;
     }
 
+    // ✅ УЧИТЫВАЕМ ТОЛЬКО ОПЛАЧЕННЫЕ ЗАКАЗЫ
+    if (order.status !== 'PAID') {
+      return;
+    }
+
     const isoDate = new Date(order.createdAt).toISOString().split('T')[0]; // YYYY-MM-DD
 
     const existing = dateMap.get(isoDate) || {

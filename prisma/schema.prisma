@@ -139,10 +139,10 @@ enum ProductType {
 }
 
 enum OrderStatus {
-  NEW
-  APPROVED
-  DONE
-  CANCELLED
+  NEW        // Новый заказ, ожидает подтверждения
+  CONFIRMED  // Подтверждён админом
+  PAID       // Оплачен (учитывается в доходе)
+  CANCELLED  // Отменён
 }
 
 enum RealizationStatus {

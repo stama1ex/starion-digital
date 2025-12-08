@@ -98,9 +98,9 @@ export default function OrdersContent() {
                       'text-sm font-medium px-2 py-1 rounded-md',
                       order.status === 'NEW' &&
                         'bg-yellow-500/20 text-yellow-600',
-                      order.status === 'APPROVED' &&
+                      order.status === 'CONFIRMED' &&
                         'bg-blue-500/20 text-blue-600',
-                      order.status === 'DONE' &&
+                      order.status === 'PAID' &&
                         'bg-green-500/20 text-green-600',
                       order.status === 'CANCELLED' &&
                         'bg-red-500/20 text-red-600'

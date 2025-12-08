@@ -60,6 +60,11 @@ export default function DealerAnalytics({
       return;
     }
 
+    // ✅ УЧИТЫВАЕМ ТОЛЬКО ОПЛАЧЕННЫЕ ЗАКАЗЫ
+    if (order.status !== 'PAID') {
+      return;
+    }
+
     const partnerId = order.partnerId;
     const existing =
       dealerStats.get(partnerId) ||

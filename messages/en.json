@@ -223,8 +223,8 @@
     "total": "Total",
     "status": {
       "NEW": "New",
-      "APPROVED": "Approved",
-      "DONE": "Completed",
+      "CONFIRMED": "Confirmed",
+      "PAID": "Paid",
       "CANCELLED": "Cancelled"
     },
     "number_raw": "{id}",

@@ -7,6 +7,7 @@ import TopProducts from './sections/top-products';
 import DealerAnalytics from './sections/dealer-analytics';
 import DebtTracking from './sections/debt-tracking';
 import RealizationTracking from './sections/realization-tracking';
+import OrdersManagement from './sections/orders-management';
 import PartnersManagement from './sections/partners-management';
 import PricesManagement from './sections/prices-management';
 import ProductsManagement from './sections/products-management';
@@ -21,10 +22,11 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({
-  orders,
+  orders: initialOrders,
   partners,
   realizations,
 }: AdminDashboardProps) {
+  const [orders, setOrders] = useState(initialOrders);
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [customDateRange, setCustomDateRange] = useState<{
     from: string;
@@ -36,6 +38,11 @@ export default function AdminDashboard({
     to: new Date().toISOString().split('T')[0],
   });
   const [useCustomRange, setUseCustomRange] = useState(false);
+
+  const handleRefreshOrders = () => {
+    // Принудительно обновляем страницу для получения свежих данных
+    window.location.reload();
+  };
 
   return (
     <div className="space-y-6 p-4 md:p-0">
@@ -126,7 +133,7 @@ export default function AdminDashboard({
       </div>
 
       <Tabs defaultValue="sales" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1 h-auto">
           <TabsTrigger value="sales" className="text-xs sm:text-sm">
             Продажи
           </TabsTrigger>
@@ -135,6 +142,9 @@ export default function AdminDashboard({
           </TabsTrigger>
           <TabsTrigger value="dealers" className="text-xs sm:text-sm">
             Дилеры
+          </TabsTrigger>
+          <TabsTrigger value="orders" className="text-xs sm:text-sm">
+            Заказы
           </TabsTrigger>
           <TabsTrigger value="debt" className="text-xs sm:text-sm">
             Долги
@@ -181,6 +191,10 @@ export default function AdminDashboard({
             dateRange={dateRange}
             customDateRange={useCustomRange ? customDateRange : null}
           />
+        </TabsContent>
+
+        <TabsContent value="orders" className="space-y-4">
+          <OrdersManagement orders={orders} onRefresh={handleRefreshOrders} />
         </TabsContent>
 
         <TabsContent value="debt" className="space-y-4">

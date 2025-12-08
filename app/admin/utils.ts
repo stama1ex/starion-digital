@@ -67,10 +67,15 @@ export function calculateMetrics(orders: AdminOrder[], realizations: any[]) {
     realizations.map((r: any) => r.orderId)
   );
 
-  // Считаем обычные заказы полностью (только те, которые НЕ являются реализациями)
+  // Считаем только ОПЛАЧЕННЫЕ заказы (только те, которые НЕ являются реализациями)
   for (const order of orders) {
     // Пропускаем заказы которые конвертированы в реализацию
     if (orderIdsWithRealization.has(order.id)) {
+      continue;
+    }
+
+    // ✅ УЧИТЫВАЕМ ТОЛЬКО ОПЛАЧЕННЫЕ ЗАКАЗЫ
+    if (order.status !== 'PAID') {
       continue;
     }
 
