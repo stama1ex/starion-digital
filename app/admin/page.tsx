@@ -4,21 +4,24 @@ import { prisma } from '@/lib/db';
 import AdminDashboard from './admin-dashboard';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import { toPlain } from '@/lib/toPlain';
-
-const ADMIN_LOGIN = 'yurix13';
+import { Title } from '@/components/shared/title';
 
 export default async function AdminPage() {
   const session = (await cookies()).get('session')?.value;
 
   if (!session) redirect('/login');
 
-  // Получаем данные администратора из БД по логину
-  const admin = await prisma.partner.findUnique({
-    where: { login: ADMIN_LOGIN },
+  const partnerId = Number(session);
+  if (!partnerId || Number.isNaN(partnerId)) {
+    redirect('/login');
+  }
+
+  const currentPartner = await prisma.partner.findUnique({
+    where: { id: partnerId },
   });
 
-  // Если администратор не создан или сессия не совпадает с его ID или имя не "ADMIN" - запретить доступ
-  if (!admin || session !== admin.id.toString() || admin.name !== 'ADMIN') {
+  // Доступ только если role = ADMIN
+  if (!currentPartner || currentPartner.role !== 'ADMIN') {
     return (
       <div className="min-h-screen p-6 text-center text-destructive font-black">
         Access Denied – Admin Only
@@ -26,7 +29,7 @@ export default async function AdminPage() {
     );
   }
 
-  const [orders, partners, realizationsRaw] = await Promise.all([
+  const [ordersRaw, partnersRaw, realizationsRaw] = await Promise.all([
     prisma.order.findMany({
       include: {
         partner: true,
@@ -34,11 +37,11 @@ export default async function AdminPage() {
       },
       orderBy: { createdAt: 'desc' },
       where: {
-        partner: { name: { not: 'ADMIN' } },
+        partner: { role: 'PARTNER' },
       },
     }),
     prisma.partner.findMany({
-      where: { name: { not: 'ADMIN' } },
+      where: { role: 'PARTNER' },
     }),
     prisma.realization.findMany({
       include: {
@@ -48,20 +51,24 @@ export default async function AdminPage() {
       },
       orderBy: { createdAt: 'desc' },
       where: {
-        partner: { name: { not: 'ADMIN' } },
+        partner: { role: 'PARTNER' },
       },
     }),
   ]);
 
-  // ❗ Преобразование Decimal → number
   const realizations = toPlain(realizationsRaw) as AdminRealization[];
-  const ordersPlain = toPlain(orders) as AdminOrder[];
-  const partnersPlain = toPlain(partners) as AdminPartner[];
+  const ordersPlain = toPlain(ordersRaw) as AdminOrder[];
+  const partnersPlain = toPlain(partnersRaw) as AdminPartner[];
 
   return (
     <main className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+        <div className="flex justify-center w-full h-full">
+          <Title
+            text="Админ панель"
+            className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
+          />
+        </div>
         <AdminDashboard
           orders={ordersPlain}
           partners={partnersPlain}

@@ -1,20 +1,16 @@
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 
-const ADMIN_LOGIN = 'yurix13';
-
 export async function checkAdminAuth(): Promise<boolean> {
-  try {
-    const session = (await cookies()).get('session')?.value;
-    if (!session) return false;
+  const session = (await cookies()).get('session')?.value;
+  if (!session) return false;
 
-    const partnerId = Number(session);
-    const admin = await prisma.partner.findUnique({
-      where: { id: partnerId },
-    });
+  const id = Number(session);
+  if (!id || Number.isNaN(id)) return false;
 
-    return admin?.login === ADMIN_LOGIN && admin?.name === 'ADMIN';
-  } catch {
-    return false;
-  }
+  const partner = await prisma.partner.findUnique({
+    where: { id },
+  });
+
+  return !!partner && partner.role === 'ADMIN';
 }

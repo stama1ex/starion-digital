@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -75,18 +76,44 @@ async function seedPartners() {
   await prisma.price.deleteMany();
   await prisma.partner.deleteMany();
 
+  // Хешируем пароли
+  const adminPass = await bcrypt.hash('stamat2000', 10);
+  const pass1 = await bcrypt.hash('12345', 10);
+  const pass2 = await bcrypt.hash('qwerty', 10);
+  const pass3 = await bcrypt.hash('11111', 10);
+
   const partners = await prisma.$transaction([
     prisma.partner.create({
-      data: { name: 'ADMIN', login: 'yurix13', password: 'stamat2000' },
+      data: {
+        name: 'ADMIN',
+        login: 'yurix13',
+        password: adminPass,
+        role: 'ADMIN',
+      },
     }),
     prisma.partner.create({
-      data: { name: 'MagnetPlus SRL', login: 'magnetplus', password: '12345' },
+      data: {
+        name: 'MagnetPlus SRL',
+        login: 'magnetplus',
+        password: pass1,
+        role: 'PARTNER',
+      },
     }),
     prisma.partner.create({
-      data: { name: 'ArtDecor SRL', login: 'artdecor', password: 'qwerty' },
+      data: {
+        name: 'ArtDecor SRL',
+        login: 'artdecor',
+        password: pass2,
+        role: 'PARTNER',
+      },
     }),
     prisma.partner.create({
-      data: { name: 'CasaSuvenir', login: 'casasuvenir', password: '11111' },
+      data: {
+        name: 'CasaSuvenir',
+        login: 'casasuvenir',
+        password: pass3,
+        role: 'PARTNER',
+      },
     }),
   ]);
 

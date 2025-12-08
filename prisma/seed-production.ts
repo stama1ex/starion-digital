@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 
@@ -63,8 +64,15 @@ async function seedProducts() {
 async function main() {
   console.log('🔄 Production Seed - только товары...');
   await seedProducts();
+
+  const adminPassword = await bcrypt.hash('stamat2000', 10);
   await prisma.partner.create({
-    data: { name: 'ADMIN', login: 'yurix13', password: 'stamat2000' },
+    data: {
+      name: 'ADMIN',
+      login: 'yurix13',
+      password: adminPassword,
+      role: 'ADMIN',
+    },
   });
   console.log('✅ Production seed completed!');
 }

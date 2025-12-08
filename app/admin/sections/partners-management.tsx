@@ -59,6 +59,17 @@ export default function PartnersManagement() {
   };
 
   const handleSave = async () => {
+    // Валидация на клиенте
+    if (!formData.name.trim() || !formData.login.trim()) {
+      alert('Заполните имя и логин');
+      return;
+    }
+
+    if (!editingId && formData.password.length < 4) {
+      alert('Пароль должен быть минимум 4 символа');
+      return;
+    }
+
     try {
       const url = '/api/admin/partners';
       const method = editingId ? 'PUT' : 'POST';
@@ -75,9 +86,14 @@ export default function PartnersManagement() {
         setEditingId(null);
         setIsDialogOpen(false);
         await fetchPartners();
+        alert(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
+      } else {
+        const error = await res.json();
+        alert(`Ошибка: ${error.error || 'Неизвестная ошибка'}`);
       }
     } catch (error) {
       console.error('Error saving partner:', error);
+      alert('Ошибка при сохранении партнёра');
     }
   };
 
@@ -197,7 +213,7 @@ export default function PartnersManagement() {
             <div>
               <label className="text-sm font-medium">Имя</label>
               <Input
-                value={formData.name}
+                value={formData.name || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
@@ -207,7 +223,7 @@ export default function PartnersManagement() {
             <div>
               <label className="text-sm font-medium">Логин</label>
               <Input
-                value={formData.login}
+                value={formData.login || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, login: e.target.value })
                 }
@@ -218,7 +234,7 @@ export default function PartnersManagement() {
               <label className="text-sm font-medium">Пароль</label>
               <Input
                 type="password"
-                value={formData.password}
+                value={formData.password || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
