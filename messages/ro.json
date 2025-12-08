@@ -223,8 +223,8 @@
     "total": "Total",
     "status": {
       "NEW": "Nouă",
-      "APPROVED": "Aprobată",
-      "DONE": "Finalizată",
+      "CONFIRMED": "Confirmată",
+      "PAID": "Plătită",
       "CANCELLED": "Anulată"
     },
     "number_raw": "{id}",

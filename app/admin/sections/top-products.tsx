@@ -55,14 +55,19 @@ export default function TopProducts({
     filteredRealizations.map((r: any) => r.orderId)
   );
 
-  // Считаем обычные заказы полностью (только те что НЕ в реализации)
+  // Считаем обычные заказы (только те что НЕ в реализации)
   filteredOrders.forEach((order) => {
     // Пропускаем заказы которые конвертированы в реализацию
     if (orderIdsWithRealization.has(order.id)) {
       return;
     }
 
-    order.items.forEach((item) => {
+    // ✅ УЧИТЫВАЕМ ТОЛЬКО ОПЛАЧЕННЫЕ ЗАКАЗЫ
+    if (order.status !== 'PAID') {
+      return;
+    }
+
+    order.items.forEach((item: any) => {
       const productId = item.productId;
       const existing =
         productStats.get(productId) ||

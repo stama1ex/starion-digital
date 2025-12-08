@@ -224,8 +224,8 @@
     "total": "Итого",
     "status": {
       "NEW": "Новый",
-      "APPROVED": "Подтверждён",
-      "DONE": "Выполнен",
+      "CONFIRMED": "Подтверждён",
+      "PAID": "Оплачен",
       "CANCELLED": "Отменён"
     },
     "number_raw": "{id}",
