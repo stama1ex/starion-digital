@@ -4,7 +4,7 @@ import { Container } from '@/components/shared/container';
 import { Title } from '@/components/shared/title';
 import ExampleBlock from '@/components/shared/example-block';
 import { useTranslations } from 'next-intl';
-import { Product } from '@prisma/client';
+import { Product, Material } from '@prisma/client';
 import { ProductCard } from './product-card';
 
 interface CatalogProps {
@@ -42,6 +42,30 @@ const Catalog: React.FC<CatalogProps> = ({
     return match?.price ?? null;
   };
 
+  // Группируем по материалам
+  const materials = [...new Set(products.map((p) => p.material))] as Material[];
+
+  // Кастомный порядок отображения материалов
+  const materialOrder = [Material.MARBLE, Material.WOOD, Material.ACRYLIC];
+
+  const sortedMaterials = materials.sort(
+    (a, b) => materialOrder.indexOf(a) - materialOrder.indexOf(b)
+  );
+
+  // Человеческие названия материалов
+  const materialHeader = (m: Material) => {
+    switch (m) {
+      case Material.MARBLE:
+        return t('material.marble'); // будет переведён
+      case Material.WOOD:
+        return t('material.wood');
+      case Material.ACRYLIC:
+        return t('material.acrylic');
+      default:
+        return m;
+    }
+  };
+
   return (
     <div className={className}>
       <Container>
@@ -69,16 +93,29 @@ const Catalog: React.FC<CatalogProps> = ({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 my-8 px-4 md:px-0">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              modelUrls={modelUrls}
-              getPrice={getPrice}
-            />
-          ))}
-        </div>
+        {/* Блоки по материалам */}
+        {sortedMaterials.map((mat) => (
+          <div key={mat} className="my-10">
+            <h2 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-start">
+              {materialHeader(mat)}
+            </h2>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 px-4 md:px-0">
+              {products
+                .filter((p) => p.material === mat)
+                .map((product) => (
+                  <ProductCard
+                    key={product.id}
+                    product={product}
+                    modelUrls={modelUrls}
+                    getPrice={getPrice}
+                  />
+                ))}
+            </div>
+
+            <hr className="my-8 opacity-50" />
+          </div>
+        ))}
       </Container>
     </div>
   );

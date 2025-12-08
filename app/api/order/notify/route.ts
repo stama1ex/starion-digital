@@ -2,6 +2,8 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
+import { createOrderExcel } from '@/lib/export/excel';
+import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 
 export async function POST(req: Request) {
   try {
@@ -33,6 +35,8 @@ export async function POST(req: Request) {
         sum: Number(it.sum),
       })),
     });
+    const excelBuffer = await createOrderExcel(order);
+    await sendOrderExcel(excelBuffer);
 
     return Response.json({ ok: true, sent: true });
   } catch (e: any) {

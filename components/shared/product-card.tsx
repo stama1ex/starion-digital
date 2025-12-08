@@ -62,7 +62,7 @@ export function ProductCard({ product, modelUrls, getPrice }: Props) {
             height={500}
             src={imgSrc}
             alt={product.number}
-            className="w-64 h-64 object-contain mb-2"
+            className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
           />
 
           <div className="font-semibold">

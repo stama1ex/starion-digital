@@ -15,94 +15,85 @@ async function seedProducts() {
   const magnets = loadJSON('magnets.json');
   const plates = loadJSON('plates.json');
 
-  const products = [...magnets, ...plates].map((item: any) => {
-    const prefix = item.type === 'magnet' ? 'M' : 'T';
+  const products = [...magnets, ...plates].map((item: any) => ({
+    number: item.number,
+    type: item.type as ProductType,
+    country: item.country.toUpperCase(),
+    image: item.image.replace('public/', ''),
+    material: item.material as Material,
+  }));
 
-    return {
-      number: `${prefix}${item.number}`,
-      type: item.type === 'magnet' ? ProductType.MAGNET : ProductType.PLATE,
-      country: item.country.toUpperCase(),
-      image: item.image.replace('public/', ''),
-      material: Material.MARBLE,
-    };
-  });
-
-  // Чистим продукты и связанные с ними OrderItem
   await prisma.orderItem.deleteMany();
   await prisma.product.deleteMany();
-
-  for (const product of products) {
-    await prisma.product.create({ data: product });
-  }
+  await prisma.product.createMany({ data: products });
 
   console.log(`Products inserted: ${products.length}`);
 }
 
 async function seedPartners() {
-  // Удаляем партнёров и их связи
   await prisma.order.deleteMany();
   await prisma.price.deleteMany();
   await prisma.partner.deleteMany();
 
-  // Создаём партнёров
   const partners = await prisma.$transaction([
     prisma.partner.create({
-      data: {
-        name: 'MagnetPlus SRL',
-        login: 'magnetplus',
-        password: '12345', // временно без хэша
-      },
+      data: { name: 'MagnetPlus SRL', login: 'magnetplus', password: '12345' },
     }),
     prisma.partner.create({
-      data: {
-        name: 'ArtDecor SRL',
-        login: 'artdecor',
-        password: 'qwerty',
-      },
+      data: { name: 'ArtDecor SRL', login: 'artdecor', password: 'qwerty' },
     }),
     prisma.partner.create({
-      data: {
-        name: 'CasaSuvenir',
-        login: 'casasuvenir',
-        password: '11111',
-      },
+      data: { name: 'CasaSuvenir', login: 'casasuvenir', password: '11111' },
     }),
   ]);
 
-  console.log('Partners created:', partners.map((p) => p.login).join(', '));
+  console.log('Partners created');
 
-  // Цены (MARBLE - единственный материал на данный момент)
-  const MARBLE_PRICES = [
-    //     MAGNET  PLATE
-    { login: 'magnetplus', magnet: 12, plate: 35 },
-    { login: 'artdecor', magnet: 15, plate: 30 },
-    { login: 'casasuvenir', magnet: 10, plate: 40 },
-  ];
+  // ====== Важно: динамически собираем все материалы и типы из JSON ======
+  const magnets = loadJSON('magnets.json');
+  const plates = loadJSON('plates.json');
+  const products = [...magnets, ...plates];
 
-  // Привязка цен к каждому партнёру
-  for (const entry of MARBLE_PRICES) {
-    const partner = partners.find((p) => p.login === entry.login);
-    if (!partner) continue;
+  const MATERIALS = [
+    ...new Set(products.map((p: any) => p.material)),
+  ] as Material[];
+  const TYPES = [
+    ...new Set(products.map((p: any) => p.type.toUpperCase())),
+  ] as ProductType[];
 
-    await prisma.price.createMany({
-      data: [
-        {
+  // ====== Базовые цены (можешь менять) ======
+  const BASE_PRICES: Record<string, number> = {
+    MAGNET_MARBLE: 20,
+    PLATE_MARBLE: 120,
+    MAGNET_WOOD: 15,
+    PLATE_WOOD: 110,
+  };
+
+  for (const partner of partners) {
+    const pricesToInsert = [];
+
+    for (const type of TYPES) {
+      for (const material of MATERIALS) {
+        const key = `${type}_${material}`;
+        const price = BASE_PRICES[key];
+
+        if (!price) continue; // Если цена не прописана вручную — не создаём
+
+        pricesToInsert.push({
           partnerId: partner.id,
-          type: ProductType.MAGNET,
-          material: Material.MARBLE,
-          price: entry.magnet,
-        },
-        {
-          partnerId: partner.id,
-          type: ProductType.PLATE,
-          material: Material.MARBLE,
-          price: entry.plate,
-        },
-      ],
-    });
+          type,
+          material,
+          price,
+        });
+      }
+    }
+
+    if (pricesToInsert.length) {
+      await prisma.price.createMany({ data: pricesToInsert });
+    }
   }
 
-  console.log('Prices seeded successfully');
+  console.log('Dynamic prices seeded successfully');
 }
 
 async function main() {

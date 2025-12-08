@@ -1,291 +1,398 @@
 [
   {
-    "number": "01",
-    "type": "magnet",
-    "country": "md",
+    "number": "M01",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/01.avif"
   },
   {
-    "number": "02",
-    "type": "magnet",
-    "country": "md",
+    "number": "M02",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/02.avif"
   },
   {
-    "number": "03",
-    "type": "magnet",
-    "country": "md",
+    "number": "M03",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/03.avif"
   },
   {
-    "number": "04",
-    "type": "magnet",
-    "country": "md",
+    "number": "M04",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/04.avif"
   },
   {
-    "number": "05",
-    "type": "magnet",
-    "country": "md",
+    "number": "M05",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/05.avif"
   },
   {
-    "number": "06",
-    "type": "magnet",
-    "country": "md",
+    "number": "M06",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/06.avif"
   },
   {
-    "number": "07",
-    "type": "magnet",
-    "country": "md",
+    "number": "M07",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/07.avif"
   },
   {
-    "number": "08",
-    "type": "magnet",
-    "country": "md",
+    "number": "M08",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/08.avif"
   },
   {
-    "number": "09",
-    "type": "magnet",
-    "country": "md",
+    "number": "M09",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/09.avif"
   },
   {
-    "number": "10",
-    "type": "magnet",
-    "country": "md",
+    "number": "M10",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/10.avif"
   },
 
   {
-    "number": "11",
-    "type": "magnet",
-    "country": "md",
+    "number": "M11",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/11.avif"
   },
   {
-    "number": "12",
-    "type": "magnet",
-    "country": "md",
+    "number": "M12",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/12.avif"
   },
   {
-    "number": "13",
-    "type": "magnet",
-    "country": "md",
+    "number": "M13",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/13.avif"
   },
   {
-    "number": "14",
-    "type": "magnet",
-    "country": "md",
+    "number": "M14",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/14.avif"
   },
   {
-    "number": "15",
-    "type": "magnet",
-    "country": "md",
+    "number": "M15",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/15.avif"
   },
   {
-    "number": "16",
-    "type": "magnet",
-    "country": "md",
+    "number": "M16",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/16.avif"
   },
   {
-    "number": "17",
-    "type": "magnet",
-    "country": "md",
+    "number": "M17",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/17.avif"
   },
   {
-    "number": "18",
-    "type": "magnet",
-    "country": "md",
+    "number": "M18",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/18.avif"
   },
   {
-    "number": "19",
-    "type": "magnet",
-    "country": "md",
+    "number": "M19",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/19.avif"
   },
   {
-    "number": "20",
-    "type": "magnet",
-    "country": "md",
+    "number": "M20",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/20.avif"
   },
+
   {
-    "number": "21",
-    "type": "magnet",
-    "country": "md",
+    "number": "M21",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/21.avif"
   },
   {
-    "number": "22",
-    "type": "magnet",
-    "country": "md",
+    "number": "M22",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/22.avif"
   },
   {
-    "number": "23",
-    "type": "magnet",
-    "country": "md",
+    "number": "M23",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/23.avif"
   },
   {
-    "number": "24",
-    "type": "magnet",
-    "country": "md",
+    "number": "M24",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/24.avif"
   },
   {
-    "number": "24-1",
-    "type": "magnet",
-    "country": "md",
+    "number": "M24-1",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/24-1.avif"
   },
   {
-    "number": "25",
-    "type": "magnet",
-    "country": "md",
+    "number": "M25",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/25.avif"
   },
   {
-    "number": "26",
-    "type": "magnet",
-    "country": "md",
+    "number": "M26",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/26.avif"
   },
   {
-    "number": "27",
-    "type": "magnet",
-    "country": "md",
+    "number": "M27",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/27.avif"
   },
   {
-    "number": "28",
-    "type": "magnet",
-    "country": "md",
+    "number": "M28",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/28.avif"
   },
   {
-    "number": "29",
-    "type": "magnet",
-    "country": "md",
+    "number": "M29",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/29.avif"
   },
+
   {
-    "number": "30",
-    "type": "magnet",
-    "country": "md",
+    "number": "M30",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/30.avif"
   },
   {
-    "number": "31",
-    "type": "magnet",
-    "country": "md",
+    "number": "M31",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/31.avif"
   },
   {
-    "number": "32",
-    "type": "magnet",
-    "country": "md",
+    "number": "M32",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/32.avif"
   },
   {
-    "number": "33",
-    "type": "magnet",
-    "country": "md",
+    "number": "M33",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/33.avif"
   },
   {
-    "number": "34",
-    "type": "magnet",
-    "country": "md",
+    "number": "M34",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/34.avif"
   },
   {
-    "number": "35",
-    "type": "magnet",
-    "country": "md",
+    "number": "M35",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/35.avif"
   },
   {
-    "number": "36",
-    "type": "magnet",
-    "country": "md",
+    "number": "M36",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/36.avif"
   },
   {
-    "number": "39",
-    "type": "magnet",
-    "country": "md",
+    "number": "M39",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/39.avif"
   },
   {
-    "number": "40",
-    "type": "magnet",
-    "country": "md",
+    "number": "M40",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/40.avif"
   },
   {
-    "number": "42",
-    "type": "magnet",
-    "country": "md",
+    "number": "M42",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/42.avif"
   },
+
   {
-    "number": "45",
-    "type": "magnet",
-    "country": "md",
+    "number": "M45",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/45.avif"
   },
   {
-    "number": "46",
-    "type": "magnet",
-    "country": "md",
+    "number": "M46",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/46.avif"
   },
   {
-    "number": "53",
-    "type": "magnet",
-    "country": "md",
+    "number": "M53",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/53.avif"
   },
   {
-    "number": "63",
-    "type": "magnet",
-    "country": "md",
+    "number": "M63",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/63.avif"
   },
   {
-    "number": "77",
-    "type": "magnet",
-    "country": "md",
+    "number": "M77",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/77.avif"
   },
   {
-    "number": "82",
-    "type": "magnet",
-    "country": "md",
+    "number": "M78",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
+    "image": "public/magnets/78.png"
+  },
+  {
+    "number": "M82",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/82.avif"
   },
   {
-    "number": "83",
-    "type": "magnet",
-    "country": "md",
+    "number": "M83",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/83.avif"
   },
   {
-    "number": "103",
-    "type": "magnet",
-    "country": "md",
+    "number": "M100",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
+    "image": "public/magnets/100.png"
+  },
+  {
+    "number": "M103",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/magnets/103.avif"
+  },
+  {
+    "number": "D1",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/magnets/D1.png"
+  },
+  {
+    "number": "D2",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/magnets/D2.png"
+  },
+  {
+    "number": "D3",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/magnets/D3.png"
+  },
+  {
+    "number": "D4",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/magnets/D4.png"
+  },
+  {
+    "number": "D5",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/magnets/D5.png"
+  },
+  {
+    "number": "D6",
+    "type": "MAGNET",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/magnets/D6.png"
   }
 ]
