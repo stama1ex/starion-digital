@@ -43,6 +43,13 @@ export default function LandingCarousel() {
   const [api, setApi] = useState<CarouselApi | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
 
+  const getImageSrc = (imagePath: string) => {
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    return '/' + imagePath.replace(/^public\//, '');
+  };
+
   useEffect(() => {
     fetch('/magnets.json')
       .then((res) => {
@@ -140,7 +147,7 @@ export default function LandingCarousel() {
                     {imgs.length >= 4 && (
                       <>
                         <motion.img
-                          src={`/${imgs[0]}`}
+                          src={getImageSrc(imgs[0])}
                           alt={`${item.name} top-left`}
                           className="absolute top-0 left-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="top-left"
@@ -149,7 +156,7 @@ export default function LandingCarousel() {
                           animate={controls}
                         />
                         <motion.img
-                          src={`/${imgs[1]}`}
+                          src={getImageSrc(imgs[1])}
                           alt={`${item.name} top-right`}
                           className="absolute top-0 right-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="top-right"
@@ -158,7 +165,7 @@ export default function LandingCarousel() {
                           animate={controls}
                         />
                         <motion.img
-                          src={`/${imgs[2]}`}
+                          src={getImageSrc(imgs[2])}
                           alt={`${item.name} bottom-left`}
                           className="absolute bottom-0 left-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="bottom-left"
@@ -167,7 +174,7 @@ export default function LandingCarousel() {
                           animate={controls}
                         />
                         <motion.img
-                          src={`/${imgs[3]}`}
+                          src={getImageSrc(imgs[3])}
                           alt={`${item.name} bottom-right`}
                           className="absolute bottom-0 right-0 w-36 h-36 md:w-64 md:h-64 object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.3)]"
                           custom="bottom-right"

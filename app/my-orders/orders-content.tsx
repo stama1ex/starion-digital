@@ -114,15 +114,22 @@ export default function OrdersContent() {
                   {order.items.map((it, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {it.product.image && (
-                          <Image
-                            src={`/${it.product.image.replace('public/', '')}`}
-                            width={50}
-                            height={50}
-                            className="rounded-md object-cover"
-                            alt=""
-                          />
-                        )}
+                        {it.product.image &&
+                          (() => {
+                            const imgSrc = it.product.image?.startsWith('http')
+                              ? it.product.image
+                              : '/' +
+                                it.product.image?.replace(/^public\//, '');
+                            return (
+                              <Image
+                                src={imgSrc}
+                                width={50}
+                                height={50}
+                                className="rounded-md object-cover"
+                                alt=""
+                              />
+                            );
+                          })()}
                         <div className="text-sm">
                           {t('number')} {it.product.number} — {it.quantity}{' '}
                           {t('pcs')}

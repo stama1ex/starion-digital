@@ -16,17 +16,25 @@ import {
 
 interface SalesAnalyticsProps {
   orders: any[];
+  realizations: any[];
   dateRange: 'day' | 'week' | 'month';
   customDateRange?: { from: string; to: string } | null;
 }
 
 export default function SalesAnalytics({
   orders,
+  realizations,
   dateRange,
   customDateRange,
 }: SalesAnalyticsProps) {
   const filteredOrders = filterByDateRange(
     orders,
+    dateRange,
+    customDateRange || undefined
+  );
+
+  const filteredRealizations = filterByDateRange(
+    realizations,
     dateRange,
     customDateRange || undefined
   );
@@ -41,6 +49,7 @@ export default function SalesAnalytics({
     { revenue: number; cost: number; profit: number }
   >();
 
+  // Добавляем обычные заказы (считаются полностью)
   filteredOrders.forEach((order) => {
     const isoDate = new Date(order.createdAt).toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -60,6 +69,40 @@ export default function SalesAnalytics({
     existing.profit += orderRevenue - orderCost;
 
     dateMap.set(isoDate, existing);
+  });
+
+  // Добавляем реализации (считаются только по paidAmount, дата платежа)
+  filteredRealizations.forEach((realization) => {
+    // Для каждого платежа по этой реализации
+    realization.payments.forEach((payment: any) => {
+      const paymentDate = new Date(payment.createdAt)
+        .toISOString()
+        .split('T')[0];
+
+      const existing = dateMap.get(paymentDate) || {
+        revenue: 0,
+        cost: 0,
+        profit: 0,
+      };
+
+      const paymentAmount = Number(payment.amount);
+      
+      // Считаем себестоимость пропорционально оплаченной сумме
+      const realizationRatio =
+        Number(realization.totalCost) > 0
+          ? paymentAmount / Number(realization.totalCost)
+          : 0;
+
+      const paymentCost = realization.items.reduce((sum: number, item: any) => {
+        return sum + Number(item.costPrice ?? 0) * item.quantity * realizationRatio;
+      }, 0);
+
+      existing.revenue += paymentAmount;
+      existing.cost += paymentCost;
+      existing.profit += paymentAmount - paymentCost;
+
+      dateMap.set(paymentDate, existing);
+    });
   });
 
   // === Сортируем по ISO дате (старые -> новые), потом форматируем ===
