@@ -86,15 +86,12 @@ export default function TopProducts({
     });
   });
 
-  // Считаем реализации только по оплаченному (paidAmount)
   filteredRealizations.forEach((realization) => {
     const totalCost = Number(realization.totalCost);
     const paidAmount = Number(realization.paidAmount);
 
-    // Если ничего не оплачено, пропускаем
     if (paidAmount === 0) return;
 
-    // Коэффициент оплаченной части
     const paidRatio = totalCost > 0 ? paidAmount / totalCost : 0;
 
     realization.items.forEach((item) => {
@@ -109,7 +106,6 @@ export default function TopProducts({
           profit: 0,
         } as ProductStat);
 
-      // Считаем только оплаченную часть товара
       const paidSum = Number(item.totalPrice) * paidRatio;
       const paidQuantity = item.quantity * paidRatio;
       const costPerUnit = Number(item.costPrice ?? 0);
@@ -129,7 +125,6 @@ export default function TopProducts({
     .sort((a, b) => b.profit - a.profit)
     .slice(0, 10);
 
-  // Подготовка данных для графика
   const chartData = topByProfit.map((product) => ({
     name: `Товар ${product.number}`,
     profit: Math.round(product.profit),

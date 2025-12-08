@@ -1,4 +1,3 @@
-// components/PrivacyPolicyContent.tsx
 'use client';
 
 import { Title } from '@/components/shared/title';
