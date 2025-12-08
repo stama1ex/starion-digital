@@ -1,9 +1,9 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
+import type { OrderItem, Product } from '@prisma/client';
 
 export async function POST(req: Request) {
   try {
@@ -23,24 +23,31 @@ export async function POST(req: Request) {
 
     if (!order) return new Response('Order not found', { status: 404 });
 
+    // Тип для items
+    const items = order.items.map((it: OrderItem & { product: Product }) => ({
+      number: it.product.number,
+      qty: it.quantity,
+      price: Number(it.pricePerItem),
+      sum: Number(it.sum),
+    }));
+
+    // 1) Сообщение
     await sendToTelegram({
       partner: order.partner.name,
       orderId: order.id,
       total: Number(order.totalPrice),
       comment,
-      items: order.items.map((it) => ({
-        number: it.product.number,
-        qty: it.quantity,
-        price: Number(it.pricePerItem),
-        sum: Number(it.sum),
-      })),
+      items,
     });
+
+    // 2) Excel
     const excelBuffer = await createOrderExcel(order);
     await sendOrderExcel(excelBuffer);
 
     return Response.json({ ok: true, sent: true });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('Notify error:', e);
-    return new Response(e.message ?? 'Notify error', { status: 400 });
+    const msg = e instanceof Error ? e.message : 'Notify error';
+    return new Response(msg, { status: 400 });
   }
 }
