@@ -30,7 +30,9 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (
+    orderType: 'regular' | 'realization' = 'regular'
+  ) => {
     if (!items.length || isSubmitting) return;
     setIsSubmitting(true);
 
@@ -41,6 +43,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
           qty: i.quantity,
         })),
         comment,
+        orderType, // 'regular' или 'realization'
       };
 
       const res = await fetch('/api/order', {
@@ -149,9 +152,17 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
             <div className="flex flex-col md:flex-row justify-center gap-2">
               <Button
                 disabled={!items.length || isSubmitting}
-                onClick={handleSubmit}
+                onClick={() => handleSubmit('regular')}
               >
-                {isSubmitting ? t('sending') : t('submit')}
+                {isSubmitting ? t('sending') : 'Оформить заказ'}
+              </Button>
+
+              <Button
+                variant="secondary"
+                disabled={!items.length || isSubmitting}
+                onClick={() => handleSubmit('realization')}
+              >
+                Запрос на реализацию
               </Button>
 
               <DrawerClose asChild>
