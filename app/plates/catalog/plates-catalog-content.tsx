@@ -1,13 +1,13 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import type { ProductType, Material } from '@prisma/client';
+import type { $Enums } from '@prisma/client';
 
 interface PlateProductDTO {
   id: number;
   number: string;
-  type: ProductType;
-  material: Material;
+  type: $Enums.ProductType;
+  material: $Enums.Material;
   image: string;
   country: string;
 }
@@ -17,8 +17,8 @@ interface PlatesCatalogContentProps {
   products: PlateProductDTO[];
   modelUrls: Record<string, string>;
   prices?: {
-    type: ProductType;
-    material: Material;
+    type: $Enums.ProductType;
+    material: $Enums.Material;
     price: number;
   }[];
 }
