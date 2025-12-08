@@ -71,6 +71,11 @@
       "description": "Explorați colecția noastră de magnete cu realitate augmentată, cu designuri unice din diverse țări.",
       "description_plates": "Descoperiți colecția noastră de farfurii suvenir cu realitate augmentată, prezentând designuri unice din diverse țări."
     },
+    "material": {
+      "marble": "De marmură",
+      "wood": "Din lemn",
+      "acrylic": "Din acril"
+    },
     "magnets_title": "Catalog Magnete",
     "plates_title": "Catalog Farfurii",
     "fetch_error": "Nu s-a putut încărca {type}",
@@ -261,5 +266,10 @@
     "no_access": "Acces doar pentru parteneri",
     "login": "Autentificare",
     "logout": "Deconectare"
+  },
+  "material": {
+    "marble": "De marmură",
+    "wood": "Din lemn",
+    "acrylic": "Din acril"
   }
 }

@@ -1,50 +1,86 @@
 [
   {
-    "number": "110",
-    "type": "plate",
-    "country": "md",
+    "number": "T110",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/110.avif"
   },
   {
-    "number": "111",
-    "type": "plate",
-    "country": "md",
+    "number": "T111",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/111.avif"
   },
   {
-    "number": "112",
-    "type": "plate",
-    "country": "md",
+    "number": "T112",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/112.avif"
   },
   {
-    "number": "113",
-    "type": "plate",
-    "country": "md",
+    "number": "T113",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/113.avif"
   },
   {
-    "number": "114",
-    "type": "plate",
-    "country": "md",
+    "number": "T114",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/114.avif"
   },
   {
-    "number": "115",
-    "type": "plate",
-    "country": "md",
+    "number": "T115",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/115.avif"
   },
   {
-    "number": "116",
-    "type": "plate",
-    "country": "md",
+    "number": "T116",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/116.avif"
   },
   {
-    "number": "117",
-    "type": "plate",
-    "country": "md",
+    "number": "T117",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
     "image": "public/plates/117.avif"
+  },
+  {
+    "number": "T122",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
+    "image": "public/plates/122.png"
+  },
+  {
+    "number": "TF118",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/plates/TF118.png"
+  },
+  {
+    "number": "TF121",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/plates/TF121.png"
+  },
+  {
+    "number": "TF122",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/plates/TF122.png"
   }
 ]
