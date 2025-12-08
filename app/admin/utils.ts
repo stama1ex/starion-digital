@@ -2,10 +2,20 @@ import type { AdminOrder } from './types';
 
 export type DateRange = 'day' | 'week' | 'month';
 
-export function getDateRangeFilter(dateRange: DateRange): {
+export function getDateRangeFilter(
+  dateRange: DateRange,
+  customRange?: { from: string; to: string }
+): {
   start: Date;
   end: Date;
 } {
+  if (customRange) {
+    return {
+      start: new Date(customRange.from + 'T00:00:00'),
+      end: new Date(customRange.to + 'T23:59:59'),
+    };
+  }
+
   const now = new Date();
   const start = new Date(now);
 
@@ -33,9 +43,10 @@ export function getDateRangeFilter(dateRange: DateRange): {
 
 export function filterByDateRange<T extends { createdAt: string | Date }>(
   items: T[],
-  dateRange: DateRange
+  dateRange: DateRange,
+  customRange?: { from: string; to: string }
 ): T[] {
-  const { start, end } = getDateRangeFilter(dateRange);
+  const { start, end } = getDateRangeFilter(dateRange, customRange);
 
   return items.filter((item) => {
     const date =

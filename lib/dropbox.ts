@@ -16,3 +16,34 @@ export async function getAccessToken(): Promise<string> {
   }
   return data.access_token as string;
 }
+
+export async function uploadToDropbox(
+  buffer: ArrayBuffer,
+  filename: string
+): Promise<string> {
+  const accessToken = await getAccessToken();
+  const path = `/starion-digital/${filename}`;
+
+  const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/octet-stream',
+      'Dropbox-API-Arg': JSON.stringify({
+        path,
+        mode: 'add',
+        autorename: true,
+        mute: false,
+      }),
+    },
+    body: buffer,
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(`Dropbox upload failed: ${JSON.stringify(error)}`);
+  }
+
+  // Возвращаем путь для доступа через временную ссылку
+  return path;
+}
