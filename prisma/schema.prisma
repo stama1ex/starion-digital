@@ -11,7 +11,8 @@ model Partner {
   id        Int      @id @default(autoincrement())
   name      String
   login     String   @unique
-  password  String   // bcrypt hash
+  password  String
+  role      PartnerRole @default(PARTNER)
   createdAt DateTime @default(now())
 
   prices       Price[]
@@ -123,6 +124,10 @@ model RealizationPayment {
   createdAt     DateTime @default(now())
 
   realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
+}
+enum PartnerRole {
+  ADMIN
+  PARTNER
 }
 
 enum ProductType {

@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
+import bcrypt from 'bcryptjs';
 
 export async function POST(req: Request) {
   try {
@@ -9,27 +10,27 @@ export async function POST(req: Request) {
       return new Response('Missing credentials', { status: 400 });
     }
 
-    // Ищем партнёра в БД
     const partner = await prisma.partner.findUnique({
       where: { login },
     });
 
+    // Не говорим, существует ли логин
     if (!partner) {
-      return new Response('Forbidden', { status: 403 });
+      return new Response('Invalid credentials', { status: 401 });
     }
 
-    // Проверяем пароль (без хэша)
-    if (password !== partner.password) {
-      return new Response('Unauthorized', { status: 401 });
+    const ok = await bcrypt.compare(password, partner.password);
+    if (!ok) {
+      return new Response('Invalid credentials', { status: 401 });
     }
 
-    // Создаём cookie
+    // Сохраняем только id в сессии
     (await cookies()).set('session', String(partner.id), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      sameSite: 'strict',
       path: '/',
-      maxAge: 60 * 60 * 24 * 7, // 7 дней
+      maxAge: 60 * 60 * 24 * 7,
     });
 
     return Response.json({ ok: true });

@@ -147,7 +147,7 @@ export default function MaterialsManagement() {
         {materials.map((material) => (
           <Card key={material.id}>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center py-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <div>
                   <p className="text-sm text-muted-foreground">Код (name)</p>
                   <p className="font-mono font-bold">{material.name}</p>
@@ -199,7 +199,7 @@ export default function MaterialsManagement() {
             <div>
               <label className="text-sm font-medium">Код (name) *</label>
               <Input
-                value={formData.name}
+                value={formData.name || ''}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
@@ -216,7 +216,7 @@ export default function MaterialsManagement() {
             <div>
               <label className="text-sm font-medium">Название (label) *</label>
               <Input
-                value={formData.label}
+                value={formData.label || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, label: e.target.value })
                 }

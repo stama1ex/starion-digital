@@ -287,7 +287,7 @@ export default function ProductsManagement() {
             <div>
               <label className="text-sm font-medium">Артикул (М01, T01)</label>
               <Input
-                value={formData.number}
+                value={formData.number || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, number: e.target.value })
                 }
@@ -297,7 +297,7 @@ export default function ProductsManagement() {
             <div>
               <label className="text-sm font-medium">Тип</label>
               <Select
-                value={formData.type}
+                value={formData.type || ''}
                 onValueChange={(value) =>
                   setFormData({ ...formData, type: value as ProductType })
                 }
@@ -321,7 +321,7 @@ export default function ProductsManagement() {
             <div>
               <label className="text-sm font-medium">Материал</label>
               <Select
-                value={formData.materialId}
+                value={formData.materialId || ''}
                 onValueChange={(value) =>
                   setFormData({ ...formData, materialId: value })
                 }
@@ -344,7 +344,7 @@ export default function ProductsManagement() {
             <div>
               <label className="text-sm font-medium">Страна</label>
               <Input
-                value={formData.country}
+                value={formData.country || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, country: e.target.value })
                 }
@@ -356,7 +356,7 @@ export default function ProductsManagement() {
               <Input
                 type="number"
                 step="0.1"
-                value={formData.costPrice}
+                value={formData.costPrice || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, costPrice: e.target.value })
                 }
