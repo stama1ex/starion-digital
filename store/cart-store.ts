@@ -16,7 +16,10 @@ export interface CartItem {
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product & { price?: number }, quantity: number) => void;
+  addItem: (
+    product: (Product & { price?: number }) | any,
+    quantity: number
+  ) => void;
   removeItem: (id: number) => void;
   clear: () => void;
 }

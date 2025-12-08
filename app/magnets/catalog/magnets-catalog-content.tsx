@@ -1,10 +1,7 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-
-// Типы, которые приходят с сервера
-type ProductType = 'MAGNET' | 'PLATE';
-type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+import type { ProductType, Material } from '@prisma/client';
 
 interface MagnetProductDTO {
   id: number;
@@ -19,7 +16,7 @@ interface MagnetsCatalogContentProps {
   exampleProductNumber: string;
   products: MagnetProductDTO[];
   modelUrls: Record<string, string>;
-  prices: {
+  prices?: {
     type: ProductType;
     material: Material;
     price: number;

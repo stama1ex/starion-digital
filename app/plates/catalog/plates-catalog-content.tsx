@@ -1,9 +1,7 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-
-type ProductType = 'MAGNET' | 'PLATE';
-type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+import type { ProductType, Material } from '@prisma/client';
 
 interface PlateProductDTO {
   id: number;
@@ -18,7 +16,7 @@ interface PlatesCatalogContentProps {
   exampleProductNumber: string;
   products: PlateProductDTO[];
   modelUrls: Record<string, string>;
-  prices: {
+  prices?: {
     type: ProductType;
     material: Material;
     price: number;
