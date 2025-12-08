@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,7 +50,7 @@ export default function DealerAnalytics({
 
   // Собираем ID заказов которые имеют реализацию
   const orderIdsWithRealization = new Set(
-    filteredRealizations.map((r: any) => r.orderId)
+    filteredRealizations.map((r: AdminRealization) => r.orderId)
   );
 
   // Считаем обычные заказы (только те что НЕ в реализации)
