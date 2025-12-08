@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
-import type { OrderItem, Product } from '@prisma/client';
 
 export async function POST(req: Request) {
   try {
@@ -23,15 +22,15 @@ export async function POST(req: Request) {
 
     if (!order) return new Response('Order not found', { status: 404 });
 
-    // Тип для items
-    const items = order.items.map((it: OrderItem & { product: Product }) => ({
+    // Тип выводится автоматически
+    const items = order.items.map((it) => ({
       number: it.product.number,
       qty: it.quantity,
       price: Number(it.pricePerItem),
       sum: Number(it.sum),
     }));
 
-    // 1) Сообщение
+    // 1) Телеграм
     await sendToTelegram({
       partner: order.partner.name,
       orderId: order.id,
