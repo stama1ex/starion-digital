@@ -1,13 +1,12 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import type { $Enums } from '@prisma/client';
 
 interface MagnetProductDTO {
   id: number;
   number: string;
-  type: $Enums.ProductType;
-  material: $Enums.Material;
+  type: string;
+  material: string;
   image: string;
   country: string;
 }
@@ -17,8 +16,8 @@ interface MagnetsCatalogContentProps {
   products: MagnetProductDTO[];
   modelUrls: Record<string, string>;
   prices?: {
-    type: $Enums.ProductType;
-    material: $Enums.Material;
+    type: string;
+    material: string;
     price: number;
   }[];
 }
