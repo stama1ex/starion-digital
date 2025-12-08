@@ -398,7 +398,7 @@ export const Header: React.FC<Props> = ({ className }) => {
           )}
         </div>
         {/* MOBILE CART BUTTON (absolute) */}
-        {isPartner && (
+        {isPartner && !isActive('/') && !isActive('/admin') && (
           <div className="md:hidden absolute right-4 bottom-[-48px] z-20">
             {' '}
             <CartDrawer isOutline={false} />
