@@ -15,9 +15,9 @@ import {
 import { getCategories } from '@/lib/categories';
 import { imageVariants } from '@/lib/imageVariants';
 import { getRandomImgs } from '@/lib/utils';
-import { Souvenir } from '@/types';
 import { Soon } from './shared/soon';
 import { useTranslations } from 'next-intl';
+import { Product } from '@prisma/client';
 
 export default function LandingCarousel() {
   const tCategories = useTranslations('Categories');
@@ -41,7 +41,7 @@ export default function LandingCarousel() {
         if (!res.ok) throw new Error('Failed to fetch magnets');
         return res.json();
       })
-      .then((data: Souvenir[]) => {
+      .then((data: Product[]) => {
         const imgs = data.map((m) => m.image);
         setMagnetImgs(imgs);
         setCurrentImgs((prev) => ({ ...prev, magnet: getRandomImgs(imgs, 4) }));
@@ -52,7 +52,7 @@ export default function LandingCarousel() {
         if (!res.ok) throw new Error('Failed to fetch plates');
         return res.json();
       })
-      .then((data: Souvenir[]) => {
+      .then((data: Product[]) => {
         const imgs = data.map((p) => p.image);
         setPlateImgs(imgs);
         setCurrentImgs((prev) => ({ ...prev, plate: getRandomImgs(imgs, 4) }));

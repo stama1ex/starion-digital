@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Souvenir } from '@/types';
 import VantaFogBackground from '../ui/vanta-background';
 import Scene from '../scene';
 import { useTranslations } from 'next-intl';
