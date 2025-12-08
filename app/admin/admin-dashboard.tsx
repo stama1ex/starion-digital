@@ -10,6 +10,7 @@ import RealizationTracking from './sections/realization-tracking';
 import PartnersManagement from './sections/partners-management';
 import PricesManagement from './sections/prices-management';
 import ProductsManagement from './sections/products-management';
+import MaterialsManagement from './sections/materials-management';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
 
@@ -125,7 +126,7 @@ export default function AdminDashboard({
       </div>
 
       <Tabs defaultValue="sales" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-1 h-auto">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 h-auto">
           <TabsTrigger value="sales" className="text-xs sm:text-sm">
             Продажи
           </TabsTrigger>
@@ -150,11 +151,15 @@ export default function AdminDashboard({
           <TabsTrigger value="catalog" className="text-xs sm:text-sm">
             Товары
           </TabsTrigger>
+          <TabsTrigger value="materials" className="text-xs sm:text-sm">
+            Материалы
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="sales" className="space-y-4">
           <SalesAnalytics
             orders={orders}
+            realizations={realizations}
             dateRange={dateRange}
             customDateRange={useCustomRange ? customDateRange : null}
           />
@@ -163,6 +168,7 @@ export default function AdminDashboard({
         <TabsContent value="products" className="space-y-4">
           <TopProducts
             orders={orders}
+            realizations={realizations}
             dateRange={dateRange}
             customDateRange={useCustomRange ? customDateRange : null}
           />
@@ -200,6 +206,10 @@ export default function AdminDashboard({
 
         <TabsContent value="catalog" className="space-y-4">
           <ProductsManagement />
+        </TabsContent>
+
+        <TabsContent value="materials" className="space-y-4">
+          <MaterialsManagement />
         </TabsContent>
       </Tabs>
     </div>

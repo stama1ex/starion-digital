@@ -90,42 +90,47 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
               </p>
             )}
 
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-3 border rounded-md p-2"
-              >
-                <div className="flex items-center gap-3">
-                  {item.image && (
-                    <Image
-                      src={`/${item.image.replace('public/', '')}`}
-                      width={60}
-                      height={60}
-                      className="rounded-md object-cover"
-                      alt=""
-                    />
-                  )}
-                  <div>
-                    <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t('qty')}: {item.quantity}
-                    </div>
-                    <div className="text-xs text-primary font-semibold">
-                      {item.price} × {item.quantity} ={' '}
-                      {item.price * item.quantity} MDL
+            {items.map((item) => {
+              const imgSrc = item.image?.startsWith('http')
+                ? item.image
+                : '/' + item.image?.replace(/^public\//, '');
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 border rounded-md p-2"
+                >
+                  <div className="flex items-center gap-3">
+                    {item.image && (
+                      <Image
+                        src={imgSrc}
+                        width={60}
+                        height={60}
+                        className="rounded-md object-cover"
+                        alt=""
+                      />
+                    )}
+                    <div>
+                      <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {t('qty')}: {item.quantity}
+                      </div>
+                      <div className="text-xs text-primary font-semibold">
+                        {item.price} × {item.quantity} ={' '}
+                        {item.price * item.quantity} MDL
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removeItem(item.id)}
-                >
-                  ✕
-                </Button>
-              </div>
-            ))}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeItem(item.id)}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              );
+            })}
           </div>
 
           <div className="px-4 mt-3">
