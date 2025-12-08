@@ -3,14 +3,33 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, type DateRange } from '../utils';
 import type { AdminOrder } from '../types';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface TopProductsProps {
   orders: AdminOrder[];
   dateRange: DateRange;
+  customDateRange?: { from: string; to: string } | null;
 }
 
-export default function TopProducts({ orders, dateRange }: TopProductsProps) {
-  const filteredOrders = filterByDateRange(orders, dateRange);
+export default function TopProducts({
+  orders,
+  dateRange,
+  customDateRange,
+}: TopProductsProps) {
+  const filteredOrders = filterByDateRange(
+    orders,
+    dateRange,
+    customDateRange || undefined
+  );
 
   type ProductStat = {
     id: number;
@@ -49,50 +68,19 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
 
   const stats = Array.from(productStats.values());
 
-  const topByVolume = [...stats]
-    .sort((a, b) => b.totalSales - a.totalSales)
-    .slice(0, 10);
-
   const topByProfit = [...stats]
     .sort((a, b) => b.profit - a.profit)
     .slice(0, 10);
 
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>ТОП-10 Товаров по Объёму</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {topByVolume.length === 0 ? (
-              <p className="text-muted-foreground">
-                Нет данных за выбранный период
-              </p>
-            ) : (
-              topByVolume.map((product, idx) => (
-                <div
-                  key={product.id}
-                  className="flex justify-between items-center pb-2 border-b last:border-b-0"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {idx + 1}. Товар {product.number}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Кол-во: {product.quantity} шт
-                    </p>
-                  </div>
-                  <p className="font-bold">
-                    {product.totalSales.toFixed(2)} MDL
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+  // Подготовка данных для графика
+  const chartData = topByProfit.map((product) => ({
+    name: `Товар ${product.number}`,
+    profit: Math.round(product.profit),
+    revenue: Math.round(product.totalSales),
+  }));
 
+  return (
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>ТОП-10 Товаров по Прибыли</CardTitle>
@@ -117,19 +105,46 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
                       Кол-во: {product.quantity} шт
                     </p>
                   </div>
-                  <p
-                    className={`font-bold ${
-                      product.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {product.profit.toFixed(2)} MDL
-                  </p>
+                  <div className="text-right">
+                    <p className="font-medium text-green-600">
+                      {product.profit.toFixed(0)} MDL
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {product.totalSales.toFixed(0)} MDL выручка
+                    </p>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </CardContent>
       </Card>
+
+      {chartData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>График прибыли по товарам</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis />
+                <Tooltip formatter={(value) => `${value} MDL`} />
+                <Legend />
+                <Bar dataKey="profit" fill="#10b981" name="Прибыль" />
+                <Bar dataKey="revenue" fill="#3b82f6" name="Выручка" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

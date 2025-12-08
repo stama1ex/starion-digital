@@ -77,11 +77,24 @@ async function seedPartners() {
     prisma.partner.create({
       data: { name: 'CasaSuvenir', login: 'casasuvenir', password: '11111' },
     }),
+    prisma.partner.create({
+      data: {
+        name: 'ДекорШоп',
+        login: 'decorshop',
+        password: 'test123',
+      },
+    }),
+    prisma.partner.create({
+      data: {
+        name: 'МагаУниверсал',
+        login: 'magauniversal',
+        password: 'password',
+      },
+    }),
   ]);
 
-  console.log('Partners created');
+  console.log(`✓ Partners created: ${partners.length}`);
 
-  // ====== Важно: динамически собираем все материалы и типы из JSON ======
   const magnets = loadJSON('magnets.json');
   const plates = loadJSON('plates.json');
   const products = [...magnets, ...plates];
@@ -93,7 +106,6 @@ async function seedPartners() {
     ...new Set(products.map((p: any) => p.type.toUpperCase())),
   ] as string[];
 
-  // ====== Базовые цены (можешь менять) ======
   const BASE_PRICES: Record<string, number> = {
     MAGNET_MARBLE: 20,
     PLATE_MARBLE: 120,
@@ -107,9 +119,12 @@ async function seedPartners() {
     for (const type of TYPES) {
       for (const material of MATERIALS) {
         const key = `${type}_${material}`;
-        const price = BASE_PRICES[key];
+        let price = BASE_PRICES[key];
 
-        if (!price) continue; // Если цена не прописана вручную — не создаём
+        if (!price) {
+          // Если цены нет - генерируем рандомную для демо
+          price = Math.random() * 150 + 10;
+        }
 
         pricesToInsert.push({
           partnerId: partner.id,
@@ -125,7 +140,7 @@ async function seedPartners() {
     }
   }
 
-  console.log('Dynamic prices seeded successfully');
+  console.log('✓ Dynamic prices seeded');
   return partners;
 }
 
@@ -179,7 +194,7 @@ async function seedDemoOrders(
 
       ordersCreated++;
 
-      // 20% шанс создания реализации
+      // Случайно создаём реализацию для некоторых заказов (20% шанс)
       if (Math.random() < 0.2) {
         const realizationItems = order.items.map((item: any) => ({
           productId: item.productId,
@@ -193,7 +208,7 @@ async function seedDemoOrders(
 
         const totalCost = Number(order.totalPrice);
 
-        const realization = await prisma.realization.create({
+        const realization = await (prisma as any).realization.create({
           data: {
             orderId: order.id,
             partnerId,
@@ -207,7 +222,7 @@ async function seedDemoOrders(
           },
         });
 
-        // 30% шанс добавления частичного платежа
+        // Случайно добавляем частичный платёж для некоторых реализаций
         if (Math.random() < 0.3) {
           const paymentAmount = (Math.random() * 0.6 + 0.2) * totalCost;
 
@@ -218,6 +233,7 @@ async function seedDemoOrders(
             },
           });
 
+          // Обновляем статус реализации
           const newPaidAmount = paymentAmount;
           const newStatus =
             newPaidAmount >= totalCost
@@ -226,7 +242,7 @@ async function seedDemoOrders(
               ? 'PARTIAL'
               : 'PENDING';
 
-          await prisma.realization.update({
+          await (prisma as any).realization.update({
             where: { id: realization.id },
             data: {
               paidAmount: Math.round(paymentAmount * 100) / 100,
@@ -242,26 +258,14 @@ async function seedDemoOrders(
 
   console.log(`✓ Demo orders created: ${ordersCreated}`);
 }
-
 async function main() {
-  // Проверяем переменную окружения или аргумент командной строки
-  const SEED_MODE = process.env.SEED_MODE || process.argv[2] || 'production';
+  console.log('🔄 Demo Seed - заполнение тестовыми данными...\n');
 
-  console.log(`🔄 Running seed in ${SEED_MODE.toUpperCase()} mode...\n`);
+  const products = await seedProducts();
+  const partners = await seedPartners();
+  await seedDemoOrders(partners, products);
 
-  await seedProducts();
-
-  if (SEED_MODE === 'demo') {
-    const partners = await seedPartners();
-    const products = await prisma.product.findMany();
-    await seedDemoOrders(partners, products);
-    console.log('\n✅ Demo seed completed! Admin panel is ready for testing');
-  } else {
-    console.log('\n✅ Production seed completed! Ready for deployment');
-    console.log(
-      '   💡 To test with demo data, run: SEED_MODE=demo npm run seed'
-    );
-  }
+  console.log('\n✅ Demo seed completed! Ready to test admin panel');
 }
 
 main()

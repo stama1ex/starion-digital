@@ -3,12 +3,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, type DateRange } from '../utils';
 import type { AdminOrder, AdminPartner, AdminRealization } from '../types';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts';
 
 interface DebtTrackingProps {
   orders: AdminOrder[];
   realizations: AdminRealization[];
   partners: AdminPartner[];
   dateRange: DateRange;
+  customDateRange?: { from: string; to: string } | null;
 }
 
 export default function DebtTracking({
@@ -16,9 +27,18 @@ export default function DebtTracking({
   realizations,
   partners,
   dateRange,
+  customDateRange,
 }: DebtTrackingProps) {
-  const filteredOrders = filterByDateRange(orders, dateRange);
-  const filteredRealizations = filterByDateRange(realizations, dateRange);
+  const filteredOrders = filterByDateRange(
+    orders,
+    dateRange,
+    customDateRange || undefined
+  );
+  const filteredRealizations = filterByDateRange(
+    realizations,
+    dateRange,
+    customDateRange || undefined
+  );
 
   type Balance = {
     id: number;
@@ -69,8 +89,15 @@ export default function DebtTracking({
     (b) => b.realizationTotal > 0
   );
 
+  // Подготовка данных для графика
+  const chartData = balancesList.slice(0, 10).map((b) => ({
+    name: b.name,
+    orders: Math.round(b.ordersTotal),
+    realization: Math.round(b.realizationTotal - b.realizationPaid),
+  }));
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Состояние долгов</CardTitle>
@@ -87,13 +114,13 @@ export default function DebtTracking({
                     <div>
                       <p className="text-muted-foreground">Обычные заказы:</p>
                       <p className="font-semibold">
-                        {b.ordersTotal.toFixed(2)} MDL
+                        {b.ordersTotal.toFixed(0)} MDL
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Реализация:</p>
                       <p className="font-semibold">
-                        {(b.realizationTotal - b.realizationPaid).toFixed(2)}{' '}
+                        {(b.realizationTotal - b.realizationPaid).toFixed(0)}{' '}
                         MDL
                       </p>
                     </div>
@@ -104,7 +131,7 @@ export default function DebtTracking({
                     }`}
                   >
                     {b.balance > 0 ? 'Должен:' : 'Избыток:'}{' '}
-                    {Math.abs(b.balance).toFixed(2)} MDL
+                    {Math.abs(b.balance).toFixed(0)} MDL
                   </p>
                 </div>
               ))
@@ -112,6 +139,36 @@ export default function DebtTracking({
           </div>
         </CardContent>
       </Card>
+
+      {chartData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>График долгов</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="name"
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                />
+                <YAxis />
+                <Tooltip formatter={(value) => `${value} MDL`} />
+                <Legend />
+                <Bar dataKey="orders" fill="#ef4444" name="Обычные заказы" />
+                <Bar
+                  dataKey="realization"
+                  fill="#f97316"
+                  name="Реализация (дол)"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
@@ -129,13 +186,13 @@ export default function DebtTracking({
                     <div>
                       <p className="text-muted-foreground">Отгружено:</p>
                       <p className="font-semibold">
-                        {b.realizationTotal.toFixed(2)} MDL
+                        {b.realizationTotal.toFixed(0)} MDL
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Оплачено:</p>
                       <p className="font-semibold">
-                        {b.realizationPaid.toFixed(2)} MDL
+                        {b.realizationPaid.toFixed(0)} MDL
                       </p>
                     </div>
                   </div>
@@ -148,7 +205,7 @@ export default function DebtTracking({
                           : 'font-bold text-green-600'
                       } `}
                     >
-                      {(b.realizationTotal - b.realizationPaid).toFixed(2)} MDL
+                      {(b.realizationTotal - b.realizationPaid).toFixed(0)} MDL
                     </p>
                   </div>
                 </div>

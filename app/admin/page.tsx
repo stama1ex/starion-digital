@@ -5,13 +5,20 @@ import AdminDashboard from './admin-dashboard';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import { toPlain } from '@/lib/toPlain';
 
+const ADMIN_LOGIN = 'yurix13';
+
 export default async function AdminPage() {
   const session = (await cookies()).get('session')?.value;
 
   if (!session) redirect('/login');
 
-  const adminId = Number(session);
-  if (!Number.isFinite(adminId) || adminId !== 1) {
+  // Получаем данные администратора из БД по логину
+  const admin = await prisma.partner.findUnique({
+    where: { login: ADMIN_LOGIN },
+  });
+
+  // Если администратор не создан или сессия не совпадает с его ID - запретить доступ
+  if (!admin || session !== admin.id.toString()) {
     return (
       <div className="min-h-screen p-6 text-center text-destructive font-black">
         Access Denied – Admin Only
