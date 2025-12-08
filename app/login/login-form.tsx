@@ -32,7 +32,7 @@ export default function LoginForm() {
       return;
     }
 
-    toast.error(t('error'));
+    toast.error(t('invalid'));
   };
 
   return (

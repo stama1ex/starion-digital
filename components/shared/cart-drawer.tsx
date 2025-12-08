@@ -53,7 +53,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
       });
 
       if (!res.ok) {
-        toast.error(t('error'));
+        toast.error(t('toast_error'));
         return;
       }
 
@@ -62,7 +62,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
       toast.success(t('success'));
       window.location.replace('/my-orders');
     } catch {
-      toast.error(t('error'));
+      toast.error(t('toast_error'));
     } finally {
       setIsSubmitting(false);
     }
