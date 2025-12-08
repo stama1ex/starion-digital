@@ -1,9 +1,10 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import type { ProductType, Material } from '@prisma/client';
 
-// DTO для товаров
+type ProductType = 'MAGNET' | 'PLATE';
+type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+
 interface PlateProductDTO {
   id: number;
   number: string;

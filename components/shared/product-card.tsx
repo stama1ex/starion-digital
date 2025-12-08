@@ -9,16 +9,28 @@ import {
 import Tilt from 'react-parallax-tilt';
 import Image from 'next/image';
 import { useState, useMemo } from 'react';
-import { Product } from '@prisma/client';
 import { useCartStore } from '@/store/cart-store';
 import { usePartner } from '@/app/providers/partner-provider';
 import { Button } from '../ui/button';
 import { useTranslations } from 'next-intl';
 
+// Те же типы, что и в Catalog
+type ProductType = 'MAGNET' | 'PLATE';
+type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+
+interface ProductDTO {
+  id: number;
+  number: string;
+  type: ProductType;
+  material: Material;
+  image: string;
+  country: string;
+}
+
 interface Props {
-  product: Product;
+  product: ProductDTO;
   modelUrls: Record<string, string>;
-  getPrice: (p: Product) => number | null;
+  getPrice: (p: ProductDTO) => number | null;
 }
 
 export function ProductCard({ product, getPrice }: Props) {
