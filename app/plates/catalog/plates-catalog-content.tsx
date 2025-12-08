@@ -1,11 +1,21 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import { Product, ProductType, Material } from '@prisma/client';
+import type { ProductType, Material } from '@prisma/client';
+
+// DTO для товаров
+interface PlateProductDTO {
+  id: number;
+  number: string;
+  type: ProductType;
+  material: Material;
+  image: string;
+  country: string;
+}
 
 interface PlatesCatalogContentProps {
   exampleProductNumber: string;
-  products: Product[];
+  products: PlateProductDTO[];
   modelUrls: Record<string, string>;
   prices: {
     type: ProductType;

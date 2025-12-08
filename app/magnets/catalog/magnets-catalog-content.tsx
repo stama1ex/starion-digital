@@ -1,11 +1,21 @@
 'use client';
 
 import Catalog from '@/components/shared/catalog';
-import { Product, ProductType, Material } from '@prisma/client';
+import type { ProductType, Material } from '@prisma/client';
+
+// DTO для товаров, которые приходят с сервера
+interface MagnetProductDTO {
+  id: number;
+  number: string;
+  type: ProductType;
+  material: Material;
+  image: string;
+  country: string;
+}
 
 interface MagnetsCatalogContentProps {
   exampleProductNumber: string;
-  products: Product[];
+  products: MagnetProductDTO[];
   modelUrls: Record<string, string>;
   prices: {
     type: ProductType;
