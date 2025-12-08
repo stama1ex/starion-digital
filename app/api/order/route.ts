@@ -1,7 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
+import type { Prisma } from '@prisma/client';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
@@ -33,7 +33,13 @@ export async function GET() {
   return Response.json({ orders });
 }
 
-// === POST: создание заказа ===
+// === POST: создание заказа (обычный / реализация) ===
+interface CreateOrderBody {
+  items: { productId: number; qty: number }[];
+  comment?: string;
+  orderType?: 'regular' | 'realization';
+}
+
 export async function POST(req: Request) {
   try {
     const session = (await cookies()).get('session')?.value;
@@ -44,10 +50,11 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const body = await req.json();
-    const items = body.items as { productId: number; qty: number }[];
-    const comment: string | undefined = body.comment;
-    const orderType: 'regular' | 'realization' = body.orderType || 'regular';
+    const body = (await req.json()) as CreateOrderBody;
+    const items = body.items;
+    const comment = body.comment;
+    const orderType: 'regular' | 'realization' =
+      body.orderType === 'realization' ? 'realization' : 'regular';
 
     if (!Array.isArray(items) || items.length === 0) {
       return new Response('Empty order', { status: 400 });
@@ -68,13 +75,13 @@ export async function POST(req: Request) {
 
     // --- позиции заказа ---
     const dbItems = items.map((i) => {
-      const product = products.find(
-        (p: (typeof products)[number]) => p.id === i.productId
-      )!;
+      const product = products.find((p) => p.id === i.productId);
+      if (!product) {
+        throw new Error(`Product ${i.productId} not found`);
+      }
 
       const priceEntry = prices.find(
-        (p: (typeof prices)[number]) =>
-          p.type === product.type && p.material === product.material
+        (p) => p.type === product.type && p.material === product.material
       );
 
       if (!priceEntry) {
@@ -97,52 +104,50 @@ export async function POST(req: Request) {
 
     const total = dbItems.reduce((s, i) => s + i.sum, 0);
 
-    // --- транзакция ---
-    const order = await prisma.$transaction(async (trx: any) =>
-      trx.order.create({
-        data: {
-          partnerId,
-          totalPrice: total,
-          items: { create: dbItems },
-        },
-        include: {
-          partner: true,
-          items: { include: { product: true } },
-        },
-      })
+    // --- транзакция: создаём заказ ---
+    const order = await prisma.$transaction(
+      async (trx: Prisma.TransactionClient) =>
+        trx.order.create({
+          data: {
+            partnerId,
+            totalPrice: total,
+            items: { create: dbItems },
+          },
+          include: {
+            partner: true,
+            items: { include: { product: true } },
+          },
+        })
     );
 
-    // Если заказ на реализацию - создаём запись реализации
+    // --- если это реализация, создаём запись Realization ---
     if (orderType === 'realization') {
-      const realizationItems = order.items.map((item: any) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        unitPrice: item.pricePerItem,
-        costPrice: item.product.costPrice || 0,
-        totalPrice: item.sum,
-      }));
-
       await prisma.realization.create({
         data: {
           orderId: order.id,
           partnerId,
           totalCost: total,
-          items: { create: realizationItems },
+          items: {
+            create: order.items.map((item) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              unitPrice: item.pricePerItem,
+              costPrice: item.product.costPrice,
+              totalPrice: item.sum,
+            })),
+          },
         },
       });
     }
 
-    // --- телеграм ---
+    const typeLabel = orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ';
+
     await sendToTelegram({
       partner: order.partner.name,
       orderId: order.id,
       total,
-      comment: comment
-        ? `${comment}\n[${
-            orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ'
-          }]`
-        : `[${orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ'}]`,
-      items: order.items.map((it: (typeof order.items)[number]) => ({
+      comment: comment ? `${comment}\n[${typeLabel}]` : `[${typeLabel}]`,
+      items: order.items.map((it) => ({
         number: it.product.number,
         qty: it.quantity,
         price: Number(it.pricePerItem),
@@ -151,8 +156,9 @@ export async function POST(req: Request) {
     });
 
     return Response.json({ ok: true, orderId: order.id });
-  } catch (e: any) {
-    console.error('Order error:', e);
-    return new Response(e.message ?? 'Order error', { status: 400 });
+  } catch (e) {
+    const err = e as Error;
+    console.error('Order error:', err);
+    return new Response(err.message ?? 'Order error', { status: 400 });
   }
 }

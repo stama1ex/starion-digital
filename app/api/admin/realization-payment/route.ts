@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 
+interface RealizationPaymentBody {
+  realizationId: number;
+  amount: number;
+}
+
 export async function POST(req: Request) {
   try {
     const session = (await cookies()).get('session')?.value;
@@ -8,9 +13,15 @@ export async function POST(req: Request) {
       return new Response('Unauthorized - Admin only', { status: 401 });
     }
 
-    const { realizationId, amount } = await req.json();
+    const body = (await req.json()) as RealizationPaymentBody;
+    const { realizationId, amount } = body;
 
-    if (!realizationId || !amount || amount <= 0) {
+    if (
+      !realizationId ||
+      !Number.isFinite(amount) ||
+      typeof amount !== 'number' ||
+      amount <= 0
+    ) {
       return new Response('Invalid request', { status: 400 });
     }
 
@@ -28,7 +39,6 @@ export async function POST(req: Request) {
       return new Response('Payment exceeds remaining amount', { status: 400 });
     }
 
-    // Добавляем платёж
     const payment = await prisma.realizationPayment.create({
       data: {
         realizationId,
@@ -36,7 +46,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // Обновляем статус реализации
     const newPaidAmount = Number(realization.paidAmount) + amount;
     const newStatus =
       newPaidAmount >= Number(realization.totalCost)
@@ -52,12 +61,11 @@ export async function POST(req: Request) {
         status: newStatus,
       },
     });
-    return new Response(JSON.stringify({ ok: true, payment }), {
-      status: 200,
-    });
+
+    return Response.json({ ok: true, payment });
   } catch (error) {
     const err = error as Error;
-    console.error('Error:', err);
-    return new Response(`Error: ${err.message}`, { status: 500 });
+    console.error('Realization payment error:', err);
+    return new Response(err.message ?? 'Error', { status: 500 });
   }
 }

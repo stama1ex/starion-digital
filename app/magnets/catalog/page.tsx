@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { getModelUrl } from '@/lib/models';
 import { cookies } from 'next/headers';
 import MagnetsCatalogContent from './magnets-catalog-content';
+import { toPlain } from '@/lib/toPlain';
 
 export async function generateMetadata({ params }: any): Promise<Metadata> {
   const locale = params.locale;
@@ -20,11 +21,16 @@ export default async function MagnetsCatalogPage({ params }: any) {
   const locale = params.locale;
   await getTranslations({ locale, namespace: 'Catalog' });
 
-  const products = await prisma.product.findMany({
+  // ❗ Берём товары
+  const rawProducts = await prisma.product.findMany({
     where: { type: 'MAGNET' },
     orderBy: { number: 'asc' },
   });
 
+  // ❗ Удаляем Decimal
+  const products = toPlain(rawProducts);
+
+  // --- ценообразование ---
   const session = (await cookies()).get('session')?.value;
   let prices: {
     type: 'MAGNET' | 'PLATE';
@@ -39,7 +45,7 @@ export default async function MagnetsCatalogPage({ params }: any) {
       select: { type: true, material: true, price: true },
     });
 
-    prices = raw.map((p: { type: string; material: string; price: any }) => ({
+    prices = raw.map((p) => ({
       type: p.type as 'MAGNET' | 'PLATE',
       material: p.material as 'MARBLE' | 'WOOD' | 'ACRYLIC',
       price: Number(p.price),

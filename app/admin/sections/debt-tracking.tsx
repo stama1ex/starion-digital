@@ -1,34 +1,36 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { filterByDateRange, type DateRange } from '../utils';
+import type { AdminOrder, AdminPartner, AdminRealization } from '../types';
 
 interface DebtTrackingProps {
-  orders: any[];
-  realizations: any[];
-  partners: any[];
-  dateRange: 'day' | 'week' | 'month';
+  orders: AdminOrder[];
+  realizations: AdminRealization[];
+  partners: AdminPartner[];
+  dateRange: DateRange;
 }
 
 export default function DebtTracking({
   orders,
   realizations,
   partners,
+  dateRange,
 }: DebtTrackingProps) {
-  // Вычисляем баланс для каждого контрагента
-  const balances = new Map<
-    number,
-    {
-      id: number;
-      name: string;
-      ordersTotal: number;
-      realizationTotal: number;
-      realizationPaid: number;
-      balance: number; // Положительное = должен нам, отрицательное = мы должны
-    }
-  >();
+  const filteredOrders = filterByDateRange(orders, dateRange);
+  const filteredRealizations = filterByDateRange(realizations, dateRange);
 
-  // Инициализируем для всех партнёров
+  type Balance = {
+    id: number;
+    name: string;
+    ordersTotal: number;
+    realizationTotal: number;
+    realizationPaid: number;
+    balance: number;
+  };
+
+  const balances = new Map<number, Balance>();
+
   partners.forEach((partner) => {
     balances.set(partner.id, {
       id: partner.id,
@@ -40,16 +42,14 @@ export default function DebtTracking({
     });
   });
 
-  // Суммируем обычные заказы
-  orders.forEach((order) => {
+  filteredOrders.forEach((order) => {
     const existing = balances.get(order.partnerId);
     if (existing) {
       existing.ordersTotal += Number(order.totalPrice);
     }
   });
 
-  // Суммируем реализации
-  realizations.forEach((real) => {
+  filteredRealizations.forEach((real) => {
     const existing = balances.get(real.partnerId);
     if (existing) {
       existing.realizationTotal += Number(real.totalCost);
@@ -57,56 +57,54 @@ export default function DebtTracking({
     }
   });
 
-  // Считаем финальный баланс
-  balances.forEach((balance) => {
-    balance.balance =
-      balance.ordersTotal +
-      (balance.realizationTotal - balance.realizationPaid);
+  balances.forEach((b) => {
+    b.balance = b.ordersTotal + (b.realizationTotal - b.realizationPaid);
   });
 
   const balancesList = Array.from(balances.values()).filter(
     (b) => b.balance !== 0
   );
 
+  const realizationsWithDebt = balancesList.filter(
+    (b) => b.realizationTotal > 0
+  );
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Debt Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Состояние Долгов</CardTitle>
+          <CardTitle>Состояние долгов</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {balancesList.length === 0 ? (
               <p className="text-muted-foreground">Все расчёты погашены</p>
             ) : (
-              balancesList.map((balance) => (
-                <div key={balance.id} className="pb-3 border-b last:border-b-0">
-                  <p className="font-medium">{balance.name}</p>
+              balancesList.map((b) => (
+                <div key={b.id} className="pb-3 border-b last:border-b-0">
+                  <p className="font-medium">{b.name}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm mt-2">
                     <div>
                       <p className="text-muted-foreground">Обычные заказы:</p>
                       <p className="font-semibold">
-                        ${balance.ordersTotal.toFixed(2)}
+                        {b.ordersTotal.toFixed(2)} MDL
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Реализация:</p>
                       <p className="font-semibold">
-                        $
-                        {(
-                          balance.realizationTotal - balance.realizationPaid
-                        ).toFixed(2)}
+                        {(b.realizationTotal - b.realizationPaid).toFixed(2)}{' '}
+                        MDL
                       </p>
                     </div>
                   </div>
                   <p
                     className={`mt-2 font-bold text-lg ${
-                      balance.balance > 0 ? 'text-red-600' : 'text-green-600'
+                      b.balance > 0 ? 'text-destructive' : 'text-green-600'
                     }`}
                   >
-                    {balance.balance > 0 ? 'Должен:' : 'Избыток:'} $
-                    {Math.abs(balance.balance).toFixed(2)}
+                    {b.balance > 0 ? 'Должен:' : 'Избыток:'}{' '}
+                    {Math.abs(b.balance).toFixed(2)} MDL
                   </p>
                 </div>
               ))
@@ -115,49 +113,46 @@ export default function DebtTracking({
         </CardContent>
       </Card>
 
-      {/* Realization Details */}
       <Card>
         <CardHeader>
-          <CardTitle>Детали Реализации</CardTitle>
+          <CardTitle>Товары на реализации</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {balancesList.filter((b) => b.realizationTotal > 0).length === 0 ? (
+            {realizationsWithDebt.length === 0 ? (
               <p className="text-muted-foreground">Нет реализаций</p>
             ) : (
-              balancesList
-                .filter((b) => b.realizationTotal > 0)
-                .map((balance) => (
-                  <div
-                    key={balance.id}
-                    className="pb-3 border-b last:border-b-0"
-                  >
-                    <p className="font-medium">{balance.name}</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm mt-2">
-                      <div>
-                        <p className="text-muted-foreground">Отгружено:</p>
-                        <p className="font-semibold">
-                          ${balance.realizationTotal.toFixed(2)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground">Оплачено:</p>
-                        <p className="font-semibold">
-                          ${balance.realizationPaid.toFixed(2)}
-                        </p>
-                      </div>
+              realizationsWithDebt.map((b) => (
+                <div key={b.id} className="pb-3 border-b last:border-b-0">
+                  <p className="font-medium">{b.name}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm mt-2">
+                    <div>
+                      <p className="text-muted-foreground">Отгружено:</p>
+                      <p className="font-semibold">
+                        {b.realizationTotal.toFixed(2)} MDL
+                      </p>
                     </div>
-                    <div className="mt-2 bg-secondary p-2 rounded">
-                      <p className="text-sm text-muted-foreground">Осталось:</p>
-                      <p className="font-bold text-lg">
-                        $
-                        {(
-                          balance.realizationTotal - balance.realizationPaid
-                        ).toFixed(2)}
+                    <div>
+                      <p className="text-muted-foreground">Оплачено:</p>
+                      <p className="font-semibold">
+                        {b.realizationPaid.toFixed(2)} MDL
                       </p>
                     </div>
                   </div>
-                ))
+                  <div className="mt-2 bg-secondary p-2 rounded">
+                    <p className="text-sm text-muted-foreground">Осталось:</p>
+                    <p
+                      className={`${
+                        b.realizationTotal - b.realizationPaid !== 0
+                          ? 'font-bold text-destructive'
+                          : 'font-bold text-green-600'
+                      } `}
+                    >
+                      {(b.realizationTotal - b.realizationPaid).toFixed(2)} MDL
+                    </p>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </CardContent>
