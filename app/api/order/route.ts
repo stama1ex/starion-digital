@@ -37,7 +37,6 @@ export async function GET() {
 // === POST: создание заказа ===
 export async function POST(req: Request) {
   try {
-    // 1) Проверка сессии
     const session = (await cookies()).get('session')?.value;
     if (!session) return new Response('Unauthorized', { status: 401 });
 
@@ -46,7 +45,6 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    // 2) Получаем данные
     const body = await req.json();
     const items = body.items as { productId: number; qty: number }[];
     const comment: string | undefined = body.comment;
@@ -55,7 +53,7 @@ export async function POST(req: Request) {
       return new Response('Empty order', { status: 400 });
     }
 
-    // 3) Получаем товары
+    // --- товары ---
     const productIds = items.map((i) => i.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
@@ -65,10 +63,10 @@ export async function POST(req: Request) {
       return new Response('Some products not found', { status: 400 });
     }
 
-    // 4) Получаем цены партнёра
+    // --- цены партнёра ---
     const prices = await prisma.price.findMany({ where: { partnerId } });
 
-    // 5) Формируем позиции (строки заказа)
+    // --- позиции заказа ---
     const dbItems = items.map((i) => {
       const product = products.find(
         (p: (typeof products)[number]) => p.id === i.productId
@@ -99,10 +97,10 @@ export async function POST(req: Request) {
 
     const total = dbItems.reduce((s, i) => s + i.sum, 0);
 
-    // 6) Создаём заказ в транзакции (правильное объявление trx!)
+    // --- транзакция ---
     const order = await prisma.$transaction(
-      async (trx: Prisma.TransactionClient) => {
-        return trx.order.create({
+      async (trx: Prisma.TransactionClient) =>
+        trx.order.create({
           data: {
             partnerId,
             totalPrice: total,
@@ -112,17 +110,16 @@ export async function POST(req: Request) {
             partner: true,
             items: { include: { product: true } },
           },
-        });
-      }
+        })
     );
 
-    // 7) Уведомление Telegram
+    // --- телеграм ---
     await sendToTelegram({
       partner: order.partner.name,
       orderId: order.id,
       total,
       comment,
-      items: order.items.map((it) => ({
+      items: order.items.map((it: (typeof order.items)[number]) => ({
         number: it.product.number,
         qty: it.quantity,
         price: Number(it.pricePerItem),
