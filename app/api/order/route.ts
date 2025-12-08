@@ -47,6 +47,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const items = body.items as { productId: number; qty: number }[];
     const comment: string | undefined = body.comment;
+    const orderType: 'regular' | 'realization' = body.orderType || 'regular';
 
     if (!Array.isArray(items) || items.length === 0) {
       return new Response('Empty order', { status: 400 });
@@ -111,12 +112,36 @@ export async function POST(req: Request) {
       })
     );
 
+    // Если заказ на реализацию - создаём запись реализации
+    if (orderType === 'realization') {
+      const realizationItems = order.items.map((item: any) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitPrice: item.pricePerItem,
+        costPrice: item.product.costPrice || 0,
+        totalPrice: item.sum,
+      }));
+
+      await prisma.realization.create({
+        data: {
+          orderId: order.id,
+          partnerId,
+          totalCost: total,
+          items: { create: realizationItems },
+        },
+      });
+    }
+
     // --- телеграм ---
     await sendToTelegram({
       partner: order.partner.name,
       orderId: order.id,
       total,
-      comment,
+      comment: comment
+        ? `${comment}\n[${
+            orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ'
+          }]`
+        : `[${orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ'}]`,
       items: order.items.map((it: (typeof order.items)[number]) => ({
         number: it.product.number,
         qty: it.quantity,

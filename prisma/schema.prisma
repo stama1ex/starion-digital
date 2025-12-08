@@ -14,8 +14,9 @@ model Partner {
   password  String   // bcrypt hash
   createdAt DateTime @default(now())
 
-  prices    Price[]
-  orders    Order[]
+  prices       Price[]
+  orders       Order[]
+  realizations Realization[]
 }
 
 model Product {
@@ -25,8 +26,10 @@ model Product {
   country   String
   image     String
   material  Material
+  costPrice Decimal  @db.Decimal(10,2) @default(0) // Себестоимость
 
   items     OrderItem[]
+  realizationItems RealizationItem[]
 }
 
 model Price {
@@ -44,12 +47,13 @@ model Price {
 model Order {
   id         Int        @id @default(autoincrement())
   partnerId  Int
-  totalPrice Decimal     @db.Decimal(12,2)
+  totalPrice Decimal    @db.Decimal(12,2)
   status     OrderStatus @default(NEW)
-  createdAt  DateTime    @default(now())
+  createdAt  DateTime   @default(now())
 
-  partner    Partner     @relation(fields: [partnerId], references: [id])
+  partner    Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   items      OrderItem[]
+  realization Realization?
 }
 
 model OrderItem {
@@ -57,11 +61,55 @@ model OrderItem {
   orderId      Int
   productId    Int
   quantity     Int
-  pricePerItem Decimal   @db.Decimal(10,2)
-  sum          Decimal   @db.Decimal(12,2)
+  pricePerItem Decimal  @db.Decimal(10,2)
+  sum          Decimal  @db.Decimal(12,2)
 
-  order   Order   @relation(fields: [orderId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+}
+
+// Реализация товаров - товары отгруженные с условием «Реализация»
+model Realization {
+  id           Int      @id @default(autoincrement())
+  orderId      Int      @unique
+  partnerId    Int
+  totalCost    Decimal  @db.Decimal(12,2) // Общая стоимость товаров
+  paidAmount   Decimal  @db.Decimal(12,2) @default(0) // Сколько дилер уже заплатил
+  status       RealizationStatus @default(PENDING) // PENDING, PARTIAL, COMPLETED, CANCELLED
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order    Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partner  Partner            @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  items    RealizationItem[]
+  payments RealizationPayment[]
+}
+
+// Товары в реализации
+model RealizationItem {
+  id              Int      @id @default(autoincrement())
+  realizationId   Int
+  productId       Int
+  quantity        Int
+  unitPrice       Decimal  @db.Decimal(10,2) // Цена продажи за единицу
+  costPrice       Decimal  @db.Decimal(10,2) // Себестоимость
+  totalPrice      Decimal  @db.Decimal(12,2) // quantity * unitPrice
+  soldQuantity    Int      @default(0) // Сколько уже продано
+  paidQuantity    Int      @default(0) // За сколько уже поступила оплата
+
+  realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
+}
+
+// Платежи по реализации
+model RealizationPayment {
+  id            Int      @id @default(autoincrement())
+  realizationId Int
+  amount        Decimal  @db.Decimal(12,2)
+  description   String   @default("") // Описание платежа
+  createdAt     DateTime @default(now())
+
+  realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
 }
 
 enum ProductType {
@@ -83,4 +131,11 @@ enum OrderStatus {
   APPROVED
   DONE
   CANCELLED
+}
+
+enum RealizationStatus {
+  PENDING    // Ожидает платежа
+  PARTIAL    // Частичный платёж получен
+  COMPLETED  // Полностью оплачена
+  CANCELLED  // Отменена
 }
