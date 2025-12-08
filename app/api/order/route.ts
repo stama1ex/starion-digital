@@ -2,7 +2,7 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
-import type { Product, Price, Prisma } from '@prisma/client';
+import type { Prisma } from '@prisma/client';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    // 2) Считываем тело
+    // 2) Получаем данные
     const body = await req.json();
     const items = body.items as { productId: number; qty: number }[];
     const comment: string | undefined = body.comment;
@@ -65,16 +65,19 @@ export async function POST(req: Request) {
       return new Response('Some products not found', { status: 400 });
     }
 
-    // 4) Цены партнёра
+    // 4) Получаем цены партнёра
     const prices = await prisma.price.findMany({ where: { partnerId } });
 
-    // 5) Формируем позиции заказа
+    // 5) Формируем позиции (строки заказа)
     const dbItems = items.map((i) => {
-      const product = products.find((p) => p.id === i.productId) as Product;
+      const product = products.find(
+        (p: (typeof products)[number]) => p.id === i.productId
+      )!;
 
       const priceEntry = prices.find(
-        (p) => p.type === product.type && p.material === product.material
-      ) as Price | undefined;
+        (p: (typeof prices)[number]) =>
+          p.type === product.type && p.material === product.material
+      );
 
       if (!priceEntry) {
         throw new Error(
@@ -96,7 +99,7 @@ export async function POST(req: Request) {
 
     const total = dbItems.reduce((s, i) => s + i.sum, 0);
 
-    // 6) Создаём заказ (ТРАНЗАКЦИЯ С ТИПАМИ!!!)
+    // 6) Создаём заказ в транзакции (правильное объявление trx!)
     const order = await prisma.$transaction(
       async (trx: Prisma.TransactionClient) => {
         return trx.order.create({
