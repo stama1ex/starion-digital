@@ -16,13 +16,18 @@ export async function POST(req: Request) {
       where: { id: orderId },
       include: {
         partner: true,
-        items: { include: { product: true } },
+        items: {
+          include: {
+            product: true,
+          },
+        },
       },
     });
 
     if (!order) return new Response('Order not found', { status: 404 });
 
-    const items = order.items.map((it) => ({
+    // >>> Жёсткая типизация, чтобы не возникало "any"
+    const items = order.items.map((it: (typeof order.items)[number]) => ({
       number: it.product.number,
       qty: it.quantity,
       price: Number(it.pricePerItem),
@@ -43,7 +48,6 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, sent: true });
   } catch (e: unknown) {
     console.error('Notify error:', e);
-    const msg = e instanceof Error ? e.message : 'Notify error';
-    return new Response(msg, { status: 400 });
+    return new Response('Notify error', { status: 400 });
   }
 }
