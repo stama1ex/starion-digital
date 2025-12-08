@@ -17,7 +17,15 @@ import { imageVariants } from '@/lib/imageVariants';
 import { getRandomImgs } from '@/lib/utils';
 import { Soon } from './shared/soon';
 import { useTranslations } from 'next-intl';
-import { Product } from '@prisma/client';
+
+interface Product {
+  id: number;
+  number: string;
+  type: string;
+  material: string;
+  image: string;
+  country: string;
+}
 
 export default function LandingCarousel() {
   const tCategories = useTranslations('Categories');
