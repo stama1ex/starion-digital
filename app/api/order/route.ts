@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
+import type { Product, Price, Prisma } from '@prisma/client';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
@@ -69,15 +70,11 @@ export async function POST(req: Request) {
 
     // 5) Формируем позиции заказа
     const dbItems = items.map((i) => {
-      // типизация product
-      const product = products.find(
-        (p: (typeof products)[number]) => p.id === i.productId
-      )!;
+      const product = products.find((p) => p.id === i.productId) as Product;
 
       const priceEntry = prices.find(
-        (p: (typeof prices)[number]) =>
-          p.type === product.type && p.material === product.material
-      );
+        (p) => p.type === product.type && p.material === product.material
+      ) as Price | undefined;
 
       if (!priceEntry) {
         throw new Error(
@@ -99,13 +96,22 @@ export async function POST(req: Request) {
 
     const total = dbItems.reduce((s, i) => s + i.sum, 0);
 
-    // 6) Создаём заказ + возврещаем данные
-    const order = await prisma.$transaction(async (trx) => {
-      return trx.order.create({
-        data: { partnerId, totalPrice: total, items: { create: dbItems } },
-        include: { partner: true, items: { include: { product: true } } },
-      });
-    });
+    // 6) Создаём заказ (ТРАНЗАКЦИЯ С ТИПАМИ!!!)
+    const order = await prisma.$transaction(
+      async (trx: Prisma.TransactionClient) => {
+        return trx.order.create({
+          data: {
+            partnerId,
+            totalPrice: total,
+            items: { create: dbItems },
+          },
+          include: {
+            partner: true,
+            items: { include: { product: true } },
+          },
+        });
+      }
+    );
 
     // 7) Уведомление Telegram
     await sendToTelegram({
@@ -113,7 +119,7 @@ export async function POST(req: Request) {
       orderId: order.id,
       total,
       comment,
-      items: order.items.map((it: (typeof order.items)[number]) => ({
+      items: order.items.map((it) => ({
         number: it.product.number,
         qty: it.quantity,
         price: Number(it.pricePerItem),
