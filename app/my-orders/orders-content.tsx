@@ -42,7 +42,12 @@ export default function OrdersContent() {
   if (!orders.length)
     return (
       <Container className="py-12">
-        <Title text={t('title')} className="text-center mb-6" />
+        <div className="flex justify-center w-full h-full">
+          <Title
+            text={t('title')}
+            className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
+          />
+        </div>
         <p className="text-center text-muted-foreground">{t('empty')}</p>
       </Container>
     );

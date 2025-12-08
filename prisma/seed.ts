@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { PrismaClient, ProductType, Material } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,15 +17,15 @@ async function seedProducts() {
 
   const products = [...magnets, ...plates].map((item: any) => ({
     number: item.number,
-    type: item.type as ProductType,
+    type: item.type as string,
     country: item.country.toUpperCase(),
     image: item.image.replace('public/', ''),
-    material: item.material as Material,
+    material: item.material as string,
   }));
 
   await prisma.orderItem.deleteMany();
   await prisma.product.deleteMany();
-  await prisma.product.createMany({ data: products });
+  await prisma.product.createMany({ data: products as any });
 
   console.log(`Products inserted: ${products.length}`);
 }
@@ -56,10 +56,10 @@ async function seedPartners() {
 
   const MATERIALS = [
     ...new Set(products.map((p: any) => p.material)),
-  ] as Material[];
+  ] as string[];
   const TYPES = [
     ...new Set(products.map((p: any) => p.type.toUpperCase())),
-  ] as ProductType[];
+  ] as string[];
 
   // ====== Базовые цены (можешь менять) ======
   const BASE_PRICES: Record<string, number> = {
@@ -89,7 +89,7 @@ async function seedPartners() {
     }
 
     if (pricesToInsert.length) {
-      await prisma.price.createMany({ data: pricesToInsert });
+      await prisma.price.createMany({ data: pricesToInsert as any });
     }
   }
 
