@@ -1,60 +1,64 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { filterByDateRange } from '../utils';
+import { filterByDateRange, type DateRange } from '../utils';
+import type { AdminOrder } from '../types';
 
 interface TopProductsProps {
-  orders: any[];
-  dateRange: 'day' | 'week' | 'month';
+  orders: AdminOrder[];
+  dateRange: DateRange;
 }
 
 export default function TopProducts({ orders, dateRange }: TopProductsProps) {
   const filteredOrders = filterByDateRange(orders, dateRange);
 
-  // Группируем по товарам
-  const productStats = new Map<
-    number,
-    {
-      id: number;
-      number: string;
-      totalSales: number;
-      quantity: number;
-      profit: number;
-    }
-  >();
+  type ProductStat = {
+    id: number;
+    number: string;
+    totalSales: number;
+    quantity: number;
+    profit: number;
+  };
 
-  filteredOrders.forEach((order: any) => {
-    order.items.forEach((item: any) => {
+  const productStats = new Map<number, ProductStat>();
+
+  filteredOrders.forEach((order) => {
+    order.items.forEach((item) => {
       const productId = item.productId;
-      const existing = productStats.get(productId) || {
-        id: productId,
-        number: item.product.number,
-        totalSales: 0,
-        quantity: 0,
-        profit: 0,
-      };
+      const existing =
+        productStats.get(productId) ||
+        ({
+          id: productId,
+          number: item.product.number,
+          totalSales: 0,
+          quantity: 0,
+          profit: 0,
+        } as ProductStat);
 
-      existing.totalSales += Number(item.sum);
+      const sum = Number(item.sum);
+      const costPerUnit = Number(item.product.costPrice ?? 0);
+      const costTotal = costPerUnit * item.quantity;
+
+      existing.totalSales += sum;
       existing.quantity += item.quantity;
-      existing.profit +=
-        Number(item.sum) - Number(item.product.costPrice || 0) * item.quantity;
+      existing.profit += sum - costTotal;
 
       productStats.set(productId, existing);
     });
   });
 
-  const topByVolume = Array.from(productStats.values())
+  const stats = Array.from(productStats.values());
+
+  const topByVolume = [...stats]
     .sort((a, b) => b.totalSales - a.totalSales)
     .slice(0, 10);
 
-  const topByProfit = Array.from(productStats.values())
+  const topByProfit = [...stats]
     .sort((a, b) => b.profit - a.profit)
     .slice(0, 10);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Top Products by Volume */}
       <Card>
         <CardHeader>
           <CardTitle>ТОП-10 Товаров по Объёму</CardTitle>
@@ -69,7 +73,7 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
               topByVolume.map((product, idx) => (
                 <div
                   key={product.id}
-                  className="flex justify-between items-center pb-2 border-b"
+                  className="flex justify-between items-center pb-2 border-b last:border-b-0"
                 >
                   <div>
                     <p className="font-medium">
@@ -79,7 +83,9 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
                       Кол-во: {product.quantity} шт
                     </p>
                   </div>
-                  <p className="font-bold">${product.totalSales.toFixed(2)}</p>
+                  <p className="font-bold">
+                    {product.totalSales.toFixed(2)} MDL
+                  </p>
                 </div>
               ))
             )}
@@ -87,7 +93,6 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
         </CardContent>
       </Card>
 
-      {/* Top Products by Profit */}
       <Card>
         <CardHeader>
           <CardTitle>ТОП-10 Товаров по Прибыли</CardTitle>
@@ -102,7 +107,7 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
               topByProfit.map((product, idx) => (
                 <div
                   key={product.id}
-                  className="flex justify-between items-center pb-2 border-b"
+                  className="flex justify-between items-center pb-2 border-b last:border-b-0"
                 >
                   <div>
                     <p className="font-medium">
@@ -117,7 +122,7 @@ export default function TopProducts({ orders, dateRange }: TopProductsProps) {
                       product.profit >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}
                   >
-                    ${product.profit.toFixed(2)}
+                    {product.profit.toFixed(2)} MDL
                   </p>
                 </div>
               ))

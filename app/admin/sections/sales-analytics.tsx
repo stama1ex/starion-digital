@@ -51,7 +51,7 @@ export default function SalesAnalytics({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-600">
+          <div className="text-2xl font-bold text-destructive">
             ${metrics.totalCost.toFixed(2)} MDL
           </div>
           <p className="text-xs text-muted-foreground mt-2">Всего расходов</p>
@@ -67,7 +67,7 @@ export default function SalesAnalytics({
         <CardContent>
           <div
             className={`text-2xl font-bold ${
-              metrics.grossProfit >= 0 ? 'text-green-600' : 'text-red-600'
+              metrics.grossProfit >= 0 ? 'text-green-600' : 'text-destructive'
             }`}
           >
             ${metrics.grossProfit.toFixed(2)} MDL

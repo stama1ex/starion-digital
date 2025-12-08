@@ -1,58 +1,72 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function getDateRangeFilter(dateRange: 'day' | 'week' | 'month'): {
+import type { AdminOrder } from './types';
+
+export type DateRange = 'day' | 'week' | 'month';
+
+export function getDateRangeFilter(dateRange: DateRange): {
   start: Date;
   end: Date;
 } {
   const now = new Date();
-  const start = new Date();
+  const start = new Date(now);
 
   switch (dateRange) {
-    case 'day':
+    case 'day': {
       start.setHours(0, 0, 0, 0);
       break;
-    case 'week':
-      const day = now.getDay();
-      const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    }
+    case 'week': {
+      const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // понедельник
       start.setDate(diff);
       start.setHours(0, 0, 0, 0);
       break;
-    case 'month':
+    }
+    case 'month': {
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
       break;
+    }
   }
 
   return { start, end: now };
 }
 
-export function filterByDateRange(
-  items: { createdAt: Date }[],
-  dateRange: 'day' | 'week' | 'month'
-) {
+export function filterByDateRange<T extends { createdAt: string | Date }>(
+  items: T[],
+  dateRange: DateRange
+): T[] {
   const { start, end } = getDateRangeFilter(dateRange);
-  return items.filter(
-    (item) => item.createdAt >= start && item.createdAt <= end
-  );
+
+  return items.filter((item) => {
+    const date =
+      item.createdAt instanceof Date
+        ? item.createdAt
+        : new Date(item.createdAt);
+    return date >= start && date <= end;
+  });
 }
 
 export function calculateMetrics(
-  orders: any[],
+  orders: AdminOrder[],
   costPriceMap: Map<number, number>
 ) {
   let totalRevenue = 0;
   let totalCost = 0;
 
-  orders.forEach((order) => {
+  for (const order of orders) {
     totalRevenue += Number(order.totalPrice);
-    order.items.forEach((item: any) => {
-      const costPerUnit = costPriceMap.get(item.productId) || 0;
+
+    for (const item of order.items) {
+      const costPerUnit = Number(item.product.costPrice ?? 0);
       totalCost += costPerUnit * item.quantity;
-    });
-  });
+    }
+  }
+
+  const grossProfit = totalRevenue - totalCost;
 
   return {
     totalRevenue,
     totalCost,
-    grossProfit: totalRevenue - totalCost,
+    grossProfit,
   };
 }

@@ -1,12 +1,12 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { filterByDateRange } from '../utils';
+import { filterByDateRange, type DateRange } from '../utils';
+import type { AdminOrder } from '../types';
 
 interface DealerAnalyticsProps {
-  orders: any[];
-  dateRange: 'day' | 'week' | 'month';
+  orders: AdminOrder[];
+  dateRange: DateRange;
 }
 
 export default function DealerAnalytics({
@@ -15,25 +15,25 @@ export default function DealerAnalytics({
 }: DealerAnalyticsProps) {
   const filteredOrders = filterByDateRange(orders, dateRange);
 
-  // Группируем по дилерам
-  const dealerStats = new Map<
-    number,
-    {
-      id: number;
-      name: string;
-      totalVolume: number;
-      orderCount: number;
-    }
-  >();
+  type DealerStat = {
+    id: number;
+    name: string;
+    totalVolume: number;
+    orderCount: number;
+  };
 
-  filteredOrders.forEach((order: any) => {
+  const dealerStats = new Map<number, DealerStat>();
+
+  filteredOrders.forEach((order) => {
     const partnerId = order.partnerId;
-    const existing = dealerStats.get(partnerId) || {
-      id: partnerId,
-      name: order.partner.name,
-      totalVolume: 0,
-      orderCount: 0,
-    };
+    const existing =
+      dealerStats.get(partnerId) ||
+      ({
+        id: partnerId,
+        name: order.partner.name,
+        totalVolume: 0,
+        orderCount: 0,
+      } as DealerStat);
 
     existing.totalVolume += Number(order.totalPrice);
     existing.orderCount += 1;
@@ -48,7 +48,7 @@ export default function DealerAnalytics({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>ТОП Дилеры по Объёму Закупок</CardTitle>
+        <CardTitle>ТОП дилеры по объёму закупок</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -71,7 +71,7 @@ export default function DealerAnalytics({
                   </p>
                 </div>
                 <p className="font-bold text-lg">
-                  ${dealer.totalVolume.toFixed(2)} MDL
+                  {dealer.totalVolume.toFixed(2)} MDL
                 </p>
               </div>
             ))

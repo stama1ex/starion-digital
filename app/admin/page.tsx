@@ -2,28 +2,30 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import AdminDashboard from './admin-dashboard';
+import type { AdminOrder, AdminPartner, AdminRealization } from './types';
+import { toPlain } from '@/lib/toPlain';
 
 export default async function AdminPage() {
-  // Проверяем, что это администратор (ID = 1 или специальный флаг)
   const session = (await cookies()).get('session')?.value;
 
-  if (!session) {
-    redirect('/login');
-  }
+  if (!session) redirect('/login');
 
-  // Только администратор (partnerId = 1) может получить доступ
   const adminId = Number(session);
-  if (adminId !== 1) {
-    return <div>Access Denied - Admin Only</div>;
+  if (!Number.isFinite(adminId) || adminId !== 1) {
+    return (
+      <div className="min-h-screen p-6 text-center text-destructive font-black">
+        Access Denied – Admin Only
+      </div>
+    );
   }
 
-  // Получаем основные данные для аналитики
-  const [orders, partners, realizations] = await Promise.all([
+  const [orders, partners, realizationsRaw] = await Promise.all([
     prisma.order.findMany({
       include: {
         partner: true,
         items: { include: { product: true } },
       },
+      orderBy: { createdAt: 'desc' },
     }),
     prisma.partner.findMany(),
     prisma.realization.findMany({
@@ -32,16 +34,22 @@ export default async function AdminPage() {
         items: { include: { product: true } },
         payments: true,
       },
+      orderBy: { createdAt: 'desc' },
     }),
   ]);
+
+  // ❗ Преобразование Decimal → number
+  const realizations = toPlain(realizationsRaw) as AdminRealization[];
+  const ordersPlain = toPlain(orders) as AdminOrder[];
+  const partnersPlain = toPlain(partners) as AdminPartner[];
 
   return (
     <main className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
         <AdminDashboard
-          orders={orders}
-          partners={partners}
+          orders={ordersPlain}
+          partners={partnersPlain}
           realizations={realizations}
         />
       </div>
