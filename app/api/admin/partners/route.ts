@@ -194,6 +194,28 @@ export async function DELETE(request: NextRequest) {
 
     const { id } = await request.json();
 
+    // Проверяем что партнёр не админ
+    const partner = await prisma.partner.findUnique({
+      where: { id },
+    });
+
+    if (!partner) {
+      return NextResponse.json({ error: 'Partner not found' }, { status: 404 });
+    }
+
+    if (partner.role === 'ADMIN') {
+      return NextResponse.json(
+        { error: 'Cannot delete admin account' },
+        { status: 403 }
+      );
+    }
+
+    // Удаляем связанные цены (Price не имеет onDelete: Cascade)
+    await prisma.price.deleteMany({
+      where: { partnerId: id },
+    });
+
+    // Удаляем партнёра (Order и Realization удалятся каскадно)
     await prisma.partner.delete({
       where: { id },
     });
