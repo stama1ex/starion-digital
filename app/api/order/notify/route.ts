@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
+import type { OrderItem, Product } from '@prisma/client';
 
 export async function POST(req: Request) {
   try {
@@ -11,6 +12,8 @@ export async function POST(req: Request) {
 
     const { orderId, comment } = await req.json();
     if (!orderId) return new Response('No orderId', { status: 400 });
+
+    type FullOrderItem = OrderItem & { product: Product };
 
     const order = await prisma.order.findUnique({
       where: { id: orderId },
@@ -22,15 +25,14 @@ export async function POST(req: Request) {
 
     if (!order) return new Response('Order not found', { status: 404 });
 
-    // Тип выводится автоматически
-    const items = order.items.map((it) => ({
+    // Тип теперь известен
+    const items = order.items.map((it: FullOrderItem) => ({
       number: it.product.number,
       qty: it.quantity,
       price: Number(it.pricePerItem),
       sum: Number(it.sum),
     }));
 
-    // 1) Телеграм
     await sendToTelegram({
       partner: order.partner.name,
       orderId: order.id,
@@ -39,7 +41,6 @@ export async function POST(req: Request) {
       items,
     });
 
-    // 2) Excel
     const excelBuffer = await createOrderExcel(order);
     await sendOrderExcel(excelBuffer);
 
