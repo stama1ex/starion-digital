@@ -2,7 +2,6 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import { sendToTelegram } from '@/lib/telegram';
-import type { Prisma } from '@prisma/client';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
@@ -98,19 +97,18 @@ export async function POST(req: Request) {
     const total = dbItems.reduce((s, i) => s + i.sum, 0);
 
     // --- транзакция ---
-    const order = await prisma.$transaction(
-      async (trx: Prisma.TransactionClient) =>
-        trx.order.create({
-          data: {
-            partnerId,
-            totalPrice: total,
-            items: { create: dbItems },
-          },
-          include: {
-            partner: true,
-            items: { include: { product: true } },
-          },
-        })
+    const order = await prisma.$transaction(async (trx: any) =>
+      trx.order.create({
+        data: {
+          partnerId,
+          totalPrice: total,
+          items: { create: dbItems },
+        },
+        include: {
+          partner: true,
+          items: { include: { product: true } },
+        },
+      })
     );
 
     // --- телеграм ---
