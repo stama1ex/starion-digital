@@ -17,7 +17,11 @@ import { ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 
-export default function CartDrawer() {
+interface CartDrawerProps {
+  isOutline?: boolean;
+}
+
+export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
   const t = useTranslations('Cart');
   const { items, removeItem, clear } = useCartStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,96 +68,98 @@ export default function CartDrawer() {
   return (
     <Drawer>
       <DrawerTrigger asChild>
-        <Button variant="outline">
+        <Button variant={isOutline ? 'outline' : 'default'}>
           <ShoppingCart />
           {t('cart')} ({totalItems})
         </Button>
       </DrawerTrigger>
 
       <DrawerContent className="max-h-[80vh]">
-        <DrawerHeader>
-          <DrawerTitle>{t('cart')}</DrawerTitle>
-        </DrawerHeader>
+        <div className="mx-auto w-full max-w-screen-xl">
+          <DrawerHeader>
+            <DrawerTitle>{t('cart')}</DrawerTitle>
+          </DrawerHeader>
 
-        <div className="px-4 flex flex-col gap-3 overflow-y-auto max-h-[55vh]">
-          {!items.length && (
-            <p className="text-sm text-muted-foreground md:text-center">
-              {t('empty')}
-            </p>
-          )}
+          <div className="px-4 flex flex-col gap-3 overflow-y-auto max-h-[55vh]">
+            {!items.length && (
+              <p className="text-sm text-muted-foreground md:text-center">
+                {t('empty')}
+              </p>
+            )}
 
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between gap-3 border rounded-md p-2"
-            >
-              <div className="flex items-center gap-3">
-                {item.image && (
-                  <Image
-                    src={`/${item.image.replace('public/', '')}`}
-                    width={60}
-                    height={60}
-                    className="rounded-md object-cover"
-                    alt=""
-                  />
-                )}
-                <div>
-                  <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {t('qty')}: {item.quantity}
-                  </div>
-                  <div className="text-xs text-primary font-semibold">
-                    {item.price} × {item.quantity} ={' '}
-                    {item.price * item.quantity} MDL
+            {items.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between gap-3 border rounded-md p-2"
+              >
+                <div className="flex items-center gap-3">
+                  {item.image && (
+                    <Image
+                      src={`/${item.image.replace('public/', '')}`}
+                      width={60}
+                      height={60}
+                      className="rounded-md object-cover"
+                      alt=""
+                    />
+                  )}
+                  <div>
+                    <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t('qty')}: {item.quantity}
+                    </div>
+                    <div className="text-xs text-primary font-semibold">
+                      {item.price} × {item.quantity} ={' '}
+                      {item.price * item.quantity} MDL
+                    </div>
                   </div>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeItem(item.id)}
+                >
+                  ✕
+                </Button>
               </div>
+            ))}
+          </div>
 
+          <div className="px-4 mt-3">
+            <textarea
+              className="w-full text-sm border rounded-md p-2 bg-background"
+              placeholder={t('comment_placeholder')}
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
+
+          <DrawerFooter>
+            <div className="flex flex-col text-sm text-muted-foreground gap-1 w-full">
+              <div className="flex justify-between md:justify-center">
+                <span>{t('positions')}:</span>
+                <span>{totalItems}</span>
+              </div>
+              <div className="flex justify-between md:justify-center font-semibold text-primary mb-4">
+                <span>{t('total_price')}:</span>
+                <span>{totalPrice} MDL</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row justify-center gap-2">
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => removeItem(item.id)}
+                disabled={!items.length || isSubmitting}
+                onClick={handleSubmit}
               >
-                ✕
+                {isSubmitting ? t('sending') : t('submit')}
               </Button>
+
+              <DrawerClose asChild>
+                <Button variant="outline">{t('close')}</Button>
+              </DrawerClose>
             </div>
-          ))}
+          </DrawerFooter>
         </div>
-
-        <div className="px-4 mt-3">
-          <textarea
-            className="w-full text-sm border rounded-md p-2 bg-background"
-            placeholder={t('comment_placeholder')}
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-        </div>
-
-        <DrawerFooter>
-          <div className="flex flex-col text-sm text-muted-foreground gap-1 w-full">
-            <div className="flex justify-between">
-              <span>{t('positions')}:</span>
-              <span>{totalItems}</span>
-            </div>
-            <div className="flex justify-between font-semibold text-primary">
-              <span>{t('total_price')}:</span>
-              <span>{totalPrice} MDL</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col md:flex-row justify-center gap-2">
-            <Button
-              disabled={!items.length || isSubmitting}
-              onClick={handleSubmit}
-            >
-              {isSubmitting ? t('sending') : t('submit')}
-            </Button>
-
-            <DrawerClose asChild>
-              <Button variant="outline">{t('close')}</Button>
-            </DrawerClose>
-          </div>
-        </DrawerFooter>
       </DrawerContent>
     </Drawer>
   );
