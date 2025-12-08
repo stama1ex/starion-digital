@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, type DateRange } from '../utils';
-import type { AdminOrder } from '../types';
+import type { AdminOrder, AdminRealization } from '../types';
 import {
   BarChart,
   Bar,
@@ -16,17 +16,25 @@ import {
 
 interface DealerAnalyticsProps {
   orders: AdminOrder[];
+  realizations: AdminRealization[];
   dateRange: DateRange;
   customDateRange?: { from: string; to: string } | null;
 }
 
 export default function DealerAnalytics({
   orders,
+  realizations,
   dateRange,
   customDateRange,
 }: DealerAnalyticsProps) {
   const filteredOrders = filterByDateRange(
     orders,
+    dateRange,
+    customDateRange || undefined
+  );
+
+  const filteredRealizations = filterByDateRange(
+    realizations,
     dateRange,
     customDateRange || undefined
   );
@@ -40,7 +48,18 @@ export default function DealerAnalytics({
 
   const dealerStats = new Map<number, DealerStat>();
 
+  // Собираем ID заказов которые имеют реализацию
+  const orderIdsWithRealization = new Set(
+    filteredRealizations.map((r: any) => r.orderId)
+  );
+
+  // Считаем обычные заказы (только те что НЕ в реализации)
   filteredOrders.forEach((order) => {
+    // Пропускаем заказы которые конвертированы в реализацию
+    if (orderIdsWithRealization.has(order.id)) {
+      return;
+    }
+
     const partnerId = order.partnerId;
     const existing =
       dealerStats.get(partnerId) ||
@@ -52,6 +71,29 @@ export default function DealerAnalytics({
       } as DealerStat);
 
     existing.totalVolume += Number(order.totalPrice);
+    existing.orderCount += 1;
+
+    dealerStats.set(partnerId, existing);
+  });
+
+  // Считаем реализации только по paidAmount
+  filteredRealizations.forEach((realization) => {
+    const partnerId = realization.partnerId;
+    const paidAmount = Number(realization.paidAmount);
+
+    // Если ничего не оплачено, пропускаем
+    if (paidAmount === 0) return;
+
+    const existing =
+      dealerStats.get(partnerId) ||
+      ({
+        id: partnerId,
+        name: realization.partner.name,
+        totalVolume: 0,
+        orderCount: 0,
+      } as DealerStat);
+
+    existing.totalVolume += paidAmount;
     existing.orderCount += 1;
 
     dealerStats.set(partnerId, existing);

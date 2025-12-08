@@ -55,15 +55,17 @@ export default function MaterialsManagement() {
     }
 
     try {
-      const url = editingId
-        ? `/api/admin/materials/${editingId}`
-        : '/api/admin/materials';
+      const url = '/api/admin/materials';
       const method = editingId ? 'PUT' : 'POST';
+
+      const body = editingId
+        ? { id: editingId, name: formData.name, label: formData.label }
+        : { name: formData.name, label: formData.label };
 
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(body),
       });
 
       if (res.ok) {
@@ -93,8 +95,10 @@ export default function MaterialsManagement() {
   const handleDelete = async (id: number) => {
     if (confirm('Вы уверены? Это удалит материал из системы.')) {
       try {
-        const res = await fetch(`/api/admin/materials/${id}`, {
+        const res = await fetch(`/api/admin/materials`, {
           method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
         });
 
         const result = await res.json();

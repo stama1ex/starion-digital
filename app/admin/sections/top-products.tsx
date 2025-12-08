@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, type DateRange } from '../utils';
-import type { AdminOrder } from '../types';
+import type { AdminOrder, AdminRealization } from '../types';
 import {
   BarChart,
   Bar,
@@ -16,17 +16,25 @@ import {
 
 interface TopProductsProps {
   orders: AdminOrder[];
+  realizations: AdminRealization[];
   dateRange: DateRange;
   customDateRange?: { from: string; to: string } | null;
 }
 
 export default function TopProducts({
   orders,
+  realizations,
   dateRange,
   customDateRange,
 }: TopProductsProps) {
   const filteredOrders = filterByDateRange(
     orders,
+    dateRange,
+    customDateRange || undefined
+  );
+
+  const filteredRealizations = filterByDateRange(
+    realizations,
     dateRange,
     customDateRange || undefined
   );
@@ -41,7 +49,18 @@ export default function TopProducts({
 
   const productStats = new Map<number, ProductStat>();
 
+  // Собираем ID заказов которые имеют реализацию
+  const orderIdsWithRealization = new Set(
+    filteredRealizations.map((r: any) => r.orderId)
+  );
+
+  // Считаем обычные заказы полностью (только те что НЕ в реализации)
   filteredOrders.forEach((order) => {
+    // Пропускаем заказы которые конвертированы в реализацию
+    if (orderIdsWithRealization.has(order.id)) {
+      return;
+    }
+
     order.items.forEach((item) => {
       const productId = item.productId;
       const existing =
@@ -61,6 +80,43 @@ export default function TopProducts({
       existing.totalSales += sum;
       existing.quantity += item.quantity;
       existing.profit += sum - costTotal;
+
+      productStats.set(productId, existing);
+    });
+  });
+
+  // Считаем реализации только по оплаченному (paidAmount)
+  filteredRealizations.forEach((realization) => {
+    const totalCost = Number(realization.totalCost);
+    const paidAmount = Number(realization.paidAmount);
+
+    // Если ничего не оплачено, пропускаем
+    if (paidAmount === 0) return;
+
+    // Коэффициент оплаченной части
+    const paidRatio = totalCost > 0 ? paidAmount / totalCost : 0;
+
+    realization.items.forEach((item) => {
+      const productId = item.productId;
+      const existing =
+        productStats.get(productId) ||
+        ({
+          id: productId,
+          number: item.product.number,
+          totalSales: 0,
+          quantity: 0,
+          profit: 0,
+        } as ProductStat);
+
+      // Считаем только оплаченную часть товара
+      const paidSum = Number(item.totalPrice) * paidRatio;
+      const paidQuantity = item.quantity * paidRatio;
+      const costPerUnit = Number(item.costPrice ?? 0);
+      const paidCost = costPerUnit * paidQuantity;
+
+      existing.totalSales += paidSum;
+      existing.quantity += paidQuantity;
+      existing.profit += paidSum - paidCost;
 
       productStats.set(productId, existing);
     });

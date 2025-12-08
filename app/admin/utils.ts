@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AdminOrder } from './types';
 
 export type DateRange = 'day' | 'week' | 'month';
@@ -57,19 +58,45 @@ export function filterByDateRange<T extends { createdAt: string | Date }>(
   });
 }
 
-export function calculateMetrics(
-  orders: AdminOrder[],
-  costPriceMap: Map<number, number>
-) {
+export function calculateMetrics(orders: AdminOrder[], realizations: any[]) {
   let totalRevenue = 0;
   let totalCost = 0;
 
+  // Собираем ID заказов которые имеют реализацию (чтобы не считать их дважды)
+  const orderIdsWithRealization = new Set(
+    realizations.map((r: any) => r.orderId)
+  );
+
+  // Считаем обычные заказы полностью (только те, которые НЕ являются реализациями)
   for (const order of orders) {
+    // Пропускаем заказы которые конвертированы в реализацию
+    if (orderIdsWithRealization.has(order.id)) {
+      continue;
+    }
+
     totalRevenue += Number(order.totalPrice);
 
     for (const item of order.items) {
       const costPerUnit = Number(item.product.costPrice ?? 0);
       totalCost += costPerUnit * item.quantity;
+    }
+  }
+
+  // Считаем реализации только по paidAmount
+  for (const realization of realizations) {
+    const paidAmount = Number(realization.paidAmount);
+    if (paidAmount === 0) continue;
+
+    totalRevenue += paidAmount;
+
+    // Считаем себестоимость пропорционально оплаченной сумме
+    const totalCostOfRealization = Number(realization.totalCost);
+    const realizationRatio =
+      totalCostOfRealization > 0 ? paidAmount / totalCostOfRealization : 0;
+
+    for (const item of realization.items) {
+      const costPerUnit = Number(item.costPrice ?? 0);
+      totalCost += costPerUnit * item.quantity * realizationRatio;
     }
   }
 
