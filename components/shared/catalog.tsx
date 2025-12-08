@@ -4,18 +4,30 @@ import { Container } from '@/components/shared/container';
 import { Title } from '@/components/shared/title';
 import ExampleBlock from '@/components/shared/example-block';
 import { useTranslations } from 'next-intl';
-import { Product, Material } from '@prisma/client';
 import { ProductCard } from './product-card';
+
+// Типы такие же, как в страницах
+type ProductType = 'MAGNET' | 'PLATE';
+type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+
+interface ProductDTO {
+  id: number;
+  number: string;
+  type: ProductType;
+  material: Material;
+  image: string;
+  country: string;
+}
 
 interface CatalogProps {
   titleKey: string;
   exampleProductNumber?: string;
   className?: string;
-  products: Product[];
+  products: ProductDTO[];
   modelUrls: Record<string, string>;
   prices?: {
-    type: Product['type'];
-    material: Product['material'];
+    type: ProductType;
+    material: Material;
     price: number;
   }[];
 }
@@ -34,7 +46,7 @@ const Catalog: React.FC<CatalogProps> = ({
     ? products.find((p) => p.number === exampleProductNumber) || null
     : null;
 
-  const getPrice = (p: Product) => {
+  const getPrice = (p: ProductDTO) => {
     if (!prices) return null;
     const match = prices.find(
       (x) => x.type === p.type && x.material === p.material
@@ -42,29 +54,14 @@ const Catalog: React.FC<CatalogProps> = ({
     return match?.price ?? null;
   };
 
-  // Группируем по материалам
   const materials = [...new Set(products.map((p) => p.material))] as Material[];
 
-  // Кастомный порядок отображения материалов
-  const materialOrder = [Material.MARBLE, Material.WOOD, Material.ACRYLIC];
-
+  const materialOrder: Material[] = ['MARBLE', 'WOOD', 'ACRYLIC'];
   const sortedMaterials = materials.sort(
     (a, b) => materialOrder.indexOf(a) - materialOrder.indexOf(b)
   );
 
-  // Человеческие названия материалов
-  const materialHeader = (m: Material) => {
-    switch (m) {
-      case Material.MARBLE:
-        return t('material.marble'); // будет переведён
-      case Material.WOOD:
-        return t('material.wood');
-      case Material.ACRYLIC:
-        return t('material.acrylic');
-      default:
-        return m;
-    }
-  };
+  const materialHeader = (m: Material) => t(`material.${m.toLowerCase()}`);
 
   return (
     <div className={className}>
@@ -93,7 +90,6 @@ const Catalog: React.FC<CatalogProps> = ({
           />
         </div>
 
-        {/* Блоки по материалам */}
         {sortedMaterials.map((mat) => (
           <div key={mat} className="my-10">
             <h2 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-start">
