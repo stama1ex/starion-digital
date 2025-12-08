@@ -25,23 +25,36 @@ model Product {
   number    String   @unique
   country   String
   image     String
-  material  Material
+  materialId Int     // Связь с MaterialCatalog
   costPrice Decimal  @db.Decimal(10,2) @default(0) // Себестоимость
 
+  material  MaterialCatalog @relation(fields: [materialId], references: [id])
   items     OrderItem[]
   realizationItems RealizationItem[]
+}
+
+// Каталог материалов - для легкого добавления новых материалов
+model MaterialCatalog {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique // MARBLE, WOOD, ACRYLIC, METAL и тд
+  label     String   // Мрамор, Дерево, Акрил, Металл
+  createdAt DateTime @default(now())
+
+  products Product[]
+  prices   Price[]
 }
 
 model Price {
   id        Int      @id @default(autoincrement())
   partnerId Int
   type      ProductType
-  material  Material
+  materialId Int     // Связь с MaterialCatalog
   price     Decimal  @db.Decimal(10,2)
 
-  partner   Partner  @relation(fields: [partnerId], references: [id])
+  partner   Partner          @relation(fields: [partnerId], references: [id])
+  material  MaterialCatalog  @relation(fields: [materialId], references: [id])
 
-  @@unique([partnerId, type, material]) // У одного партнёра только одна цена на каждую комбинацию
+  @@unique([partnerId, type, materialId]) // У одного партнёра только одна цена на каждую комбинацию
 }
 
 model Order {
@@ -118,12 +131,6 @@ enum ProductType {
   POSTCARD
   STATUE
   BALL
-}
-
-enum Material {
-  MARBLE
-  WOOD
-  ACRYLIC
 }
 
 enum OrderStatus {

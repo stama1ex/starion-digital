@@ -1,3 +1,13 @@
+async function parseDropboxError(res: Response) {
+  const text = await res.text(); // читаем ОДИН раз
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text; // если не JSON, возвращаем текст
+  }
+}
+
 export async function getAccessToken(): Promise<string> {
   const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
     method: 'POST',
@@ -12,8 +22,11 @@ export async function getAccessToken(): Promise<string> {
 
   const data = await res.json();
   if (!res.ok) {
-    throw new Error(`Dropbox token refresh failed: ${JSON.stringify(data)}`);
+    const errorText = await parseDropboxError(res);
+    console.error('UPLOAD ERROR:', errorText);
+    throw new Error(`Dropbox upload failed: ${errorText}`);
   }
+
   return data.access_token as string;
 }
 
@@ -22,7 +35,7 @@ export async function uploadToDropbox(
   filename: string
 ): Promise<string> {
   const accessToken = await getAccessToken();
-  const path = `/starion-digital/${filename}`;
+  const path = `/products/${filename}`;
 
   const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
     method: 'POST',
@@ -40,10 +53,52 @@ export async function uploadToDropbox(
   });
 
   if (!res.ok) {
-    const error = await res.json();
-    throw new Error(`Dropbox upload failed: ${JSON.stringify(error)}`);
+    const errorText = await parseDropboxError(res);
+    console.error('UPLOAD ERROR:', errorText);
+    throw new Error(`Dropbox upload failed: ${errorText}`);
   }
 
-  // Возвращаем путь для доступа через временную ссылку
   return path;
+}
+
+export async function getTemporaryLink(path: string): Promise<string> {
+  const accessToken = await getAccessToken();
+
+  const res = await fetch(
+    'https://api.dropboxapi.com/2/files/get_temporary_link',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path }),
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) {
+    const errorText = await parseDropboxError(res);
+    console.error('UPLOAD ERROR:', errorText);
+    throw new Error(`Dropbox upload failed: ${errorText}`);
+  }
+
+  return data.link;
+}
+
+export async function uploadImage(buffer: ArrayBuffer, filename: string) {
+  const path = await uploadToDropbox(buffer, filename);
+  const url = await getTemporaryLink(path);
+  return { path, url };
+}
+
+function sanitizeFilename(name: string) {
+  return (
+    name
+      .normalize('NFKD') // убирает диакритику
+      .replace(/[^\x00-\x7F]/g, '') // убирает не-ASCII
+      .replace(/\s+/g, '_') // заменяет пробелы
+      .replace(/[^a-zA-Z0-9._-]/g, '') || // оставляем безопасные символы
+    `file_${Date.now()}`
+  ); // fallback
 }

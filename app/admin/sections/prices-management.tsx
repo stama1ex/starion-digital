@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ProductType, Material } from '@prisma/client';
+import { ProductType } from '@prisma/client';
 
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
@@ -21,17 +21,23 @@ const PRODUCT_TYPES: ProductType[] = [
   'STATUE',
   'BALL',
 ];
-const MATERIALS: Material[] = ['MARBLE', 'WOOD', 'ACRYLIC'];
+
+interface Material {
+  id: number;
+  name: string;
+  label: string;
+}
 
 interface Price {
   id: number;
   type: ProductType;
-  material: Material;
+  materialId: number;
   price: number;
 }
 
 export default function PricesManagement() {
   const [partners, setPartners] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [prices, setPrices] = useState<Price[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,6 +47,7 @@ export default function PricesManagement() {
 
   useEffect(() => {
     fetchPartners();
+    fetchMaterials();
   }, []);
 
   const fetchPartners = async () => {
@@ -55,6 +62,16 @@ export default function PricesManagement() {
       }
     } catch (error) {
       console.error('Error fetching partners:', error);
+    }
+  };
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch('/api/admin/materials');
+      const data = await res.json();
+      setMaterials(data);
+    } catch (error) {
+      console.error('Error fetching materials:', error);
     }
   };
 
@@ -82,16 +99,16 @@ export default function PricesManagement() {
 
   const handlePriceChange = (
     type: ProductType,
-    material: Material,
+    materialId: number,
     value: string
   ) => {
-    const key = `${type}-${material}`;
+    const key = `${type}-${materialId}`;
     setEditingPrices({ ...editingPrices, [key]: value });
   };
 
   const handleSavePrice = async (
     type: ProductType,
-    material: Material,
+    materialId: number,
     value: string
   ) => {
     try {
@@ -101,7 +118,7 @@ export default function PricesManagement() {
         body: JSON.stringify({
           partnerId: parseInt(selectedPartnerId),
           type,
-          material,
+          materialId,
           price: parseFloat(value),
         }),
       });
@@ -111,13 +128,13 @@ export default function PricesManagement() {
     }
   };
 
-  const getPrice = (type: ProductType, material: Material) => {
-    const key = `${type}-${material}`;
+  const getPrice = (type: ProductType, materialId: number) => {
+    const key = `${type}-${materialId}`;
     const editingValue = editingPrices[key];
     if (editingValue !== undefined) return editingValue;
 
     const price = prices.find(
-      (p) => p.type === type && p.material === material
+      (p) => p.type === type && p.materialId === materialId
     );
     return price?.price ?? '';
   };
@@ -157,22 +174,18 @@ export default function PricesManagement() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {MATERIALS.map((material) => (
-                    <div key={`${type}-${material}`} className="space-y-2">
+                  {materials.map((material) => (
+                    <div key={`${type}-${material.id}`} className="space-y-2">
                       <label className="text-sm font-medium">
-                        {material === 'MARBLE'
-                          ? 'Мрамор'
-                          : material === 'WOOD'
-                          ? 'Дерево'
-                          : material}
+                        {material.label}
                       </label>
                       <div className="flex gap-2">
                         <Input
                           type="number"
                           step="0.01"
-                          value={getPrice(type, material)}
+                          value={getPrice(type, material.id)}
                           onChange={(e) =>
-                            handlePriceChange(type, material, e.target.value)
+                            handlePriceChange(type, material.id, e.target.value)
                           }
                           placeholder="0.00"
                         />
@@ -180,8 +193,8 @@ export default function PricesManagement() {
                           onClick={() =>
                             handleSavePrice(
                               type,
-                              material,
-                              getPrice(type, material).toString()
+                              material.id,
+                              getPrice(type, material.id).toString()
                             )
                           }
                           size="sm"

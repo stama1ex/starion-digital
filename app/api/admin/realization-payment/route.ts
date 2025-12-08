@@ -9,7 +9,16 @@ interface RealizationPaymentBody {
 export async function POST(req: Request) {
   try {
     const session = (await cookies()).get('session')?.value;
-    if (!session || Number(session) !== 1) {
+    if (!session) {
+      return new Response('Unauthorized - Admin only', { status: 401 });
+    }
+
+    const partnerId = Number(session);
+    const admin = await prisma.partner.findUnique({
+      where: { id: partnerId },
+    });
+
+    if (!admin || admin.name !== 'ADMIN') {
       return new Response('Unauthorized - Admin only', { status: 401 });
     }
 

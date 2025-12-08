@@ -17,8 +17,8 @@ export default async function AdminPage() {
     where: { login: ADMIN_LOGIN },
   });
 
-  // Если администратор не создан или сессия не совпадает с его ID - запретить доступ
-  if (!admin || session !== admin.id.toString()) {
+  // Если администратор не создан или сессия не совпадает с его ID или имя не "ADMIN" - запретить доступ
+  if (!admin || session !== admin.id.toString() || admin.name !== 'ADMIN') {
     return (
       <div className="min-h-screen p-6 text-center text-destructive font-black">
         Access Denied – Admin Only

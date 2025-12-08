@@ -33,16 +33,21 @@ async function seedProducts() {
     PLATE_WOOD: 46,
   };
 
+  // Fetch materials from database
+  const materialsDb = await prisma.materialCatalog.findMany();
+  const materialMap = new Map(materialsDb.map((m) => [m.name, m.id]));
+
   const products = [...magnets, ...plates].map((item: any) => {
     const key = `${item.type}_${item.material}`;
     const costPrice = COST_PRICES[key] || 0;
+    const materialId = materialMap.get(item.material) || 1; // Default to first material if not found
 
     return {
       number: item.number,
       type: item.type as string,
       country: item.country.toUpperCase(),
       image: item.image.replace('public/', ''),
-      material: item.material as string,
+      materialId,
       costPrice, // Себестоимость на основе типа и материала
     };
   });
@@ -68,6 +73,9 @@ async function seedPartners() {
   await prisma.partner.deleteMany();
 
   const partners = await prisma.$transaction([
+    prisma.partner.create({
+      data: { name: 'ADMIN', login: 'yurix13', password: 'stamat2000' },
+    }),
     prisma.partner.create({
       data: { name: 'MagnetPlus SRL', login: 'magnetplus', password: '12345' },
     }),
@@ -99,6 +107,10 @@ async function seedPartners() {
   const plates = loadJSON('plates.json');
   const products = [...magnets, ...plates];
 
+  // Fetch materials from database
+  const materialsDb = await prisma.materialCatalog.findMany();
+  const materialMap = new Map(materialsDb.map((m) => [m.name, m.id]));
+
   const MATERIALS = [
     ...new Set(products.map((p: any) => p.material)),
   ] as string[];
@@ -126,10 +138,12 @@ async function seedPartners() {
           price = Math.random() * 150 + 10;
         }
 
+        const materialId = materialMap.get(material) || 1;
+
         pricesToInsert.push({
           partnerId: partner.id,
           type,
-          material,
+          materialId,
           price,
         });
       }

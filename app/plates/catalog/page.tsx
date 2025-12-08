@@ -21,20 +21,24 @@ export default async function PlatesCatalogPage({ params }: any) {
   const locale = params.locale;
   await getTranslations({ locale, namespace: 'Catalog' });
 
-  // ❗ Берём товары
+  // ❗ Берём товары с материалами
   const rawProducts = await prisma.product.findMany({
     where: { type: 'PLATE' },
     orderBy: { number: 'asc' },
+    include: { material: true },
   });
 
-  // ❗ Удаляем Decimal
-  const products = toPlain(rawProducts);
+  // ❗ Удаляем Decimal и добавляем material name
+  const products = toPlain(rawProducts).map((p: any) => ({
+    ...p,
+    material: p.material.name,
+  }));
 
   // --- ценообразование ---
   const session = (await cookies()).get('session')?.value;
   let prices: {
     type: 'MAGNET' | 'PLATE';
-    material: 'MARBLE' | 'WOOD' | 'ACRYLIC';
+    material: string;
     price: number;
   }[] = [];
 
@@ -42,12 +46,12 @@ export default async function PlatesCatalogPage({ params }: any) {
     const partnerId = Number(session);
     const raw = await prisma.price.findMany({
       where: { partnerId },
-      select: { type: true, material: true, price: true },
+      include: { material: true },
     });
 
     prices = raw.map((p) => ({
       type: p.type as 'MAGNET' | 'PLATE',
-      material: p.material as 'MARBLE' | 'WOOD' | 'ACRYLIC',
+      material: p.material.name,
       price: Number(p.price),
     }));
   }

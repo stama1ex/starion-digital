@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAdminAuth } from '../auth-utils';
 
 // GET all partners
 export async function GET() {
   try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
     const partners = await prisma.partner.findMany({
       include: {
         prices: true,
@@ -22,6 +30,13 @@ export async function GET() {
 // POST create partner
 export async function POST(request: NextRequest) {
   try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
     const data = await request.json();
     const partner = await prisma.partner.create({
       data: {
@@ -43,6 +58,13 @@ export async function POST(request: NextRequest) {
 // PUT update partner
 export async function PUT(request: NextRequest) {
   try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
     const data = await request.json();
     const partner = await prisma.partner.update({
       where: { id: data.id },
@@ -65,6 +87,13 @@ export async function PUT(request: NextRequest) {
 // DELETE partner
 export async function DELETE(request: NextRequest) {
   try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
     const { id } = await request.json();
     await prisma.partner.delete({
       where: { id },
