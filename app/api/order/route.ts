@@ -101,16 +101,9 @@ export async function POST(req: Request) {
 
     // 6) Создаём заказ + возврещаем данные
     const order = await prisma.$transaction(async (trx) => {
-      return await trx.order.create({
-        data: {
-          partnerId,
-          totalPrice: total,
-          items: { create: dbItems },
-        },
-        include: {
-          partner: true,
-          items: { include: { product: true } },
-        },
+      return trx.order.create({
+        data: { partnerId, totalPrice: total, items: { create: dbItems } },
+        include: { partner: true, items: { include: { product: true } } },
       });
     });
 
