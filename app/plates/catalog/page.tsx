@@ -39,7 +39,7 @@ export default async function PlatesCatalogPage({ params }: any) {
       select: { type: true, material: true, price: true },
     });
 
-    prices = raw.map((p) => ({
+    prices = raw.map((p: { type: string; material: string; price: any }) => ({
       type: p.type as 'MAGNET' | 'PLATE',
       material: p.material as 'MARBLE' | 'WOOD' | 'ACRYLIC',
       price: Number(p.price),
