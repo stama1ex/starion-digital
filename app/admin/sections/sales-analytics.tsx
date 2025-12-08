@@ -40,8 +40,7 @@ export default function SalesAnalytics({
   );
 
   // Маппер себестоимости (в дальнейшем можно получать из БД)
-  const costPriceMap = new Map<number, number>();
-  const metrics = calculateMetrics(filteredOrders, costPriceMap);
+  const metrics = calculateMetrics(filteredOrders, filteredRealizations);
 
   // === Построение данных графика по дням ===
   const dateMap = new Map<
@@ -49,8 +48,18 @@ export default function SalesAnalytics({
     { revenue: number; cost: number; profit: number }
   >();
 
-  // Добавляем обычные заказы (считаются полностью)
+  // Собираем ID заказов которые имеют реализацию
+  const orderIdsWithRealization = new Set(
+    filteredRealizations.map((r: any) => r.orderId)
+  );
+
+  // Добавляем обычные заказы (считаются полностью, только те что НЕ в реализации)
   filteredOrders.forEach((order) => {
+    // Пропускаем заказы которые конвертированы в реализацию
+    if (orderIdsWithRealization.has(order.id)) {
+      return;
+    }
+
     const isoDate = new Date(order.createdAt).toISOString().split('T')[0]; // YYYY-MM-DD
 
     const existing = dateMap.get(isoDate) || {
@@ -86,7 +95,7 @@ export default function SalesAnalytics({
       };
 
       const paymentAmount = Number(payment.amount);
-      
+
       // Считаем себестоимость пропорционально оплаченной сумме
       const realizationRatio =
         Number(realization.totalCost) > 0
@@ -94,7 +103,9 @@ export default function SalesAnalytics({
           : 0;
 
       const paymentCost = realization.items.reduce((sum: number, item: any) => {
-        return sum + Number(item.costPrice ?? 0) * item.quantity * realizationRatio;
+        return (
+          sum + Number(item.costPrice ?? 0) * item.quantity * realizationRatio
+        );
       }, 0);
 
       existing.revenue += paymentAmount;
@@ -144,7 +155,8 @@ export default function SalesAnalytics({
               {metrics.totalRevenue.toFixed(0)} MDL
             </div>
             <p className="text-xs text-muted-foreground mt-2">
-              {filteredOrders.length} заказов
+              {filteredOrders.length} заказов + {filteredRealizations.length}{' '}
+              реализаций
             </p>
           </CardContent>
         </Card>

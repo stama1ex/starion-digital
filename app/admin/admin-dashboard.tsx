@@ -177,6 +177,7 @@ export default function AdminDashboard({
         <TabsContent value="dealers" className="space-y-4">
           <DealerAnalytics
             orders={orders}
+            realizations={realizations}
             dateRange={dateRange}
             customDateRange={useCustomRange ? customDateRange : null}
           />

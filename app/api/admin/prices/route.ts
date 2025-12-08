@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { checkAdminAuth } from '../auth-utils';
 
 // GET all prices or specific partner prices
