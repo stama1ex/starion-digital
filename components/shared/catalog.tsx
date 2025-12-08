@@ -6,9 +6,9 @@ import ExampleBlock from '@/components/shared/example-block';
 import { useTranslations } from 'next-intl';
 import { ProductCard } from './product-card';
 
-// Типы такие же, как в страницах
-type ProductType = 'MAGNET' | 'PLATE';
-type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+// Типы такие же, как в Prisma
+type ProductType = string;
+type Material = string;
 
 interface ProductDTO {
   id: number;

@@ -14,9 +14,9 @@ import { usePartner } from '@/app/providers/partner-provider';
 import { Button } from '../ui/button';
 import { useTranslations } from 'next-intl';
 
-// Те же типы, что и в Catalog
-type ProductType = 'MAGNET' | 'PLATE';
-type Material = 'MARBLE' | 'WOOD' | 'ACRYLIC';
+// Types match Prisma enums
+type ProductType = string;
+type Material = string;
 
 interface ProductDTO {
   id: number;
