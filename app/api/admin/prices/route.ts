@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { checkAdminAuth } from '../auth-utils';
 
 // GET all prices or specific partner prices
 export async function GET(request: NextRequest) {
   try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
     const { searchParams } = new URL(request.url);
     const partnerId = searchParams.get('partnerId');
 
@@ -28,15 +36,22 @@ export async function GET(request: NextRequest) {
 // POST create or update price
 export async function POST(request: NextRequest) {
   try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
     const data = await request.json();
 
     // Check if price already exists
     const existing = await prisma.price.findUnique({
       where: {
-        partnerId_type_material: {
+        partnerId_type_materialId: {
           partnerId: data.partnerId,
           type: data.type,
-          material: data.material,
+          materialId: data.materialId,
         },
       },
     });
@@ -45,10 +60,10 @@ export async function POST(request: NextRequest) {
     if (existing) {
       price = await prisma.price.update({
         where: {
-          partnerId_type_material: {
+          partnerId_type_materialId: {
             partnerId: data.partnerId,
             type: data.type,
-            material: data.material,
+            materialId: data.materialId,
           },
         },
         data: {
@@ -60,7 +75,7 @@ export async function POST(request: NextRequest) {
         data: {
           partnerId: data.partnerId,
           type: data.type,
-          material: data.material,
+          materialId: data.materialId,
           price: data.price,
         },
       });

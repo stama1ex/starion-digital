@@ -27,16 +27,21 @@ async function seedProducts() {
     PLATE_WOOD: 46,
   };
 
+  // Fetch materials from database
+  const materialsDb = await prisma.materialCatalog.findMany();
+  const materialMap = new Map(materialsDb.map((m) => [m.name, m.id]));
+
   const products = [...magnets, ...plates].map((item: any) => {
     const key = `${item.type}_${item.material}`;
     const costPrice = COST_PRICES[key] || 0;
+    const materialId = materialMap.get(item.material) || 1; // Default to first material if not found
 
     return {
       number: item.number,
       type: item.type as string,
       country: item.country.toUpperCase(),
       image: item.image.replace('public/', ''),
-      material: item.material as string,
+      materialId,
       costPrice, // Себестоимость на основе типа и материала
     };
   });

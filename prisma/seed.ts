@@ -33,17 +33,25 @@ async function seedProducts() {
     PLATE_WOOD: 46,
   };
 
+  // Получаем ID материалов из БД
+  const materials = await prisma.materialCatalog.findMany();
+  const materialMap: Record<string, number> = {};
+  materials.forEach((m) => {
+    materialMap[m.name] = m.id;
+  });
+
   const products = [...magnets, ...plates].map((item: any) => {
     const key = `${item.type}_${item.material}`;
     const costPrice = COST_PRICES[key] || 0;
+    const materialId = materialMap[item.material];
 
     return {
       number: item.number,
       type: item.type as string,
       country: item.country.toUpperCase(),
       image: item.image.replace('public/', ''),
-      material: item.material as string,
-      costPrice, // Себестоимость на основе типа и материала
+      materialId, // Используем ID материала вместо enum
+      costPrice,
     };
   });
 
@@ -69,6 +77,9 @@ async function seedPartners() {
 
   const partners = await prisma.$transaction([
     prisma.partner.create({
+      data: { name: 'ADMIN', login: 'yurix13', password: 'stamat2000' },
+    }),
+    prisma.partner.create({
       data: { name: 'MagnetPlus SRL', login: 'magnetplus', password: '12345' },
     }),
     prisma.partner.create({
@@ -81,14 +92,14 @@ async function seedPartners() {
 
   console.log('Partners created');
 
-  // ====== Важно: динамически собираем все материалы и типы из JSON ======
+  // ====== Получаем все материалы из БД ======
+  const materials = await prisma.materialCatalog.findMany();
+
+  // ====== Динамически собираем типы из JSON ======
   const magnets = loadJSON('magnets.json');
   const plates = loadJSON('plates.json');
   const products = [...magnets, ...plates];
 
-  const MATERIALS = [
-    ...new Set(products.map((p: any) => p.material)),
-  ] as string[];
   const TYPES = [
     ...new Set(products.map((p: any) => p.type.toUpperCase())),
   ] as string[];
@@ -105,8 +116,8 @@ async function seedPartners() {
     const pricesToInsert = [];
 
     for (const type of TYPES) {
-      for (const material of MATERIALS) {
-        const key = `${type}_${material}`;
+      for (const material of materials) {
+        const key = `${type}_${material.name}`;
         const price = BASE_PRICES[key];
 
         if (!price) continue; // Если цена не прописана вручную — не создаём
@@ -114,7 +125,7 @@ async function seedPartners() {
         pricesToInsert.push({
           partnerId: partner.id,
           type,
-          material,
+          materialId: material.id,
           price,
         });
       }

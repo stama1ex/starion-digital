@@ -45,7 +45,10 @@ export function ProductCard({ product, getPrice }: Props) {
   const rawPrice = getPrice(product);
   const price = rawPrice ?? 0;
 
-  const imgSrc = '/' + product.image.replace(/^public\//, '');
+  const imgSrc = product.image?.startsWith('http')
+    ? product.image
+    : '/' + product.image?.replace(/^public\//, '');
+
   const total = price * quantity;
 
   const tiltImage = useMemo(

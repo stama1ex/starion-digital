@@ -20,7 +20,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Trash2, Edit2, Plus, Upload } from 'lucide-react';
-import { ProductType, Material } from '@prisma/client';
+import { ProductType } from '@prisma/client';
 
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
@@ -29,10 +29,16 @@ const PRODUCT_TYPES: ProductType[] = [
   'STATUE',
   'BALL',
 ];
-const MATERIALS: Material[] = ['MARBLE', 'WOOD', 'ACRYLIC'];
+
+interface Material {
+  id: number;
+  name: string;
+  label: string;
+}
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -41,14 +47,28 @@ export default function ProductsManagement() {
     number: '',
     type: 'MAGNET' as ProductType,
     country: 'MD',
-    material: 'MARBLE' as Material,
+    materialId: '',
     costPrice: '',
     image: '',
   });
 
   useEffect(() => {
+    fetchMaterials();
     fetchProducts();
   }, []);
+
+  const fetchMaterials = async () => {
+    try {
+      const res = await fetch('/api/admin/materials');
+      const data = await res.json();
+      setMaterials(data);
+      if (data.length > 0 && !formData.materialId) {
+        setFormData({ ...formData, materialId: data[0].id.toString() });
+      }
+    } catch (error) {
+      console.error('Error fetching materials:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -79,7 +99,8 @@ export default function ProductsManagement() {
 
       const result = await res.json();
       if (res.ok) {
-        setFormData({ ...formData, image: result.path });
+        // сохраняем именно URL!
+        setFormData({ ...formData, image: result.url });
       } else {
         alert(result.error || 'Ошибка загрузки изображения');
       }
@@ -97,11 +118,22 @@ export default function ProductsManagement() {
       const method = editingId ? 'PUT' : 'POST';
       const body = editingId
         ? {
-            ...formData,
             id: editingId,
+            number: formData.number,
+            type: formData.type,
+            country: formData.country,
+            materialId: formData.materialId,
             costPrice: parseFloat(formData.costPrice),
+            imageUrl: formData.image, // <--- вот это!
           }
-        : { ...formData, costPrice: parseFloat(formData.costPrice) };
+        : {
+            number: formData.number,
+            type: formData.type,
+            country: formData.country,
+            materialId: formData.materialId,
+            costPrice: parseFloat(formData.costPrice),
+            imageUrl: formData.image, // <--- и тут
+          };
 
       const res = await fetch(url, {
         method,
@@ -126,7 +158,7 @@ export default function ProductsManagement() {
       number: product.number,
       type: product.type,
       country: product.country,
-      material: product.material,
+      materialId: product.materialId.toString(),
       costPrice: product.costPrice.toString(),
       image: product.image,
     });
@@ -166,7 +198,7 @@ export default function ProductsManagement() {
       number: '',
       type: 'MAGNET',
       country: 'MD',
-      material: 'MARBLE',
+      materialId: materials.length > 0 ? materials[0].id.toString() : '',
       costPrice: '',
       image: '',
     });
@@ -212,11 +244,8 @@ export default function ProductsManagement() {
                 <div>
                   <p className="text-sm text-muted-foreground">Материал</p>
                   <p className="text-sm">
-                    {product.material === 'MARBLE'
-                      ? 'Мрамор'
-                      : product.material === 'WOOD'
-                      ? 'Дерево'
-                      : product.material}
+                    {materials.find((m) => m.id === product.materialId)
+                      ?.label || 'N/A'}
                   </p>
                 </div>
                 <div>
@@ -292,22 +321,21 @@ export default function ProductsManagement() {
             <div>
               <label className="text-sm font-medium">Материал</label>
               <Select
-                value={formData.material}
+                value={formData.materialId}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, material: value as Material })
+                  setFormData({ ...formData, materialId: value })
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Выберите материал" />
                 </SelectTrigger>
                 <SelectContent>
-                  {MATERIALS.map((material) => (
-                    <SelectItem key={material} value={material}>
-                      {material === 'MARBLE'
-                        ? 'Мрамор'
-                        : material === 'WOOD'
-                        ? 'Дерево'
-                        : material}
+                  {materials.map((material) => (
+                    <SelectItem
+                      key={material.id}
+                      value={material.id.toString()}
+                    >
+                      {material.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -342,9 +370,6 @@ export default function ProductsManagement() {
                   <div className="space-y-2">
                     <p className="text-sm text-green-600">
                       ✓ Изображение загружено
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {formData.image}
                     </p>
                     <button
                       type="button"

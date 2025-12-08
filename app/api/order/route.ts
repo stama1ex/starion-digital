@@ -81,12 +81,12 @@ export async function POST(req: Request) {
       }
 
       const priceEntry = prices.find(
-        (p) => p.type === product.type && p.material === product.material
+        (p) => p.type === product.type && p.materialId === product.materialId
       );
 
       if (!priceEntry) {
         throw new Error(
-          `Missing price for ${product.type}/${product.material}`
+          `Missing price for ${product.type}/${product.materialId}`
         );
       }
 
