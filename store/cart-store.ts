@@ -1,9 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // store/cart-store.ts
 'use client';
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { Product } from '@prisma/client';
+
+interface Product {
+  id: number;
+  number: string;
+  type: string;
+  image: string | null;
+  material: string;
+  country: string;
+}
 
 export interface CartItem {
   id: number;
