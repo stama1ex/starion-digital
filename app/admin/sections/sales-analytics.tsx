@@ -113,7 +113,7 @@ export default function SalesAnalytics({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">
+            <div className="text-2xl font-bold">
               {metrics.totalCost.toFixed(0)} MDL
             </div>
             <p className="text-xs text-muted-foreground mt-2">Всего расходов</p>
