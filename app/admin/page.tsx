@@ -33,8 +33,13 @@ export default async function AdminPage() {
         items: { include: { product: true } },
       },
       orderBy: { createdAt: 'desc' },
+      where: {
+        partner: { name: { not: 'ADMIN' } },
+      },
     }),
-    prisma.partner.findMany(),
+    prisma.partner.findMany({
+      where: { name: { not: 'ADMIN' } },
+    }),
     prisma.realization.findMany({
       include: {
         partner: true,
@@ -42,6 +47,9 @@ export default async function AdminPage() {
         payments: true,
       },
       orderBy: { createdAt: 'desc' },
+      where: {
+        partner: { name: { not: 'ADMIN' } },
+      },
     }),
   ]);
 
