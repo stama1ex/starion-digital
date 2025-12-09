@@ -118,8 +118,6 @@ model RealizationItem {
   unitPrice       Decimal  @db.Decimal(10,2) // Цена продажи за единицу
   costPrice       Decimal  @db.Decimal(10,2) // Себестоимость
   totalPrice      Decimal  @db.Decimal(12,2) // quantity * unitPrice
-  soldQuantity    Int      @default(0) // Сколько уже продано
-  paidQuantity    Int      @default(0) // За сколько уже поступила оплата
 
   realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
   product     Product     @relation(fields: [productId], references: [id])
@@ -130,7 +128,6 @@ model RealizationPayment {
   id            Int      @id @default(autoincrement())
   realizationId Int
   amount        Decimal  @db.Decimal(12,2)
-  description   String   @default("") // Описание платежа
   createdAt     DateTime @default(now())
 
   realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)

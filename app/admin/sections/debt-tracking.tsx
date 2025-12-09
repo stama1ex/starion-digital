@@ -133,7 +133,7 @@ export default function DebtTracking({
                     </div>
                   </div>
                   <p
-                    className={`mt-2 font-bold text-lg ${
+                    className={`my-2 font-bold text-lg ${
                       b.balance > 0 ? 'text-destructive' : 'text-green-600'
                     }`}
                   >
