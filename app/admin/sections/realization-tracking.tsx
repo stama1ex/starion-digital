@@ -7,17 +7,26 @@ import type { AdminRealization } from '../types';
 
 interface RealizationTrackingProps {
   realizations: AdminRealization[];
+  onRefresh: () => void;
 }
 
 const statusClasses: Record<string, string> = {
-  PENDING: 'bg-yellow-100 text-yellow-800',
-  PARTIAL: 'bg-blue-100 text-blue-800',
-  COMPLETED: 'bg-green-100 text-green-800',
-  CANCELLED: 'bg-red-100 text-red-800',
+  PENDING: 'bg-yellow-500/20 text-yellow-600',
+  PARTIAL: 'bg-blue-500/20 text-blue-600',
+  COMPLETED: 'bg-green-500/20 text-green-600',
+  CANCELLED: 'bg-red-500/20 text-red-600',
+};
+
+const statusLabels: Record<string, string> = {
+  PENDING: 'Ожидание',
+  PARTIAL: 'Частично',
+  COMPLETED: 'Завершено',
+  CANCELLED: 'Отменено',
 };
 
 export default function RealizationTracking({
   realizations,
+  onRefresh,
 }: RealizationTrackingProps) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
@@ -36,7 +45,7 @@ export default function RealizationTracking({
       });
 
       if (response.ok) {
-        window.location.reload();
+        onRefresh();
       } else {
         console.error('Payment error', await response.text());
       }
@@ -63,10 +72,16 @@ export default function RealizationTracking({
               return (
                 <div key={realization.id} className="border rounded-lg p-4">
                   <div
-                    className="cursor-pointer flex justify-between items-center"
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : realization.id)
-                    }
+                    className={`flex justify-between items-center ${
+                      realization.status !== 'CANCELLED'
+                        ? 'cursor-pointer'
+                        : 'cursor-not-allowed opacity-60'
+                    }`}
+                    onClick={() => {
+                      if (realization.status !== 'CANCELLED') {
+                        setExpandedId(isExpanded ? null : realization.id);
+                      }
+                    }}
                   >
                     <div className="flex-1">
                       <p className="font-bold">
@@ -78,11 +93,11 @@ export default function RealizationTracking({
                     </div>
                     <div className="text-right">
                       <span
-                        className={`px-2 py-1 rounded text-xs font-semibold ${
+                        className={`px-2 py-1 rounded text-sm font-medium ${
                           statusClasses[realization.status] ?? ''
                         }`}
                       >
-                        {realization.status}
+                        {statusLabels[realization.status] ?? realization.status}
                       </span>
                       <p className="mt-2 font-bold">
                         Долг: {remaining.toFixed(2)} MDL
@@ -167,7 +182,7 @@ export default function RealizationTracking({
                         </div>
                       </div>
 
-                      {remaining > 0 && (
+                      {remaining > 0 && realization.status !== 'CANCELLED' && (
                         <Button
                           onClick={() => handleAddPayment(realization.id)}
                           className="w-full"

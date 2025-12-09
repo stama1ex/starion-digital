@@ -24,9 +24,10 @@ interface AdminDashboardProps {
 export default function AdminDashboard({
   orders: initialOrders,
   partners,
-  realizations,
+  realizations: initialRealizations,
 }: AdminDashboardProps) {
   const [orders, setOrders] = useState(initialOrders);
+  const [realizations, setRealizations] = useState(initialRealizations);
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [customDateRange, setCustomDateRange] = useState<{
     from: string;
@@ -39,9 +40,28 @@ export default function AdminDashboard({
   });
   const [useCustomRange, setUseCustomRange] = useState(false);
 
-  const handleRefreshOrders = () => {
-    // Принудительно обновляем страницу для получения свежих данных
-    window.location.reload();
+  const handleRefreshOrders = async () => {
+    try {
+      // Загружаем свежие данные без перезагрузки страницы
+      const [ordersRes, realizationsRes] = await Promise.all([
+        fetch('/api/admin/orders'),
+        fetch('/api/admin/realizations'),
+      ]);
+
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
+        setOrders(ordersData.orders || []);
+      }
+
+      if (realizationsRes.ok) {
+        const realizationsData = await realizationsRes.json();
+        setRealizations(realizationsData.realizations || []);
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      // Fallback: перезагружаем страницу
+      window.location.reload();
+    }
   };
 
   return (
@@ -208,7 +228,10 @@ export default function AdminDashboard({
         </TabsContent>
 
         <TabsContent value="realization" className="space-y-4">
-          <RealizationTracking realizations={realizations} />
+          <RealizationTracking
+            realizations={realizations}
+            onRefresh={handleRefreshOrders}
+          />
         </TabsContent>
 
         <TabsContent value="partners" className="space-y-4">

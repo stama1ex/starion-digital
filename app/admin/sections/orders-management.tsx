@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState } from 'react';
@@ -40,6 +41,7 @@ export default function OrdersManagement({
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<OrderStatusType | 'ALL'>('ALL');
   const [updating, setUpdating] = useState<number | null>(null);
+  const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
 
   const handleStatusChange = async (
     orderId: number,
@@ -96,7 +98,7 @@ export default function OrdersManagement({
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap gap-4">
-        <Card className="flex-1 min-w-[150px]">
+        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Новые</CardTitle>
           </CardHeader>
@@ -104,7 +106,7 @@ export default function OrdersManagement({
             <div className="text-2xl font-bold">{stats.NEW}</div>
           </CardContent>
         </Card>
-        <Card className="flex-1 min-w-[150px]">
+        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
               Подтверждённые
@@ -114,7 +116,7 @@ export default function OrdersManagement({
             <div className="text-2xl font-bold">{stats.CONFIRMED}</div>
           </CardContent>
         </Card>
-        <Card className="flex-1 min-w-[150px]">
+        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Оплаченные</CardTitle>
           </CardHeader>
@@ -122,7 +124,7 @@ export default function OrdersManagement({
             <div className="text-2xl font-bold">{stats.PAID}</div>
           </CardContent>
         </Card>
-        <Card className="flex-1 min-w-[150px]">
+        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Отменённые</CardTitle>
           </CardHeader>
@@ -150,7 +152,7 @@ export default function OrdersManagement({
         </Select>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-2">
         {filteredOrders.length === 0 ? (
           <Card>
             <CardContent className="p-6">
@@ -160,88 +162,164 @@ export default function OrdersManagement({
             </CardContent>
           </Card>
         ) : (
-          filteredOrders.map((order) => (
-            <Card key={order.id}>
-              <CardHeader>
-                <div className="flex justify-between items-start">
+          filteredOrders.map((order) => {
+            const isExpanded = expandedOrderId === order.id;
+            const totalItems = order.items.reduce(
+              (sum, item) => sum + item.quantity,
+              0
+            );
+
+            return (
+              <Card
+                key={order.id}
+                className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
+                onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
+              >
+                <CardContent className="py-3">
                   <div>
-                    <CardTitle className="text-lg">Заказ #{order.id}</CardTitle>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {order.partner.name} •{' '}
-                      {new Date(order.createdAt).toLocaleDateString('ru-RU', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                  <Badge
-                    className={
-                      STATUS_COLORS[order.status as OrderStatusType] ||
-                      'bg-gray-500'
-                    }
-                  >
-                    {STATUS_LABELS[order.status as OrderStatusType] ||
-                      order.status}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Товары:</h4>
-                    <div className="space-y-1">
-                      {order.items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="text-sm flex justify-between"
-                        >
-                          <span>
-                            {item.product.number} × {item.quantity}
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Левая часть: номер, партнер, дата */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap ">
+                          <span className="font-semibold">
+                            Заказ #{order.id}
                           </span>
-                          <span>{Number(item.sum).toFixed(2)} MDL</span>
+                          <Badge
+                            className={`${
+                              STATUS_COLORS[order.status as OrderStatusType] ||
+                              'bg-gray-500'
+                            } text-xs`}
+                          >
+                            {STATUS_LABELS[order.status as OrderStatusType] ||
+                              order.status}
+                          </Badge>
+                          {(order as any).isRealization && (
+                            <Badge className="bg-transparent border border-purple-400 text-xs text-purple-400">
+                              На реализацию
+                            </Badge>
+                          )}
                         </div>
-                      ))}
+                        <p className="text-xs text-muted-foreground mt-2 truncate">
+                          {order.partner.name} •{' '}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            'ru-RU',
+                            {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center ">
+                        {/* Центр: количество товаров */}
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">
+                            Товаров
+                          </p>
+                          <p className="font-semibold">{totalItems} шт</p>
+                        </div>
+
+                        {/* Правая часть: сумма и стрелка */}
+                        <div className="flex items-center gap-3">
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              Сумма
+                            </p>
+                            <p className="font-bold text-lg">
+                              {Number(order.totalPrice).toFixed(0)} MDL
+                            </p>
+                          </div>
+                          <div className="text-muted-foreground text-xl">
+                            {isExpanded ? '▲' : '▼'}
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center pt-4 border-t">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Общая сумма:
-                      </p>
-                      <p className="text-xl font-bold">
-                        {Number(order.totalPrice).toFixed(2)} MDL
-                      </p>
-                    </div>
+                  {isExpanded && (
+                    <div className="mt-4 space-y-3 border-t pt-3">
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Товары:</h4>
+                        <div className="space-y-1">
+                          {order.items.map((item) => (
+                            <div
+                              key={item.id}
+                              className="text-sm flex justify-between"
+                            >
+                              <span>
+                                {item.product.number} × {item.quantity}
+                              </span>
+                              <span>{Number(item.sum).toFixed(2)} MDL</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
 
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium">Статус:</label>
-                      <Select
-                        value={order.status}
-                        onValueChange={(value) =>
-                          handleStatusChange(order.id, value as OrderStatusType)
-                        }
-                        disabled={updating === order.id}
-                      >
-                        <SelectTrigger className="w-40">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="NEW">Новый</SelectItem>
-                          <SelectItem value="CONFIRMED">Подтверждён</SelectItem>
-                          <SelectItem value="PAID">Оплачен</SelectItem>
-                          <SelectItem value="CANCELLED">Отменён</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Общая сумма:
+                          </p>
+                          <p className="text-xl font-bold">
+                            {Number(order.totalPrice).toFixed(2)} MDL
+                          </p>
+                        </div>
+
+                        {(order as any).isRealization &&
+                        order.status === 'PAID' ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">
+                              Заказ полностью оплачен
+                            </span>
+                          </div>
+                        ) : (
+                          <div
+                            className="flex items-center gap-2"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <label className="text-sm font-medium">
+                              Статус:
+                            </label>
+                            <Select
+                              value={order.status}
+                              onValueChange={(value) =>
+                                handleStatusChange(
+                                  order.id,
+                                  value as OrderStatusType
+                                )
+                              }
+                              disabled={updating === order.id}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NEW">Новый</SelectItem>
+                                <SelectItem value="CONFIRMED">
+                                  Подтверждён
+                                </SelectItem>
+                                {/* PAID доступен только для обычных заказов вручную */}
+                                {!(order as any).isRealization && (
+                                  <SelectItem value="PAID">Оплачен</SelectItem>
+                                )}
+                                <SelectItem value="CANCELLED">
+                                  Отменён
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>
