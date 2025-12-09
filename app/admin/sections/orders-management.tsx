@@ -427,7 +427,7 @@ export default function OrdersManagement({
                           </p>
                         </div>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                           {(order as any).isRealization &&
                           order.status === 'PAID' ? (
                             <div className="flex items-center gap-2">
@@ -440,7 +440,7 @@ export default function OrdersManagement({
                               className="flex items-center gap-2"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <label className="text-sm font-medium">
+                              <label className="text-sm font-medium whitespace-nowrap">
                                 Статус:
                               </label>
                               <Select
@@ -453,7 +453,7 @@ export default function OrdersManagement({
                                 }
                                 disabled={updating === order.id}
                               >
-                                <SelectTrigger className="w-40">
+                                <SelectTrigger className="w-full sm:w-40">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -479,14 +479,16 @@ export default function OrdersManagement({
                           {order.status === 'CANCELLED' && (
                             <Button
                               variant="destructive"
-                              size="icon"
+                              size="sm"
+                              className="w-full sm:w-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDeleteOrder(order.id);
                               }}
                               title="Удалить заказ"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-4 w-4 sm:mr-0 mr-2" />
+                              <span className="sm:hidden">Удалить заказ</span>
                             </Button>
                           )}
                         </div>
