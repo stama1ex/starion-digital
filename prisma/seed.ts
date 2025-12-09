@@ -236,8 +236,6 @@ async function seedDemoOrders(
             unitPrice: item.pricePerItem,
             costPrice: product?.costPrice || Math.random() * 50 + 5,
             totalPrice: Number(item.sum),
-            soldQuantity: 0,
-            paidQuantity: 0,
           };
         });
 
@@ -276,7 +274,6 @@ async function seedDemoOrders(
             data: {
               realizationId: realization.id,
               amount: Math.round(paymentAmount * 100) / 100,
-              description: 'Начальный платёж',
             },
           });
         }

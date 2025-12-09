@@ -247,8 +247,6 @@ async function seedDemoOrders(
           unitPrice: item.pricePerItem,
           costPrice: Math.random() * 50 + 5,
           totalPrice: Number(item.sum),
-          soldQuantity: 0,
-          paidQuantity: 0,
         }));
 
         const totalCost = Number(order.totalPrice);

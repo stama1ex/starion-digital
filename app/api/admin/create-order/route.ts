@@ -127,8 +127,6 @@ export async function POST(req: Request) {
                     unitPrice: item.pricePerItem,
                     costPrice: product?.costPrice || 0,
                     totalPrice: item.sum,
-                    soldQuantity: 0,
-                    paidQuantity: 0,
                   };
                 }),
               },

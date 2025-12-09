@@ -43,6 +43,9 @@ export default async function AdminPage() {
             id: true,
             name: true,
             role: true,
+            createdAt: true,
+            login: true,
+            password: true,
           },
         },
         items: {
@@ -93,6 +96,9 @@ export default async function AdminPage() {
             id: true,
             name: true,
             role: true,
+            login: true,
+            password: true,
+            createdAt: true,
           },
         },
         items: {
@@ -102,8 +108,6 @@ export default async function AdminPage() {
             unitPrice: true,
             costPrice: true,
             totalPrice: true,
-            soldQuantity: true,
-            paidQuantity: true,
             product: {
               select: {
                 id: true,
@@ -117,7 +121,6 @@ export default async function AdminPage() {
           select: {
             id: true,
             amount: true,
-            description: true,
             createdAt: true,
           },
         },
