@@ -7,6 +7,9 @@ import { cookies } from 'next/headers';
 import PlatesCatalogContent from './plates-catalog-content';
 import { toPlain } from '@/lib/toPlain';
 
+// Revalidate every 5 minutes
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: any): Promise<Metadata> {
   const locale = params.locale;
   const t = await getTranslations({ locale, namespace: 'Catalog' });

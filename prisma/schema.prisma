@@ -69,6 +69,11 @@ model Order {
   partner    Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   items      OrderItem[]
   realization Realization?
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([partnerId, status])
 }
 
 model OrderItem {
@@ -98,6 +103,10 @@ model Realization {
   partner  Partner            @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   items    RealizationItem[]
   payments RealizationPayment[]
+
+  @@index([partnerId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // Товары в реализации

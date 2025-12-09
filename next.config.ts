@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // Оптимизация сборки и кэширования
+    optimizePackageImports: [
+      'lucide-react',
+      'recharts',
+      '@radix-ui/react-select',
+    ],
+  },
 };
 
 const withNextIntl = createNextIntlPlugin();

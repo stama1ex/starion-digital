@@ -31,9 +31,37 @@ export default async function AdminPage() {
 
   const [ordersRaw, partnersRaw, realizationsRaw] = await Promise.all([
     prisma.order.findMany({
-      include: {
-        partner: true,
-        items: { include: { product: true } },
+      select: {
+        id: true,
+        partnerId: true,
+        totalPrice: true,
+        status: true,
+        isRealization: true,
+        createdAt: true,
+        partner: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            pricePerItem: true,
+            sum: true,
+            product: {
+              select: {
+                id: true,
+                number: true,
+                type: true,
+                country: true,
+                costPrice: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       where: {
@@ -42,12 +70,57 @@ export default async function AdminPage() {
     }),
     prisma.partner.findMany({
       where: { role: 'PARTNER' },
+      select: {
+        id: true,
+        name: true,
+        login: true,
+        role: true,
+        createdAt: true,
+      },
     }),
     prisma.realization.findMany({
-      include: {
-        partner: true,
-        items: { include: { product: true } },
-        payments: true,
+      select: {
+        id: true,
+        orderId: true,
+        partnerId: true,
+        totalCost: true,
+        paidAmount: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        partner: {
+          select: {
+            id: true,
+            name: true,
+            role: true,
+          },
+        },
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            unitPrice: true,
+            costPrice: true,
+            totalPrice: true,
+            soldQuantity: true,
+            paidQuantity: true,
+            product: {
+              select: {
+                id: true,
+                number: true,
+                type: true,
+              },
+            },
+          },
+        },
+        payments: {
+          select: {
+            id: true,
+            amount: true,
+            description: true,
+            createdAt: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       where: {
@@ -61,7 +134,7 @@ export default async function AdminPage() {
   const partnersPlain = toPlain(partnersRaw) as AdminPartner[];
 
   return (
-    <main className="min-h-screen bg-background p-6">
+    <main className="min-h-screen bg-background p-2">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-center w-full h-full">
           <Title
