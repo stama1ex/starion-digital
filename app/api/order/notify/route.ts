@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     });
 
     const excelBuffer = await createOrderExcel(order);
-    await sendOrderExcel(excelBuffer);
+    await sendOrderExcel(excelBuffer.buffer as ArrayBuffer);
 
     return Response.json({ ok: true, sent: true });
   } catch (e: unknown) {
