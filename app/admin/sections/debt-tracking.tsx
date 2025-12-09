@@ -166,11 +166,7 @@ export default function DebtTracking({
                 <Tooltip formatter={(value) => `${value} MDL`} />
                 <Legend />
                 <Bar dataKey="orders" fill="#ef4444" name="Обычные заказы" />
-                <Bar
-                  dataKey="realization"
-                  fill="#f97316"
-                  name="Реализация (дол)"
-                />
+                <Bar dataKey="realization" fill="#f97316" name="Реализация" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
