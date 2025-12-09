@@ -300,6 +300,26 @@ async function seedDemoOrders(
   console.log(`✓ Demo orders created: ${ordersCreated}`);
 }
 
+async function seedAdminOnly() {
+  // Удаляем в правильном порядке (сначала зависимые записи)
+  await prisma.price.deleteMany();
+  await prisma.partner.deleteMany();
+
+  const adminPass = await bcrypt.hash('stamat2000', 10);
+
+  const admin = await prisma.partner.create({
+    data: {
+      name: 'ADMIN',
+      login: 'yurix13',
+      password: adminPass,
+      role: 'ADMIN',
+    },
+  });
+
+  console.log('✓ Admin user created');
+  return admin;
+}
+
 async function main() {
   // Проверяем переменную окружения или аргумент командной строки
   const SEED_MODE = process.env.SEED_MODE || process.argv[2] || 'production';
@@ -315,6 +335,7 @@ async function main() {
     await seedDemoOrders(partners, products);
     console.log('\n✅ Demo seed completed! Admin panel is ready for testing');
   } else {
+    await seedAdminOnly();
     console.log('\n✅ Production seed completed! Ready for deployment');
     console.log(
       '   💡 To test with demo data, run: SEED_MODE=demo npm run seed'

@@ -9,8 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node prisma/seed.ts production",
-    "seed:demo": "ts-node prisma/seed.ts demo",
-    "seed:production": "ts-node prisma/seed-production.ts"
+    "seed:demo": "ts-node prisma/seed.ts demo"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
