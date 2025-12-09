@@ -12,6 +12,7 @@ import PartnersManagement from './sections/partners-management';
 import PricesManagement from './sections/prices-management';
 import ProductsManagement from './sections/products-management';
 import MaterialsManagement from './sections/materials-management';
+import AdminSettings from './sections/admin-settings';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
 
@@ -266,6 +267,9 @@ export default function AdminDashboard({
               <TabsTrigger value="materials" className="text-xs sm:text-sm">
                 Материалы
               </TabsTrigger>
+              <TabsTrigger value="settings" className="text-xs sm:text-sm">
+                Админ-данные
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="partners">
@@ -282,6 +286,10 @@ export default function AdminDashboard({
 
             <TabsContent value="materials">
               <MaterialsManagement />
+            </TabsContent>
+
+            <TabsContent value="settings">
+              <AdminSettings />
             </TabsContent>
           </Tabs>
         </TabsContent>

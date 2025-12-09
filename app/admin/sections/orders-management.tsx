@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Trash2 } from 'lucide-react';
 import type { AdminOrder } from '../types';
 
 interface OrdersManagementProps {
@@ -192,6 +192,41 @@ export default function OrdersManagement({
       alert('Ошибка при обновлении статуса');
     } finally {
       setUpdating(null);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: number) => {
+    if (
+      !confirm(
+        'Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/admin/orders?orderId=${orderId}`, {
+        method: 'DELETE',
+      });
+
+      if (res.ok) {
+        // Удаляем из локального состояния
+        setOrders((prev) => prev.filter((order) => order.id !== orderId));
+        onRefresh();
+      } else {
+        const errorText = await res.text();
+        let errorMessage = 'Не удалось удалить заказ';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        alert(`Ошибка: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      alert('Ошибка при удалении заказа');
     }
   };
 
@@ -392,50 +427,69 @@ export default function OrdersManagement({
                           </p>
                         </div>
 
-                        {(order as any).isRealization &&
-                        order.status === 'PAID' ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">
-                              Заказ полностью оплачен
-                            </span>
-                          </div>
-                        ) : (
-                          <div
-                            className="flex items-center gap-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <label className="text-sm font-medium">
-                              Статус:
-                            </label>
-                            <Select
-                              value={order.status}
-                              onValueChange={(value) =>
-                                handleStatusChange(
-                                  order.id,
-                                  value as OrderStatusType
-                                )
-                              }
-                              disabled={updating === order.id}
+                        <div className="flex items-center gap-2">
+                          {(order as any).isRealization &&
+                          order.status === 'PAID' ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-muted-foreground">
+                                Заказ полностью оплачен
+                              </span>
+                            </div>
+                          ) : (
+                            <div
+                              className="flex items-center gap-2"
+                              onClick={(e) => e.stopPropagation()}
                             >
-                              <SelectTrigger className="w-40">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="NEW">Новый</SelectItem>
-                                <SelectItem value="CONFIRMED">
-                                  Подтверждён
-                                </SelectItem>
-                                {/* PAID доступен только для обычных заказов вручную */}
-                                {!(order as any).isRealization && (
-                                  <SelectItem value="PAID">Оплачен</SelectItem>
-                                )}
-                                <SelectItem value="CANCELLED">
-                                  Отменён
-                                </SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
+                              <label className="text-sm font-medium">
+                                Статус:
+                              </label>
+                              <Select
+                                value={order.status}
+                                onValueChange={(value) =>
+                                  handleStatusChange(
+                                    order.id,
+                                    value as OrderStatusType
+                                  )
+                                }
+                                disabled={updating === order.id}
+                              >
+                                <SelectTrigger className="w-40">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="NEW">Новый</SelectItem>
+                                  <SelectItem value="CONFIRMED">
+                                    Подтверждён
+                                  </SelectItem>
+                                  {/* PAID доступен только для обычных заказов вручную */}
+                                  {!(order as any).isRealization && (
+                                    <SelectItem value="PAID">
+                                      Оплачен
+                                    </SelectItem>
+                                  )}
+                                  <SelectItem value="CANCELLED">
+                                    Отменён
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          )}
+
+                          {/* Кнопка удаления для отмененных заказов */}
+                          {order.status === 'CANCELLED' && (
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteOrder(order.id);
+                              }}
+                              title="Удалить заказ"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}

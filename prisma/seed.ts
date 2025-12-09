@@ -173,14 +173,22 @@ async function seedDemoOrders(
 ) {
   console.log('📦 Creating demo orders with random dates...');
 
-  const PARTNER_IDS = partners.map((p) => p.id);
+  const PARTNER_IDS = partners
+    .filter((p) => p.role === 'PARTNER')
+    .map((p) => p.id);
 
   let ordersCreated = 0;
   const orderCount = Math.floor(Math.random() * 50) + 50; // 50-100 заказов
 
+  const statuses = ['NEW', 'CONFIRMED', 'PAID', 'CANCELLED'];
+
   for (let i = 0; i < orderCount; i++) {
     const partnerId = getRandomItem(PARTNER_IDS);
     const itemsCount = Math.floor(Math.random() * 5) + 1;
+    const isRealization = Math.random() < 0.3; // 30% шанс заказа на реализацию
+    const status = isRealization
+      ? getRandomItem(['NEW', 'CONFIRMED', 'PAID', 'CANCELLED'])
+      : getRandomItem(statuses);
 
     const items: any[] = [];
     let totalPrice = 0;
@@ -206,7 +214,8 @@ async function seedDemoOrders(
         data: {
           partnerId,
           totalPrice: Math.round(totalPrice * 100) / 100,
-          status: 'DONE',
+          status,
+          isRealization,
           createdAt: getRandomDate(30),
           items: {
             create: items,
@@ -217,27 +226,43 @@ async function seedDemoOrders(
 
       ordersCreated++;
 
-      // 20% шанс создания реализации
-      if (Math.random() < 0.2) {
-        const realizationItems = order.items.map((item: any) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          unitPrice: item.pricePerItem,
-          costPrice: Math.random() * 50 + 5,
-          totalPrice: Number(item.sum),
-          soldQuantity: 0,
-          paidQuantity: 0,
-        }));
+      // Создаём реализацию только если это заказ на реализацию и статус CONFIRMED или PAID
+      if (isRealization && (status === 'CONFIRMED' || status === 'PAID')) {
+        const realizationItems = order.items.map((item: any) => {
+          const product = products.find((p) => p.id === item.productId);
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            unitPrice: item.pricePerItem,
+            costPrice: product?.costPrice || Math.random() * 50 + 5,
+            totalPrice: Number(item.sum),
+            soldQuantity: 0,
+            paidQuantity: 0,
+          };
+        });
 
         const totalCost = Number(order.totalPrice);
+        const shouldAddPayment = Math.random() < 0.4; // 40% шанс добавления платежа
+        const paymentAmount = shouldAddPayment
+          ? (Math.random() * 0.8 + 0.2) * totalCost
+          : 0;
+
+        const realizationStatus =
+          status === 'PAID'
+            ? 'COMPLETED'
+            : paymentAmount >= totalCost
+            ? 'COMPLETED'
+            : paymentAmount > 0
+            ? 'PARTIAL'
+            : 'PENDING';
 
         const realization = await prisma.realization.create({
           data: {
             orderId: order.id,
             partnerId,
             totalCost,
-            paidAmount: 0,
-            status: 'PENDING',
+            paidAmount: Math.round(paymentAmount * 100) / 100,
+            status: realizationStatus,
             createdAt: getRandomDate(30),
             items: {
               create: realizationItems,
@@ -245,30 +270,13 @@ async function seedDemoOrders(
           },
         });
 
-        // 30% шанс добавления частичного платежа
-        if (Math.random() < 0.3) {
-          const paymentAmount = (Math.random() * 0.6 + 0.2) * totalCost;
-
+        // Добавляем платёж если есть
+        if (shouldAddPayment && paymentAmount > 0) {
           await prisma.realizationPayment.create({
             data: {
               realizationId: realization.id,
               amount: Math.round(paymentAmount * 100) / 100,
-            },
-          });
-
-          const newPaidAmount = paymentAmount;
-          const newStatus =
-            newPaidAmount >= totalCost
-              ? 'COMPLETED'
-              : newPaidAmount > 0
-              ? 'PARTIAL'
-              : 'PENDING';
-
-          await prisma.realization.update({
-            where: { id: realization.id },
-            data: {
-              paidAmount: Math.round(paymentAmount * 100) / 100,
-              status: newStatus,
+              description: 'Начальный платёж',
             },
           });
         }
