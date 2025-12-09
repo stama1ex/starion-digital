@@ -162,3 +162,48 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+// DELETE - удалить заказ
+export async function DELETE(request: NextRequest) {
+  try {
+    if (!(await checkAdminAuth())) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Admin only' },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    const orderId = searchParams.get('orderId');
+
+    if (!orderId) {
+      return NextResponse.json(
+        { error: 'Order ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Проверяем существование заказа
+    const order = await prisma.order.findUnique({
+      where: { id: Number(orderId) },
+      include: { realization: true },
+    });
+
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    // Удаляем заказ (каскадно удалятся items, realization, realizationItems, realizationPayments)
+    await prisma.order.delete({
+      where: { id: Number(orderId) },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Error deleting order:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete order' },
+      { status: 500 }
+    );
+  }
+}
