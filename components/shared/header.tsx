@@ -268,7 +268,7 @@ export const Header: React.FC<Props> = ({ className }) => {
         </div>
 
         {/* DESKTOP NAVIGATION */}
-        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           <NavigationMenu viewport={false}>
             <NavigationMenuList>
               {/* HOME */}
@@ -276,9 +276,9 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuLink
                   asChild
                   className={cn(
-                    '!bg-transparent !font-bold',
+                    'bg-transparent! font-bold!',
                     navigationMenuTriggerStyle(),
-                    isActive('/') && '!text-primary'
+                    isActive('/') && 'text-primary!'
                   )}
                 >
                   <Link href="/">{t('home')}</Link>
@@ -334,9 +334,9 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuLink
                   asChild
                   className={cn(
-                    '!bg-transparent !font-bold',
+                    'bg-transparent! font-bold!',
                     navigationMenuTriggerStyle(),
-                    isActive('/contacts') && '!text-primary'
+                    isActive('/contacts') && 'text-primary!'
                   )}
                 >
                   <Link href="/contacts">{t('contacts')}</Link>
@@ -399,7 +399,7 @@ export const Header: React.FC<Props> = ({ className }) => {
         </div>
         {/* MOBILE CART BUTTON (absolute) */}
         {isPartner && !isActive('/') && !isActive('/admin') && (
-          <div className="md:hidden absolute right-4 bottom-[-48px] z-20">
+          <div className="md:hidden absolute right-4 -bottom-12 z-20">
             {' '}
             <CartDrawer isOutline={false} />
           </div>
