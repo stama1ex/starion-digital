@@ -151,7 +151,7 @@ export default function TopProducts({
             ) : (
               topByProfit.map((product, idx) => (
                 <div
-                  key={product.id}
+                  key={`product-${product.id}-${idx}`}
                   className="flex justify-between items-center pb-2 border-b last:border-b-0"
                 >
                   <div>

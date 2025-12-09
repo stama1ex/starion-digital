@@ -82,5 +82,19 @@
     "country": "MD",
     "material": "WOOD",
     "image": "public/plates/TF122.png"
+  },
+  {
+    "number": "T120",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "MARBLE",
+    "image": "public/plates/T120.png"
+  },
+  {
+    "number": "TF123",
+    "type": "PLATE",
+    "country": "MD",
+    "material": "WOOD",
+    "image": "public/plates/TF123.png"
   }
 ]
