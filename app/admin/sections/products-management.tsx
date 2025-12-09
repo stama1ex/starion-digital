@@ -224,7 +224,7 @@ export default function ProductsManagement() {
 
       <div className="grid gap-2">
         {products.map((product) => (
-          <Card key={product.id}>
+          <Card key={product.id} className="py-2">
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                 <div>

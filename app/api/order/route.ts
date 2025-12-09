@@ -111,6 +111,7 @@ export async function POST(req: Request) {
           data: {
             partnerId,
             totalPrice: total,
+            isRealization: orderType === 'realization', // Устанавливаем флаг
             items: { create: dbItems },
           },
           include: {
@@ -120,25 +121,8 @@ export async function POST(req: Request) {
         })
     );
 
-    // --- если это реализация, создаём запись Realization ---
-    if (orderType === 'realization') {
-      await prisma.realization.create({
-        data: {
-          orderId: order.id,
-          partnerId,
-          totalCost: total,
-          items: {
-            create: order.items.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              unitPrice: item.pricePerItem,
-              costPrice: item.product.costPrice,
-              totalPrice: item.sum,
-            })),
-          },
-        },
-      });
-    }
+    // --- если это реализация, НЕ создаём Realization сразу ---
+    // Realization будет создан только когда админ подтвердит заказ (status = CONFIRMED)
 
     const typeLabel = orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ';
 

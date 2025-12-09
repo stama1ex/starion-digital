@@ -71,6 +71,14 @@ export async function POST(req: Request) {
       },
     });
 
+    // Если реализация полностью оплачена, обновляем статус связанного заказа на PAID
+    if (newStatus === 'COMPLETED') {
+      await prisma.order.update({
+        where: { id: realization.orderId },
+        data: { status: 'PAID' },
+      });
+    }
+
     return Response.json({ ok: true, payment });
   } catch (error) {
     const err = error as Error;

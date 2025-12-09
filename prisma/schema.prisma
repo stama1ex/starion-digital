@@ -59,11 +59,12 @@ model Price {
 }
 
 model Order {
-  id         Int        @id @default(autoincrement())
-  partnerId  Int
-  totalPrice Decimal    @db.Decimal(12,2)
-  status     OrderStatus @default(NEW)
-  createdAt  DateTime   @default(now())
+  id            Int        @id @default(autoincrement())
+  partnerId     Int
+  totalPrice    Decimal    @db.Decimal(12,2)
+  status        OrderStatus @default(NEW)
+  isRealization Boolean    @default(false) // Флаг заказа на реализацию
+  createdAt     DateTime   @default(now())
 
   partner    Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   items      OrderItem[]

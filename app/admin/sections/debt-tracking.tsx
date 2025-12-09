@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,16 +63,22 @@ export default function DebtTracking({
     });
   });
 
+  // Считаем только CONFIRMED заказы (не PAID, не NEW, не CANCELLED) и НЕ на реализацию
   filteredOrders.forEach((order) => {
     const existing = balances.get(order.partnerId);
-    if (existing) {
+    if (
+      existing &&
+      order.status === 'CONFIRMED' &&
+      !(order as any).isRealization
+    ) {
       existing.ordersTotal += Number(order.totalPrice);
     }
   });
 
+  // Считаем только активные реализации (не CANCELLED)
   filteredRealizations.forEach((real) => {
     const existing = balances.get(real.partnerId);
-    if (existing) {
+    if (existing && real.status !== 'CANCELLED') {
       existing.realizationTotal += Number(real.totalCost);
       existing.realizationPaid += Number(real.paidAmount);
     }
@@ -108,7 +115,7 @@ export default function DebtTracking({
               <p className="text-muted-foreground">Все расчёты погашены</p>
             ) : (
               balancesList.map((b) => (
-                <div key={b.id} className="pb-3 border-b last:border-b-0">
+                <div key={b.id} className="border-b last:border-b-0">
                   <p className="font-medium">{b.name}</p>
                   <div className="grid grid-cols-2 gap-2 text-sm mt-2">
                     <div>
