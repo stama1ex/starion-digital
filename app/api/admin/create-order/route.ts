@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
-import { sendToTelegram } from '@/lib/telegram';
+import { createOrderExcel } from '@/lib/export/excel';
+import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
 
 // Admin auth check helper
@@ -138,22 +139,38 @@ export async function POST(req: Request) {
       }
     );
 
-    // --- Telegram notification ---
+    // --- Telegram notification с Excel ---
     const typeLabel = orderType === 'realization' ? 'РЕАЛИЗАЦИЯ' : 'ОБЫЧНЫЙ';
     const adminNote = `[Создано админом: ${admin.name}]`;
 
-    await sendToTelegram({
-      partner: order.partner.name,
-      orderId: order.id,
-      total,
-      comment: `${adminNote}\n[${typeLabel}]`,
-      items: order.items.map((it) => ({
-        number: it.product.number,
-        qty: it.quantity,
-        price: Number(it.pricePerItem),
-        sum: Number(it.sum),
-      })),
-    });
+    // Формируем текст для caption
+    const orderItems = order.items.map((it) => ({
+      number: it.product.number,
+      qty: it.quantity,
+      price: Number(it.pricePerItem),
+      sum: Number(it.sum),
+    }));
+
+    const itemsText = orderItems
+      .map((i) => `• ${i.number}: ${i.qty} шт × ${i.price} = ${i.sum} MDL`)
+      .join('\n');
+
+    const captionText =
+      `📌 Новый заказ №${order.id}\n\n` +
+      `👤 Покупатель: ${order.partner.name}\n` +
+      `💬 Комментарий: ${adminNote}\n[${typeLabel}]\n\n` +
+      `🛒 Состав заказа:\n${itemsText}\n\n` +
+      `💰 Итого: ${total} MDL`;
+
+    console.log('📊 Creating Excel for admin order:', order.id);
+    try {
+      const excelBuffer = await createOrderExcel(order);
+      console.log('📊 Excel created, buffer size:', excelBuffer.length);
+      await sendOrderExcel(excelBuffer.buffer as ArrayBuffer, captionText);
+      console.log('✅ Excel sent to Telegram');
+    } catch (excelError) {
+      console.error('❌ Error sending Excel:', excelError);
+    }
 
     return Response.json({ ok: true, orderId: order.id });
   } catch (e) {
