@@ -129,6 +129,18 @@ export async function PUT(request: NextRequest) {
       }
     }
 
+    // Если это заказ на реализацию и статус меняется с CONFIRMED на NEW - удаляем реализацию
+    if (
+      existingOrder.isRealization &&
+      status === 'NEW' &&
+      existingOrder.realization &&
+      existingOrder.realization.status !== 'CANCELLED'
+    ) {
+      await prisma.realization.delete({
+        where: { id: existingOrder.realization.id },
+      });
+    }
+
     // Если это заказ на реализацию и статус CANCELLED - отменяем и Realization
     if (
       existingOrder.isRealization &&

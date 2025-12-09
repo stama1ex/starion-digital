@@ -13,12 +13,12 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Plus, X } from 'lucide-react';
 import type { AdminOrder } from '../types';
@@ -52,6 +52,111 @@ export default function OrdersManagement({
   const [filter, setFilter] = useState<OrderStatusType | 'ALL'>('ALL');
   const [updating, setUpdating] = useState<number | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [partners, setPartners] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
+  const [orderType, setOrderType] = useState<'regular' | 'realization'>(
+    'regular'
+  );
+  const [orderItems, setOrderItems] = useState<
+    { productId: number; qty: number }[]
+  >([]);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (isCreateDialogOpen) {
+      fetchPartners();
+      fetchProducts();
+    }
+  }, [isCreateDialogOpen]);
+
+  const fetchPartners = async () => {
+    try {
+      const res = await fetch('/api/admin/partners');
+      const data = await res.json();
+      const filtered = data.filter((p: any) => p.name !== 'ADMIN');
+      setPartners(filtered);
+      if (filtered.length > 0) {
+        setSelectedPartnerId(filtered[0].id.toString());
+      }
+    } catch (error) {
+      console.error('Error fetching partners:', error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch('/api/admin/products');
+      const data = await res.json();
+      setProducts(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    }
+  };
+
+  const handleAddItem = () => {
+    if (products.length > 0) {
+      setOrderItems([...orderItems, { productId: products[0].id, qty: 1 }]);
+    }
+  };
+
+  const handleRemoveItem = (index: number) => {
+    setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const handleItemChange = (
+    index: number,
+    field: 'productId' | 'qty',
+    value: number
+  ) => {
+    const updated = [...orderItems];
+    updated[index][field] = value;
+    setOrderItems(updated);
+  };
+
+  const handleCreateOrder = async () => {
+    if (!selectedPartnerId || orderItems.length === 0) {
+      alert('Выберите партнера и добавьте товары');
+      return;
+    }
+
+    try {
+      setCreating(true);
+      const res = await fetch('/api/admin/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          partnerId: parseInt(selectedPartnerId),
+          orderType,
+          items: orderItems,
+        }),
+      });
+
+      if (res.ok) {
+        alert('Заказ создан успешно');
+        setIsCreateDialogOpen(false);
+        setOrderItems([]);
+        setOrderType('regular');
+        onRefresh();
+      } else {
+        const errorText = await res.text();
+        let errorMessage = 'Не удалось создать заказ';
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorMessage;
+        } catch {
+          errorMessage = errorText || errorMessage;
+        }
+        alert(`Ошибка: ${errorMessage}`);
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Ошибка при создании заказа');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const handleStatusChange = async (
     orderId: number,
@@ -107,6 +212,14 @@ export default function OrdersManagement({
 
   return (
     <div className="space-y-3">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-2xl font-bold">Заказы</h2>
+        <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+          <Plus size={16} />
+          Создать заказ
+        </Button>
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
           <CardHeader className="pb-2">
@@ -332,6 +445,146 @@ export default function OrdersManagement({
           })
         )}
       </div>
+
+      {/* Create Order Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Создать заказ</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Partner Selection */}
+            <div>
+              <Label htmlFor="partner-select" className="mb-2">
+                От имени
+              </Label>
+              <Select
+                value={selectedPartnerId}
+                onValueChange={setSelectedPartnerId}
+              >
+                <SelectTrigger id="partner-select">
+                  <SelectValue placeholder="Выберите партнёра" />
+                </SelectTrigger>
+                <SelectContent>
+                  {partners.map((partner) => (
+                    <SelectItem key={partner.id} value={partner.id.toString()}>
+                      {partner.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Order Type Selection */}
+            <div>
+              <Label htmlFor="order-type" className="mb-2">
+                Тип заказа
+              </Label>
+              <Select
+                value={orderType}
+                onValueChange={(val) =>
+                  setOrderType(val as 'regular' | 'realization')
+                }
+              >
+                <SelectTrigger id="order-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="regular">Обычный заказ</SelectItem>
+                  <SelectItem value="realization">Заказ реализации</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Order Items */}
+            <div className="space-y-2">
+              <Label>Товары</Label>
+              {orderItems.map((item, index) => (
+                <div key={index} className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Select
+                      value={item.productId?.toString() || ''}
+                      onValueChange={(val) =>
+                        handleItemChange(index, 'productId', parseInt(val))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Выберите товар" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem
+                            key={product.id}
+                            value={product.id.toString()}
+                          >
+                            {product.number}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="w-24">
+                    <Input
+                      type="number"
+                      placeholder="Кол-во"
+                      min="1"
+                      value={item.qty || ''}
+                      onChange={(e) =>
+                        handleItemChange(
+                          index,
+                          'qty',
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveItem(index)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleAddItem}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Новый товар
+              </Button>
+            </div>
+
+            {/* Submit Button */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Отмена
+              </Button>
+              <Button
+                onClick={handleCreateOrder}
+                disabled={
+                  creating ||
+                  !selectedPartnerId ||
+                  orderItems.length === 0 ||
+                  orderItems.some((item) => !item.productId || !item.qty)
+                }
+              >
+                {creating ? 'Создание...' : 'Создать заказ'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
