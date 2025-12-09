@@ -22,6 +22,20 @@ function getRandomItem<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+async function seedMaterials() {
+  console.log('📦 Creating materials...');
+
+  const materials = await prisma.materialCatalog.createMany({
+    data: [
+      { name: 'MARBLE', label: 'Мрамор' },
+      { name: 'WOOD', label: 'Дерево' },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log(`✓ Materials created: ${materials.count || 2}`);
+}
+
 async function seedProducts() {
   const magnets = loadJSON('magnets.json');
   const plates = loadJSON('plates.json');
@@ -292,6 +306,7 @@ async function main() {
 
   console.log(`🔄 Running seed in ${SEED_MODE.toUpperCase()} mode...\n`);
 
+  await seedMaterials();
   await seedProducts();
 
   if (SEED_MODE === 'demo') {

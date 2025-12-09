@@ -78,7 +78,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
       </DrawerTrigger>
 
       <DrawerContent className="max-h-[80vh]">
-        <div className="mx-auto w-full max-w-screen-xl">
+        <div className="mx-auto w-full max-w-7xl">
           <DrawerHeader>
             <DrawerTitle>{t('cart')}</DrawerTitle>
           </DrawerHeader>
