@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2, Download } from 'lucide-react';
 import type { AdminOrder } from '../types';
 
 interface OrdersManagementProps {
@@ -227,6 +227,44 @@ export default function OrdersManagement({
     } catch (error) {
       console.error('Error deleting order:', error);
       alert('Ошибка при удалении заказа');
+    }
+  };
+
+  const handleExportOrder = async (order: AdminOrder) => {
+    try {
+      const response = await fetch('/api/admin/orders/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+
+      if (!response.ok) {
+        // Проверяем Content-Type перед парсингом
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.details || errorData.error || 'Ошибка экспорта'
+          );
+        } else {
+          throw new Error(`Ошибка сервера: ${response.status}`);
+        }
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Заказ_${order.id}_${order.partner.name}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting order:', error);
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
+      alert(`Ошибка при экспорте заказа: ${message}`);
     }
   };
 
@@ -474,6 +512,21 @@ export default function OrdersManagement({
                               </Select>
                             </div>
                           )}
+
+                          {/* Кнопка экспорта */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full sm:w-auto"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExportOrder(order);
+                            }}
+                            title="Экспорт в Excel"
+                          >
+                            <Download className="h-4 w-4 sm:mr-0 mr-2" />
+                            <span className="sm:hidden">Экспорт</span>
+                          </Button>
 
                           {/* Кнопка удаления для отмененных заказов */}
                           {order.status === 'CANCELLED' && (
