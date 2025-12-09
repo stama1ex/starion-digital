@@ -149,7 +149,7 @@ export default function MaterialsManagement() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <div>
-                  <p className="text-sm text-muted-foreground">Код (name)</p>
+                  <p className="text-sm text-muted-foreground">Артикул</p>
                   <p className="font-mono font-bold">{material.name}</p>
                 </div>
                 <div>
@@ -197,7 +197,7 @@ export default function MaterialsManagement() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">Код (name) *</label>
+              <label className="text-sm font-medium">Артикул *</label>
               <Input
                 value={formData.name || ''}
                 onChange={(e) =>

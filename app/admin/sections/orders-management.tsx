@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Select,
@@ -11,6 +11,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Plus, X } from 'lucide-react';
 import type { AdminOrder } from '../types';
 
 interface OrdersManagementProps {
@@ -96,8 +106,8 @@ export default function OrdersManagement({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap gap-4">
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2">
         <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Новые</CardTitle>

@@ -152,102 +152,138 @@ export default function AdminDashboard({
         </div>
       </div>
 
-      <Tabs defaultValue="sales" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1 h-auto">
-          <TabsTrigger value="sales" className="text-xs sm:text-sm">
-            Продажи
+      <Tabs defaultValue="orders" className="w-full">
+        <TabsList className="grid w-full grid-cols-3 gap-1 h-auto">
+          <TabsTrigger value="orders" className="text-xs sm:text-sm py-2">
+            <span className="hidden sm:inline">📋 </span>Заказы
           </TabsTrigger>
-          <TabsTrigger value="products" className="text-xs sm:text-sm">
-            ТОП товары
+          <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2">
+            <span className="hidden sm:inline">📊 </span>Анализ
           </TabsTrigger>
-          <TabsTrigger value="dealers" className="text-xs sm:text-sm">
-            Дилеры
-          </TabsTrigger>
-          <TabsTrigger value="orders" className="text-xs sm:text-sm">
-            Заказы
-          </TabsTrigger>
-          <TabsTrigger value="debt" className="text-xs sm:text-sm">
-            Долги
-          </TabsTrigger>
-          <TabsTrigger value="realization" className="text-xs sm:text-sm">
-            Реализ.
-          </TabsTrigger>
-          <TabsTrigger value="partners" className="text-xs sm:text-sm">
-            Партнеры
-          </TabsTrigger>
-          <TabsTrigger value="prices" className="text-xs sm:text-sm">
-            Цены
-          </TabsTrigger>
-          <TabsTrigger value="catalog" className="text-xs sm:text-sm">
-            Товары
-          </TabsTrigger>
-          <TabsTrigger value="materials" className="text-xs sm:text-sm">
-            Материалы
+          <TabsTrigger value="edit" className="text-xs sm:text-sm py-2">
+            <span className="hidden sm:inline">⚙️ </span>Настройки
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sales" className="space-y-4">
-          <SalesAnalytics
-            orders={orders}
-            realizations={realizations}
-            dateRange={dateRange}
-            customDateRange={useCustomRange ? customDateRange : null}
-          />
-        </TabsContent>
-
-        <TabsContent value="products" className="space-y-4">
-          <TopProducts
-            orders={orders}
-            realizations={realizations}
-            dateRange={dateRange}
-            customDateRange={useCustomRange ? customDateRange : null}
-          />
-        </TabsContent>
-
-        <TabsContent value="dealers" className="space-y-4">
-          <DealerAnalytics
-            orders={orders}
-            realizations={realizations}
-            dateRange={dateRange}
-            customDateRange={useCustomRange ? customDateRange : null}
-          />
-        </TabsContent>
-
+        {/* Управление заказами */}
         <TabsContent value="orders" className="space-y-4">
-          <OrdersManagement orders={orders} onRefresh={handleRefreshOrders} />
+          <Tabs defaultValue="orders-list" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 gap-1">
+              <TabsTrigger value="orders-list" className="text-xs sm:text-sm">
+                Заказы
+              </TabsTrigger>
+              <TabsTrigger value="realization" className="text-xs sm:text-sm">
+                Реализ.
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="orders-list">
+              <OrdersManagement
+                orders={orders}
+                onRefresh={handleRefreshOrders}
+              />
+            </TabsContent>
+
+            <TabsContent value="realization">
+              <RealizationTracking
+                realizations={realizations}
+                onRefresh={handleRefreshOrders}
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="debt" className="space-y-4">
-          <DebtTracking
-            orders={orders}
-            realizations={realizations}
-            partners={partners}
-            dateRange={dateRange}
-            customDateRange={useCustomRange ? customDateRange : null}
-          />
+        {/* Анализ */}
+        <TabsContent value="analytics" className="space-y-4">
+          <Tabs defaultValue="sales" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 gap-1">
+              <TabsTrigger value="sales" className="text-xs sm:text-sm">
+                Продажи
+              </TabsTrigger>
+              <TabsTrigger value="products" className="text-xs sm:text-sm">
+                ТОП товары
+              </TabsTrigger>
+              <TabsTrigger value="dealers" className="text-xs sm:text-sm">
+                Дилеры
+              </TabsTrigger>
+              <TabsTrigger value="debt" className="text-xs sm:text-sm">
+                Долги
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="sales">
+              <SalesAnalytics
+                orders={orders}
+                realizations={realizations}
+                dateRange={dateRange}
+                customDateRange={useCustomRange ? customDateRange : null}
+              />
+            </TabsContent>
+
+            <TabsContent value="products">
+              <TopProducts
+                orders={orders}
+                realizations={realizations}
+                dateRange={dateRange}
+                customDateRange={useCustomRange ? customDateRange : null}
+              />
+            </TabsContent>
+
+            <TabsContent value="dealers">
+              <DealerAnalytics
+                orders={orders}
+                realizations={realizations}
+                dateRange={dateRange}
+                customDateRange={useCustomRange ? customDateRange : null}
+              />
+            </TabsContent>
+
+            <TabsContent value="debt">
+              <DebtTracking
+                orders={orders}
+                realizations={realizations}
+                partners={partners}
+                dateRange={dateRange}
+                customDateRange={useCustomRange ? customDateRange : null}
+              />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
 
-        <TabsContent value="realization" className="space-y-4">
-          <RealizationTracking
-            realizations={realizations}
-            onRefresh={handleRefreshOrders}
-          />
-        </TabsContent>
+        {/* Редактировать */}
+        <TabsContent value="edit" className="space-y-4">
+          <Tabs defaultValue="partners" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 gap-1">
+              <TabsTrigger value="partners" className="text-xs sm:text-sm">
+                Партнеры
+              </TabsTrigger>
+              <TabsTrigger value="prices" className="text-xs sm:text-sm">
+                Цены
+              </TabsTrigger>
+              <TabsTrigger value="catalog" className="text-xs sm:text-sm">
+                Товары
+              </TabsTrigger>
+              <TabsTrigger value="materials" className="text-xs sm:text-sm">
+                Материалы
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="partners" className="space-y-4">
-          <PartnersManagement />
-        </TabsContent>
+            <TabsContent value="partners">
+              <PartnersManagement />
+            </TabsContent>
 
-        <TabsContent value="prices" className="space-y-4">
-          <PricesManagement />
-        </TabsContent>
+            <TabsContent value="prices">
+              <PricesManagement />
+            </TabsContent>
 
-        <TabsContent value="catalog" className="space-y-4">
-          <ProductsManagement />
-        </TabsContent>
+            <TabsContent value="catalog">
+              <ProductsManagement />
+            </TabsContent>
 
-        <TabsContent value="materials" className="space-y-4">
-          <MaterialsManagement />
+            <TabsContent value="materials">
+              <MaterialsManagement />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
       </Tabs>
     </div>

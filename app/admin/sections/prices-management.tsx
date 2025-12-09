@@ -44,6 +44,7 @@ export default function PricesManagement() {
   const [editingPrices, setEditingPrices] = useState<
     Record<string, number | string>
   >({});
+  const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
     fetchPartners();
@@ -90,6 +91,7 @@ export default function PricesManagement() {
       const data = await res.json();
       setPrices(data);
       setEditingPrices({});
+      setHasChanges(false);
     } catch (error) {
       console.error('Error fetching prices:', error);
     } finally {
@@ -104,27 +106,32 @@ export default function PricesManagement() {
   ) => {
     const key = `${type}-${materialId}`;
     setEditingPrices({ ...editingPrices, [key]: value });
+    setHasChanges(true);
   };
 
-  const handleSavePrice = async (
-    type: ProductType,
-    materialId: number,
-    value: string
-  ) => {
+  const handleSaveAllPrices = async () => {
     try {
-      await fetch('/api/admin/prices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          partnerId: parseInt(selectedPartnerId),
-          type,
-          materialId,
-          price: parseFloat(value),
-        }),
+      setLoading(true);
+      const promises = Object.entries(editingPrices).map(([key, value]) => {
+        const [type, materialId] = key.split('-');
+        return fetch('/api/admin/prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            partnerId: parseInt(selectedPartnerId),
+            type: type as ProductType,
+            materialId: parseInt(materialId),
+            price: parseFloat(value.toString()),
+          }),
+        });
       });
+
+      await Promise.all(promises);
       await fetchPrices();
     } catch (error) {
-      console.error('Error saving price:', error);
+      console.error('Error saving prices:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -141,20 +148,37 @@ export default function PricesManagement() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Управление ценами партнеров</h2>
-        <Select value={selectedPartnerId} onValueChange={setSelectedPartnerId}>
-          <SelectTrigger className="w-64">
-            <SelectValue placeholder="Выберите партнера" />
-          </SelectTrigger>
-          <SelectContent>
-            {partners.map((partner) => (
-              <SelectItem key={partner.id} value={partner.id.toString()}>
-                {partner.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-2xl font-bold mb-4">
+            Управление ценами партнеров
+          </h2>
+          <Select
+            value={selectedPartnerId}
+            onValueChange={setSelectedPartnerId}
+          >
+            <SelectTrigger className="w-64">
+              <SelectValue placeholder="Выберите партнера" />
+            </SelectTrigger>
+            <SelectContent>
+              {partners.map((partner) => (
+                <SelectItem key={partner.id} value={partner.id.toString()}>
+                  {partner.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {hasChanges && (
+          <Button
+            onClick={handleSaveAllPrices}
+            disabled={loading}
+            size="lg"
+            className="w-full sm:w-auto"
+          >
+            {loading ? 'Сохранение...' : 'Сохранить все изменения'}
+          </Button>
+        )}
       </div>
 
       {loading ? (
@@ -179,29 +203,15 @@ export default function PricesManagement() {
                       <label className="text-sm font-medium">
                         {material.label}
                       </label>
-                      <div className="flex gap-2">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={getPrice(type, material.id)}
-                          onChange={(e) =>
-                            handlePriceChange(type, material.id, e.target.value)
-                          }
-                          placeholder="0.00"
-                        />
-                        <Button
-                          onClick={() =>
-                            handleSavePrice(
-                              type,
-                              material.id,
-                              getPrice(type, material.id).toString()
-                            )
-                          }
-                          size="sm"
-                        >
-                          Сохранить
-                        </Button>
-                      </div>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={getPrice(type, material.id)}
+                        onChange={(e) =>
+                          handlePriceChange(type, material.id, e.target.value)
+                        }
+                        placeholder="0.00"
+                      />
                     </div>
                   ))}
                 </div>

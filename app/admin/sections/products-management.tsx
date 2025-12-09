@@ -226,48 +226,61 @@ export default function ProductsManagement() {
         {products.map((product) => (
           <Card key={product.id} className="py-2">
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                <div>
-                  <p className="text-sm text-muted-foreground">Артикул</p>
-                  <p className="font-mono font-bold">{product.number}</p>
+              <div className="flex flex-col gap-4">
+                {/* Сетка 2x2 для информации */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Артикул</p>
+                    <p className="font-mono font-bold text-sm">
+                      {product.number}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Тип</p>
+                    <p className="text-sm">
+                      {product.type === 'MAGNET'
+                        ? 'Магнит'
+                        : product.type === 'PLATE'
+                        ? 'Тарелка'
+                        : product.type}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Материал</p>
+                    <p className="text-sm">
+                      {materials.find((m) => m.id === product.materialId)
+                        ?.label || 'N/A'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Себестоимость
+                    </p>
+                    <p className="font-semibold text-sm">
+                      {product.costPrice} MDL
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Тип</p>
-                  <p className="text-sm">
-                    {product.type === 'MAGNET'
-                      ? 'Магнит'
-                      : product.type === 'PLATE'
-                      ? 'Тарелка'
-                      : product.type}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Материал</p>
-                  <p className="text-sm">
-                    {materials.find((m) => m.id === product.materialId)
-                      ?.label || 'N/A'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Себестоимость</p>
-                  <p className="font-semibold">{product.costPrice} MDL</p>
-                </div>
-                <div className="flex gap-2 justify-end">
+
+                {/* Кнопки действий снизу */}
+                <div className="flex gap-2 pt-2 border-t">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(product)}
-                    className="gap-2"
+                    className="gap-2 flex-1"
                   >
                     <Edit2 size={16} />
+                    <span className="hidden sm:inline">Редактировать</span>
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(product.id)}
-                    className="gap-2"
+                    className="gap-2 flex-1"
                   >
                     <Trash2 size={16} />
+                    <span className="hidden sm:inline">Удалить</span>
                   </Button>
                 </div>
               </div>
