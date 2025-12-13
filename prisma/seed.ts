@@ -207,7 +207,7 @@ async function seedPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"ININIH-GRUP SRL" Kolorît Kompat',
+        name: '"ININIH-GRUP SRL" Kolorît Комрат',
         login: 'Ininih',
         password: defaultPass,
         role: 'PARTNER',
@@ -215,7 +215,7 @@ async function seedPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"Kiat" SRL, Kompat',
+        name: '"Kiat" SRL, Комрат',
         login: 'Kiat',
         password: defaultPass,
         role: 'PARTNER',
@@ -223,7 +223,7 @@ async function seedPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"Kolor" SRL Kompat, SMK HOME',
+        name: '"Kolor" SRL Комрат, SMK HOME',
         login: 'Kolor',
         password: defaultPass,
         role: 'PARTNER',
@@ -231,7 +231,7 @@ async function seedPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: 'Flor Company Kompat',
+        name: 'Flor Company Комрат',
         login: 'Flor',
         password: defaultPass,
         role: 'PARTNER',
@@ -239,7 +239,7 @@ async function seedPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"CANT MASTER" SRL Kompat',
+        name: '"CANT MASTER" SRL Комрат',
         login: 'Cantmaster',
         password: defaultPass,
         role: 'PARTNER',
@@ -585,7 +585,7 @@ async function seedProductionPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"ININIH-GRUP SRL" Kolorît Kompat',
+        name: '"ININIH-GRUP SRL" Kolorît Комрат',
         login: 'Ininih',
         password: defaultPass,
         role: 'PARTNER',
@@ -593,7 +593,7 @@ async function seedProductionPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"Kiat" SRL, Kompat',
+        name: '"Kiat" SRL, Комрат',
         login: 'Kiat',
         password: defaultPass,
         role: 'PARTNER',
@@ -601,7 +601,7 @@ async function seedProductionPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"Kolor" SRL Kompat, SMK HOME',
+        name: '"Kolor" SRL Комрат, SMK HOME',
         login: 'Kolor',
         password: defaultPass,
         role: 'PARTNER',
@@ -609,7 +609,7 @@ async function seedProductionPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: 'Flor Company Kompat',
+        name: 'Flor Company Комрат',
         login: 'Flor',
         password: defaultPass,
         role: 'PARTNER',
@@ -617,7 +617,7 @@ async function seedProductionPartners() {
     }),
     prisma.partner.create({
       data: {
-        name: '"CANT MASTER" SRL Kompat',
+        name: '"CANT MASTER" SRL Комрат',
         login: 'Cantmaster',
         password: defaultPass,
         role: 'PARTNER',
