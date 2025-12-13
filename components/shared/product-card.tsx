@@ -13,6 +13,7 @@ import { useCartStore } from '@/store/cart-store';
 import { usePartner } from '@/app/providers/partner-provider';
 import { Button } from '../ui/button';
 import { useTranslations } from 'next-intl';
+import { NoImageIcon } from './no-image-icon';
 
 // Types match Prisma enums
 type ProductType = string;
@@ -39,6 +40,7 @@ interface Props {
 export function ProductCard({ product, getPrice }: Props) {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [imgError, setImgError] = useState(false);
 
   const { isPartner } = usePartner();
   const addItem = useCartStore((s) => s.addItem);
@@ -48,25 +50,34 @@ export function ProductCard({ product, getPrice }: Props) {
   const rawPrice = getPrice(product);
   const price = rawPrice ?? 0;
 
-  const imgSrc = product.image?.startsWith('http')
-    ? product.image
-    : '/' + product.image?.replace(/^public\//, '');
+  const hasImage = !imgError && product.image && product.image.trim();
+
+  const imgSrc = hasImage
+    ? product.image.startsWith('http')
+      ? product.image
+      : '/' + product.image.replace(/^public\//, '')
+    : '';
 
   const total = price * quantity;
 
   const tiltImage = useMemo(
     () => (
       <Tilt scale={1.05} tiltMaxAngleX={15} tiltMaxAngleY={15} className="mb-4">
-        <Image
-          width={800}
-          height={800}
-          src={imgSrc}
-          alt={product.number}
-          className="w-full max-w-md h-64 md:h-80 object-contain"
-        />
+        {!hasImage ? (
+          <NoImageIcon className="w-full max-w-md h-64 md:h-80 text-primary" />
+        ) : (
+          <Image
+            width={800}
+            height={800}
+            src={imgSrc}
+            alt={product.number}
+            className="w-full max-w-md h-64 md:h-80 object-contain"
+            onError={() => setImgError(true)}
+          />
+        )}
       </Tilt>
     ),
-    [imgSrc, product.number]
+    [imgSrc, product.number, hasImage]
   );
 
   const handleQuantity = (v: number) => setQuantity(Math.max(1, v));
@@ -75,13 +86,18 @@ export function ProductCard({ product, getPrice }: Props) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <div className="border hover:bg-popover/50 rounded-lg p-4 flex flex-col items-center hover:scale-102 transition-all cursor-pointer">
-          <Image
-            width={500}
-            height={500}
-            src={imgSrc}
-            alt={product.number}
-            className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
-          />
+          {!hasImage ? (
+            <NoImageIcon className="md:w-64 md:h-64 w-32 h-32 text-primary mb-2" />
+          ) : (
+            <Image
+              width={500}
+              height={500}
+              src={imgSrc}
+              alt={product.number}
+              className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
+              onError={() => setImgError(true)}
+            />
+          )}
 
           <div className="font-semibold">
             {t('number', { number: product.number })}
