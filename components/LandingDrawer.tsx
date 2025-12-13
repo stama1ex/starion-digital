@@ -32,7 +32,7 @@ export default function LandingDrawer() {
           {t('view_souvenirs')}
         </Button>
       </DrawerTrigger>
-      <DrawerContent>
+      <DrawerContent className="max-h-[90vh]!">
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-bold text-center">
             {t('title')}
@@ -78,8 +78,8 @@ export default function LandingDrawer() {
                           category.type === 'magnet'
                             ? `/magnets/01.avif`
                             : category.type === 'plate'
-                              ? `/plates/110.avif`
-                              : category.placeholder
+                            ? `/plates/110.avif`
+                            : category.placeholder
                         }
                         alt={category.name}
                         className="w-24 h-24 object-contain mb-2"
