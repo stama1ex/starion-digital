@@ -28,7 +28,6 @@ interface ProductGroup {
 
 export function GroupsManagement() {
   const [groups, setGroups] = useState<ProductGroup[]>([]);
-  const [newGroupName, setNewGroupName] = useState('');
   const [newGroupSlug, setNewGroupSlug] = useState('');
   const [newGroupTranslations, setNewGroupTranslations] = useState({
     en: '',
@@ -59,8 +58,12 @@ export function GroupsManagement() {
   };
 
   const handleCreate = async () => {
-    if (!newGroupName.trim()) {
-      alert('Введите название группы');
+    if (!newGroupSlug.trim()) {
+      alert('Введите slug группы');
+      return;
+    }
+    if (!newGroupTranslations.ru.trim()) {
+      alert('Введите название на русском');
       return;
     }
 
@@ -69,13 +72,14 @@ export function GroupsManagement() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: newGroupName.trim(),
           type: newGroupType,
-          slug: newGroupSlug.trim() || null,
+          slug: newGroupSlug.trim(),
           translations: {
-            en: newGroupTranslations.en.trim() || newGroupName.trim(),
-            ro: newGroupTranslations.ro.trim() || newGroupName.trim(),
-            ru: newGroupTranslations.ru.trim() || newGroupName.trim(),
+            en:
+              newGroupTranslations.en.trim() || newGroupTranslations.ru.trim(),
+            ro:
+              newGroupTranslations.ro.trim() || newGroupTranslations.ru.trim(),
+            ru: newGroupTranslations.ru.trim(),
           },
         }),
       });
@@ -85,7 +89,6 @@ export function GroupsManagement() {
         throw new Error(error.error || 'Failed to create group');
       }
 
-      setNewGroupName('');
       setNewGroupSlug('');
       setNewGroupTranslations({ en: '', ro: '', ru: '' });
       fetchGroups();
@@ -149,9 +152,9 @@ export function GroupsManagement() {
   const productTypes = [
     { value: 'MAGNET', label: 'Магниты' },
     { value: 'PLATE', label: 'Тарелки' },
-    { value: 'POSTCARD', label: 'Открытки' },
-    { value: 'STATUE', label: 'Статуэтки' },
-    { value: 'BALL', label: 'Шары' },
+    // { value: 'POSTCARD', label: 'Открытки' },
+    // { value: 'STATUE', label: 'Статуэтки' },
+    // { value: 'BALL', label: 'Шары' },
   ];
 
   const groupedByType = groups.reduce((acc, group) => {
@@ -169,25 +172,13 @@ export function GroupsManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="mb-2">Название (Русский)</Label>
-                <Input
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="Например: Деревянные"
-                />
-              </div>
-              <div>
-                <Label className="mb-2">Slug (для БД)</Label>
-                <Input
-                  value={newGroupSlug}
-                  onChange={(e) =>
-                    setNewGroupSlug(e.target.value.toUpperCase())
-                  }
-                  placeholder="WOOD, MARBLE, GLASS"
-                />
-              </div>
+            <div>
+              <Label className="mb-2">Slug (для БД)</Label>
+              <Input
+                value={newGroupSlug}
+                onChange={(e) => setNewGroupSlug(e.target.value.toUpperCase())}
+                placeholder="WOOD, MARBLE, GLASS"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -232,7 +223,7 @@ export function GroupsManagement() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between">
               <div>
                 <Label className="mb-2">Тип товара</Label>
                 <Select value={newGroupType} onValueChange={setNewGroupType}>
@@ -248,8 +239,8 @@ export function GroupsManagement() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex items-end">
-                <Button onClick={handleCreate} className="w-full">
+              <div className="flex mt-auto">
+                <Button onClick={handleCreate}>
                   <Plus className="h-4 w-4 mr-2" />
                   Создать
                 </Button>

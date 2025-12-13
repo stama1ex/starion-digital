@@ -294,39 +294,37 @@ export default function OrdersManagement({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Новые</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.NEW}</div>
-          </CardContent>
+        <Card className="flex-1 min-w-[150px] p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
+              Новые
+            </span>
+            <span className="text-2xl font-bold">{stats.NEW}</span>
+          </div>
         </Card>
-        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+        <Card className="flex-1 min-w-[150px] p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
               Подтверждённые
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.CONFIRMED}</div>
-          </CardContent>
+            </span>
+            <span className="text-2xl font-bold">{stats.CONFIRMED}</span>
+          </div>
         </Card>
-        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Оплаченные</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.PAID}</div>
-          </CardContent>
+        <Card className="flex-1 min-w-[150px] p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
+              Оплаченные
+            </span>
+            <span className="text-2xl font-bold">{stats.PAID}</span>
+          </div>
         </Card>
-        <Card className="flex-1 min-w-[150px] py-3 gap-0 h-fit">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Отменённые</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.CANCELLED}</div>
-          </CardContent>
+        <Card className="flex-1 min-w-[150px] p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
+              Отменённые
+            </span>
+            <span className="text-2xl font-bold">{stats.CANCELLED}</span>
+          </div>
         </Card>
       </div>
 
