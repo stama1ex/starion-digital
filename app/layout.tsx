@@ -10,6 +10,7 @@ import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { CookieBanner } from '@/components/ui/cookie-banner';
 import { Toaster } from '@/components/ui/sonner';
 import { PartnerProvider } from './providers/partner-provider';
+import NextTopLoader from 'nextjs-toploader';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
 const geistMono = Geist_Mono({
@@ -40,6 +41,17 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <NextTopLoader
+          color="oklch(0.5417 0.179 288.0332)"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={false}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #2563eb,0 0 5px #2563eb"
+        />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider
             attribute="class"

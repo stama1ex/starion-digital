@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
+import {
+  useGroups,
+  AdminAPI,
+  handleApiError,
+  PRODUCT_TYPE_LABELS_PLURAL,
+  groupBy,
+} from '@/lib/admin';
 
 interface ProductGroup {
   id: number;
@@ -27,7 +34,7 @@ interface ProductGroup {
 }
 
 export function GroupsManagement() {
-  const [groups, setGroups] = useState<ProductGroup[]>([]);
+  const { groups, refetch } = useGroups();
   const [newGroupSlug, setNewGroupSlug] = useState('');
   const [newGroupTranslations, setNewGroupTranslations] = useState({
     en: '',
@@ -43,20 +50,6 @@ export function GroupsManagement() {
     ru: '',
   });
 
-  useEffect(() => {
-    fetchGroups();
-  }, []);
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch('/api/admin/groups');
-      const data = await res.json();
-      setGroups(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-    }
-  };
-
   const handleCreate = async () => {
     if (!newGroupSlug.trim()) {
       alert('Введите slug группы');
@@ -68,32 +61,22 @@ export function GroupsManagement() {
     }
 
     try {
-      const res = await fetch('/api/admin/groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: newGroupType,
-          slug: newGroupSlug.trim(),
-          translations: {
-            en:
-              newGroupTranslations.en.trim() || newGroupTranslations.ru.trim(),
-            ro:
-              newGroupTranslations.ro.trim() || newGroupTranslations.ru.trim(),
-            ru: newGroupTranslations.ru.trim(),
-          },
-        }),
+      await AdminAPI.createGroup({
+        type: newGroupType,
+        slug: newGroupSlug.trim(),
+        translations: {
+          en: newGroupTranslations.en.trim() || newGroupTranslations.ru.trim(),
+          ro: newGroupTranslations.ro.trim() || newGroupTranslations.ru.trim(),
+          ru: newGroupTranslations.ru.trim(),
+        },
       });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to create group');
-      }
 
       setNewGroupSlug('');
       setNewGroupTranslations({ en: '', ro: '', ru: '' });
-      fetchGroups();
+      refetch();
     } catch (error: any) {
-      alert('Ошибка: ' + error.message);
+      const message = await handleApiError(error);
+      alert('Ошибка: ' + message);
     }
   };
 
@@ -102,31 +85,23 @@ export function GroupsManagement() {
       return;
 
     try {
-      const res = await fetch('/api/admin/groups', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: editingGroup.id,
-          slug: editSlug.trim(),
-          translations: {
-            en: editTranslations.en.trim() || editTranslations.ru.trim(),
-            ro: editTranslations.ro.trim() || editTranslations.ru.trim(),
-            ru: editTranslations.ru.trim(),
-          },
-        }),
+      await AdminAPI.updateGroup({
+        id: editingGroup.id,
+        slug: editSlug.trim(),
+        translations: {
+          en: editTranslations.en.trim() || editTranslations.ru.trim(),
+          ro: editTranslations.ro.trim() || editTranslations.ru.trim(),
+          ru: editTranslations.ru.trim(),
+        },
       });
-
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || 'Failed to update group');
-      }
 
       setEditingGroup(null);
       setEditSlug('');
       setEditTranslations({ en: '', ro: '', ru: '' });
-      fetchGroups();
+      refetch();
     } catch (error: any) {
-      alert('Ошибка: ' + error.message);
+      const message = await handleApiError(error);
+      alert('Ошибка: ' + message);
     }
   };
 
@@ -134,34 +109,23 @@ export function GroupsManagement() {
     if (!confirm('Удалить эту группу? Товары останутся без группы.')) return;
 
     try {
-      const res = await fetch(`/api/admin/groups?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) {
-        throw new Error('Failed to delete group');
-      }
-
-      fetchGroups();
+      await AdminAPI.deleteGroup(id);
+      refetch();
     } catch (error) {
-      console.error('Error deleting group:', error);
-      alert('Ошибка при удалении группы');
+      const message = await handleApiError(error);
+      alert('Ошибка при удалении группы: ' + message);
     }
   };
 
   const productTypes = [
-    { value: 'MAGNET', label: 'Магниты' },
-    { value: 'PLATE', label: 'Тарелки' },
-    // { value: 'POSTCARD', label: 'Открытки' },
-    // { value: 'STATUE', label: 'Статуэтки' },
-    // { value: 'BALL', label: 'Шары' },
+    { value: 'MAGNET', label: PRODUCT_TYPE_LABELS_PLURAL.MAGNET },
+    { value: 'PLATE', label: PRODUCT_TYPE_LABELS_PLURAL.PLATE },
+    { value: 'POSTCARD', label: PRODUCT_TYPE_LABELS_PLURAL.POSTCARD },
+    { value: 'STATUE', label: PRODUCT_TYPE_LABELS_PLURAL.STATUE },
+    { value: 'BALL', label: PRODUCT_TYPE_LABELS_PLURAL.BALL },
   ];
 
-  const groupedByType = groups.reduce((acc, group) => {
-    if (!acc[group.type]) acc[group.type] = [];
-    acc[group.type].push(group);
-    return acc;
-  }, {} as Record<string, ProductGroup[]>);
+  const groupedByType = groupBy(groups, (group) => group.type);
 
   return (
     <div className="space-y-6">

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,12 +13,17 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Trash2, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
+import {
+  usePartners,
+  useCurrentUser,
+  AdminAPI,
+  handleApiError,
+} from '@/lib/admin';
 
 export default function PartnersManagement() {
-  const [partners, setPartners] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { partners, loading, refetch } = usePartners(true);
+  const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -28,40 +33,7 @@ export default function PartnersManagement() {
     password: '',
   });
 
-  useEffect(() => {
-    fetchCurrentUser();
-    fetchPartners();
-  }, []);
-
-  const fetchCurrentUser = async () => {
-    try {
-      const res = await fetch('/api/me');
-      const data = await res.json();
-      if (data.id) {
-        setCurrentUserId(data.id);
-      }
-    } catch (error) {
-      console.error('Error fetching current user:', error);
-    }
-  };
-
-  const fetchPartners = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/admin/partners');
-      const data = await res.json();
-      // Фильтруем партнеров - исключаем ADMIN
-      const filtered = data.filter((p: any) => p.name !== 'ADMIN');
-      setPartners(filtered);
-    } catch (error) {
-      console.error('Error fetching partners:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSave = async () => {
-    // Валидация на клиенте
     if (!formData.name.trim() || !formData.login.trim()) {
       alert('Заполните имя и логин');
       return;
@@ -73,29 +45,22 @@ export default function PartnersManagement() {
     }
 
     try {
-      const url = '/api/admin/partners';
-      const method = editingId ? 'PUT' : 'POST';
       const body = editingId ? { ...formData, id: editingId } : formData;
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        setFormData({ name: '', login: '', password: '' });
-        setEditingId(null);
-        setIsDialogOpen(false);
-        await fetchPartners();
-        alert(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
+      if (editingId) {
+        await AdminAPI.updatePartner(body);
       } else {
-        const error = await res.json();
-        alert(`Ошибка: ${error.error || 'Неизвестная ошибка'}`);
+        await AdminAPI.createPartner(body);
       }
+
+      setFormData({ name: '', login: '', password: '' });
+      setEditingId(null);
+      setIsDialogOpen(false);
+      await refetch();
+      alert(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
     } catch (error) {
-      console.error('Error saving partner:', error);
-      alert('Ошибка при сохранении партнёра');
+      const message = await handleApiError(error);
+      alert(`Ошибка: ${message}`);
     }
   };
 
@@ -110,30 +75,20 @@ export default function PartnersManagement() {
   };
 
   const handleDelete = async (id: number) => {
-    if (id === currentUserId) {
-      alert('Вы не можете удалить самого себя!');
+    if (id === user?.id) {
+      alert('Вы не можете удалить самого себя');
       return;
     }
 
-    if (confirm('Вы уверены?')) {
-      try {
-        const res = await fetch('/api/admin/partners', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
-        });
+    if (!confirm('Вы уверены? Это удалит партнёра из системы.')) return;
 
-        if (res.ok) {
-          await fetchPartners();
-          alert('Партнер удалён');
-        } else {
-          const error = await res.json();
-          alert(error.error || 'Ошибка при удалении');
-        }
-      } catch (error) {
-        console.error('Error deleting partner:', error);
-        alert('Ошибка при удалении партнера');
-      }
+    try {
+      await AdminAPI.deletePartner(id);
+      await refetch();
+      alert('Партнёр удалён');
+    } catch (error) {
+      const message = await handleApiError(error);
+      alert(`Ошибка: ${message}`);
     }
   };
 
@@ -204,11 +159,9 @@ export default function PartnersManagement() {
                     variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(partner.id)}
-                    disabled={partner.id === currentUserId}
+                    disabled={partner.id === user?.id}
                     title={
-                      partner.id === currentUserId
-                        ? 'Вы не можете удалить себя'
-                        : ''
+                      partner.id === user?.id ? 'Вы не можете удалить себя' : ''
                     }
                     className="gap-2"
                   >

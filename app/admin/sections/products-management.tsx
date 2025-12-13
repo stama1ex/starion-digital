@@ -22,14 +22,14 @@ import {
 } from '@/components/ui/dialog';
 import { Trash2, Edit2, Plus, Upload } from 'lucide-react';
 import { ProductType } from '@prisma/client';
-
-const PRODUCT_TYPES: ProductType[] = [
-  'MAGNET',
-  'PLATE',
-  // 'POSTCARD',
-  // 'STATUE',
-  // 'BALL',
-];
+import {
+  useProducts,
+  useGroups,
+  PRODUCT_TYPES,
+  PRODUCT_TYPE_LABELS,
+  AdminAPI,
+  handleApiError,
+} from '@/lib/admin';
 
 interface ProductGroup {
   id: number;
@@ -39,9 +39,8 @@ interface ProductGroup {
 }
 
 export default function ProductsManagement() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [groups, setGroups] = useState<ProductGroup[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { products, loading, refetch: refetchProducts } = useProducts();
+  const { groups } = useGroups();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [filterGroup, setFilterGroup] = useState<string>('ALL');
@@ -56,34 +55,6 @@ export default function ProductsManagement() {
     costPrice: '',
     image: '',
   });
-
-  useEffect(() => {
-    fetchGroups();
-    fetchProducts();
-  }, []);
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch('/api/admin/groups');
-      const data = await res.json();
-      setGroups(data);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch('/api/admin/products');
-      const data = await res.json();
-      setProducts(data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -116,49 +87,34 @@ export default function ProductsManagement() {
 
   const handleSave = async () => {
     try {
-      const url = '/api/admin/products';
-      const method = editingId ? 'PUT' : 'POST';
-
-      // Обрабатываем groupId: если "NONE" или пустая строка, то null
       const groupId =
         formData.groupId && formData.groupId !== 'NONE'
           ? parseInt(formData.groupId)
           : null;
 
-      const body = editingId
-        ? {
-            id: editingId,
-            number: formData.number,
-            type: formData.type,
-            country: formData.country,
-            groupId,
-            costPrice: parseFloat(formData.costPrice),
-            imageUrl: formData.image,
-          }
-        : {
-            number: formData.number,
-            type: formData.type,
-            country: formData.country,
-            groupId,
-            costPrice: parseFloat(formData.costPrice),
-            imageUrl: formData.image,
-          };
+      const body = {
+        ...(editingId && { id: editingId }),
+        number: formData.number,
+        type: formData.type,
+        country: formData.country,
+        groupId,
+        costPrice: parseFloat(formData.costPrice),
+        imageUrl: formData.image,
+      };
 
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (res.ok) {
-        resetForm();
-        setIsDialogOpen(false);
-        await fetchProducts();
-        alert('Товар сохранён');
+      if (editingId) {
+        await AdminAPI.updateProduct(body);
+      } else {
+        await AdminAPI.createProduct(body);
       }
+
+      resetForm();
+      setIsDialogOpen(false);
+      await refetchProducts();
+      alert('Товар сохранён');
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Ошибка при сохранении товара');
+      const message = await handleApiError(error);
+      alert('Ошибка при сохранении товара: ' + message);
     }
   };
 
@@ -176,29 +132,15 @@ export default function ProductsManagement() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Вы уверены? Это удалит товар из системы.')) {
-      try {
-        const res = await fetch('/api/admin/products', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
-        });
+    if (!confirm('Вы уверены? Это удалит товар из системы.')) return;
 
-        const result = await res.json();
-
-        if (res.ok) {
-          await fetchProducts();
-          alert('Товар удалён');
-        } else {
-          alert(
-            result.error ||
-              'Не удалось удалить товар. Возможно, он используется в заказах.'
-          );
-        }
-      } catch (error) {
-        console.error('Error deleting product:', error);
-        alert('Ошибка при удалении товара');
-      }
+    try {
+      await AdminAPI.deleteProduct(id);
+      await refetchProducts();
+      alert('Товар удалён');
+    } catch (error) {
+      const message = await handleApiError(error);
+      alert('Ошибка при удалении товара: ' + message);
     }
   };
 
@@ -301,9 +243,7 @@ export default function ProductsManagement() {
           disabled={filterType === 'ALL'}
         >
           <SelectTrigger className="w-full sm:w-48">
-            <SelectValue
-              placeholder={filterType === 'ALL' ? 'Выберите тип' : 'Все группы'}
-            />
+            <SelectValue placeholder="Все группы" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Все группы</SelectItem>
@@ -337,11 +277,7 @@ export default function ProductsManagement() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Тип:</span>
                     <span>
-                      {product.type === 'MAGNET'
-                        ? 'Магнит'
-                        : product.type === 'PLATE'
-                        ? 'Тарелка'
-                        : product.type}
+                      {PRODUCT_TYPE_LABELS[product.type] || product.type}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
@@ -417,11 +353,7 @@ export default function ProductsManagement() {
                 <SelectContent>
                   {PRODUCT_TYPES.map((type) => (
                     <SelectItem key={type} value={type}>
-                      {type === 'MAGNET'
-                        ? 'Магнит'
-                        : type === 'PLATE'
-                        ? 'Тарелка'
-                        : type}
+                      {PRODUCT_TYPE_LABELS[type] || type}
                     </SelectItem>
                   ))}
                 </SelectContent>
