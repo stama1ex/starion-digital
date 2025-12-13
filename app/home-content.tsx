@@ -32,7 +32,7 @@ export default function HomeContent({ translations }: HomeContentProps) {
           transition={{ duration: 0.9, ease: 'easeOut', delay: 0.2 }}
         >
           {translations.title}
-          <span className="animate-gradient-flow !my-0">Starion Digital</span>
+          <span className="animate-gradient-flow my-0!">Starion Digital</span>
         </motion.h1>
 
         <motion.p
