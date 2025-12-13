@@ -74,6 +74,7 @@
     "magnets_title": "Magnets Catalog",
     "plates_title": "Plates Catalog",
     "all_others": "All Others",
+    "search_placeholder": "Search by number...",
     "fetch_error": "Failed to load {type}",
     "error": "Error: {message}",
     "number": "№ {number}",
