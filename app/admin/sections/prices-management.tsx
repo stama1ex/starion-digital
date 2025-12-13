@@ -17,9 +17,9 @@ import { ProductType } from '@prisma/client';
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
   'PLATE',
-  'POSTCARD',
-  'STATUE',
-  'BALL',
+  // 'POSTCARD',
+  // 'STATUE',
+  // 'BALL',
 ];
 
 interface ProductGroup {

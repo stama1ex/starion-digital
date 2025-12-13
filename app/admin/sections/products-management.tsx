@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
@@ -25,9 +26,9 @@ import { ProductType } from '@prisma/client';
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
   'PLATE',
-  'POSTCARD',
-  'STATUE',
-  'BALL',
+  // 'POSTCARD',
+  // 'STATUE',
+  // 'BALL',
 ];
 
 interface ProductGroup {
@@ -42,6 +43,8 @@ export default function ProductsManagement() {
   const [groups, setGroups] = useState<ProductGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('ALL');
+  const [filterGroup, setFilterGroup] = useState<string>('ALL');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -220,32 +223,102 @@ export default function ProductsManagement() {
 
   // Фильтрация товаров по поисковому запросу
   const filteredProducts = products.filter((product) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      product.number.toLowerCase().includes(query) ||
-      product.country.toLowerCase().includes(query) ||
-      product.type.toLowerCase().includes(query) ||
-      product.group?.name?.toLowerCase().includes(query)
-    );
+    // Поиск по тексту
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch =
+        product.number.toLowerCase().includes(query) ||
+        product.country.toLowerCase().includes(query) ||
+        product.type.toLowerCase().includes(query) ||
+        product.group?.name?.toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+    }
+
+    // Фильтр по типу
+    if (filterType !== 'ALL' && product.type !== filterType) {
+      return false;
+    }
+
+    // Фильтр по группе
+    if (filterGroup !== 'ALL') {
+      if (filterGroup === 'NONE' && product.groupId !== null) {
+        return false;
+      }
+      if (filterGroup !== 'NONE' && product.groupId !== parseInt(filterGroup)) {
+        return false;
+      }
+    }
+
+    return true;
   });
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold">Товары</h2>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Input
-            placeholder="Поиск по артикулу, стране, типу..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-64"
-          />
-          <Button onClick={handleOpenNew} className="gap-2">
-            <Plus size={16} />
-            Добавить товар
-          </Button>
-        </div>
+        <Button onClick={handleOpenNew} className="gap-2">
+          <Plus size={16} />
+          Добавить товар
+        </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input
+          placeholder="Поиск по артикулу, стране, типу..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full sm:flex-1"
+        />
+
+        <Select
+          value={filterType}
+          onValueChange={(value) => {
+            setFilterType(value);
+            setFilterGroup('ALL'); // Сбрасываем фильтр группы при смене типа
+          }}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="Все типы" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Все типы</SelectItem>
+            {PRODUCT_TYPES.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type === 'MAGNET'
+                  ? 'Магнит'
+                  : type === 'PLATE'
+                  ? 'Тарелка'
+                  : type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={filterGroup}
+          onValueChange={setFilterGroup}
+          disabled={filterType === 'ALL'}
+        >
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue
+              placeholder={filterType === 'ALL' ? 'Выберите тип' : 'Все группы'}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Все группы</SelectItem>
+            <SelectItem value="NONE">Без группы</SelectItem>
+            {groups
+              .filter(
+                (group) => filterType === 'ALL' || group.type === filterType
+              )
+              .map((group) => (
+                <SelectItem key={group.id} value={group.id.toString()}>
+                  {(group.translations as any)?.ru || group.slug}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2">
@@ -405,16 +478,19 @@ export default function ProductsManagement() {
               <label className="text-sm font-medium">Изображение</label>
               <div className="border-2 border-dashed rounded-lg p-4 text-center">
                 {formData.image ? (
-                  <div className="space-y-2">
-                    <p className="text-sm text-green-600">
-                      ✓ Изображение загружено
-                    </p>
+                  <div className="space-y-3">
+                    <img
+                      src={formData.image}
+                      alt="Preview"
+                      className="w-full max-w-xs mx-auto rounded-lg object-contain"
+                      style={{ maxHeight: '200px' }}
+                    />
                     <button
                       type="button"
                       onClick={() => setFormData({ ...formData, image: '' })}
-                      className="text-xs text-red-500 hover:underline"
+                      className="text-sm text-red-500 hover:underline"
                     >
-                      Удалить
+                      Удалить изображение
                     </button>
                   </div>
                 ) : (

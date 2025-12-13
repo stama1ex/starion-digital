@@ -203,7 +203,7 @@ export default function AdminDashboard({
           </div>
 
           <Tabs defaultValue="sales" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 gap-1">
+            <TabsList className="grid w-full grid-cols-4 gap-1">
               <TabsTrigger value="sales" className="text-xs sm:text-sm">
                 Продажи
               </TabsTrigger>
@@ -260,7 +260,7 @@ export default function AdminDashboard({
         {/* Редактировать */}
         <TabsContent value="edit" className="space-y-4">
           <Tabs defaultValue="partners" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 gap-1">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 gap-1">
               <TabsTrigger value="partners" className="text-xs sm:text-sm">
                 Партнеры
               </TabsTrigger>

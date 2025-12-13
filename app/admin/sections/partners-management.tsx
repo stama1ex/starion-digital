@@ -173,9 +173,9 @@ export default function PartnersManagement() {
         </div>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-2">
         {filteredPartners.map((partner) => (
-          <Card key={partner.id}>
+          <Card key={partner.id} className="py-1">
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
                 <div>
