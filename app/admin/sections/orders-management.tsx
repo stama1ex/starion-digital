@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   Select,
   SelectContent,
@@ -22,27 +22,21 @@ import {
 } from '@/components/ui/dialog';
 import { Plus, X, Trash2, Download } from 'lucide-react';
 import type { AdminOrder } from '../types';
+import {
+  ORDER_STATUS_LABELS,
+  ORDER_STATUS_COLORS,
+  OrderStatusType,
+  AdminAPI,
+  usePartners,
+  useProducts,
+  handleApiError,
+  formatDate,
+} from '@/lib/admin';
 
 interface OrdersManagementProps {
   orders: AdminOrder[];
   onRefresh: () => void;
 }
-
-type OrderStatusType = 'NEW' | 'CONFIRMED' | 'PAID' | 'CANCELLED';
-
-const STATUS_LABELS: Record<OrderStatusType, string> = {
-  NEW: 'Новый',
-  CONFIRMED: 'Подтверждён',
-  PAID: 'Оплачен',
-  CANCELLED: 'Отменён',
-};
-
-const STATUS_COLORS: Record<OrderStatusType, string> = {
-  NEW: 'bg-yellow-500',
-  CONFIRMED: 'bg-blue-500',
-  PAID: 'bg-green-500',
-  CANCELLED: 'bg-red-500',
-};
 
 export default function OrdersManagement({
   orders: initialOrders,
@@ -53,8 +47,8 @@ export default function OrdersManagement({
   const [updating, setUpdating] = useState<number | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [partners, setPartners] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const { partners } = usePartners(true);
+  const { products } = useProducts();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [orderType, setOrderType] = useState<'regular' | 'realization'>(
     'regular'
@@ -65,35 +59,10 @@ export default function OrdersManagement({
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (isCreateDialogOpen) {
-      fetchPartners();
-      fetchProducts();
+    if (partners.length > 0 && !selectedPartnerId) {
+      setSelectedPartnerId(partners[0].id.toString());
     }
-  }, [isCreateDialogOpen]);
-
-  const fetchPartners = async () => {
-    try {
-      const res = await fetch('/api/admin/partners');
-      const data = await res.json();
-      const filtered = data.filter((p: any) => p.name !== 'ADMIN');
-      setPartners(filtered);
-      if (filtered.length > 0) {
-        setSelectedPartnerId(filtered[0].id.toString());
-      }
-    } catch (error) {
-      console.error('Error fetching partners:', error);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const res = await fetch('/api/admin/products');
-      const data = await res.json();
-      setProducts(data);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  };
+  }, [partners, selectedPartnerId]);
 
   const handleAddItem = () => {
     if (products.length > 0) {
@@ -123,73 +92,46 @@ export default function OrdersManagement({
 
     try {
       setCreating(true);
-      const res = await fetch('/api/admin/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          partnerId: parseInt(selectedPartnerId),
-          orderType,
-          items: orderItems,
-        }),
+      await AdminAPI.createOrder({
+        partnerId: parseInt(selectedPartnerId),
+        orderType,
+        items: orderItems,
       });
 
-      if (res.ok) {
-        alert('Заказ создан успешно');
-        setIsCreateDialogOpen(false);
-        setOrderItems([]);
-        setOrderType('regular');
-        onRefresh();
-      } else {
-        const errorText = await res.text();
-        let errorMessage = 'Не удалось создать заказ';
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
-        }
-        alert(`Ошибка: ${errorMessage}`);
-      }
+      alert('Заказ создан успешно');
+      setIsCreateDialogOpen(false);
+      setOrderItems([]);
+      setOrderType('regular');
+      onRefresh();
     } catch (error) {
-      console.error('Error creating order:', error);
-      alert('Ошибка при создании заказа');
+      const message = await handleApiError(error);
+      alert(`Ошибка: ${message}`);
     } finally {
       setCreating(false);
     }
   };
-
   const handleStatusChange = async (
     orderId: number,
     newStatus: OrderStatusType
   ) => {
     try {
       setUpdating(orderId);
-      const res = await fetch('/api/admin/orders', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, status: newStatus }),
-      });
+      await AdminAPI.updateOrderStatus({ orderId, status: newStatus });
 
-      if (res.ok) {
-        // Обновляем локальное состояние
-        setOrders((prev) =>
-          prev.map((order) =>
-            order.id === orderId
-              ? {
-                  ...order,
-                  status: newStatus as unknown as typeof order.status,
-                }
-              : order
-          )
-        );
-        onRefresh();
-      } else {
-        const error = await res.json();
-        alert(`Ошибка: ${error.error || 'Не удалось обновить статус'}`);
-      }
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === orderId
+            ? {
+                ...order,
+                status: newStatus as unknown as typeof order.status,
+              }
+            : order
+        )
+      );
+      onRefresh();
     } catch (error) {
-      console.error('Error updating order status:', error);
-      alert('Ошибка при обновлении статуса');
+      const message = await handleApiError(error);
+      alert(`Ошибка: ${message}`);
     } finally {
       setUpdating(null);
     }
@@ -205,38 +147,18 @@ export default function OrdersManagement({
     }
 
     try {
-      const res = await fetch(`/api/admin/orders?orderId=${orderId}`, {
-        method: 'DELETE',
-      });
-
-      if (res.ok) {
-        // Удаляем из локального состояния
-        setOrders((prev) => prev.filter((order) => order.id !== orderId));
-        onRefresh();
-      } else {
-        const errorText = await res.text();
-        let errorMessage = 'Не удалось удалить заказ';
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorMessage;
-        } catch {
-          errorMessage = errorText || errorMessage;
-        }
-        alert(`Ошибка: ${errorMessage}`);
-      }
+      await AdminAPI.deleteOrder(orderId);
+      setOrders((prev) => prev.filter((order) => order.id !== orderId));
+      onRefresh();
     } catch (error) {
-      console.error('Error deleting order:', error);
-      alert('Ошибка при удалении заказа');
+      const message = await handleApiError(error);
+      alert(`Ошибка: ${message}`);
     }
   };
 
   const handleExportOrder = async (order: AdminOrder) => {
     try {
-      const response = await fetch('/api/admin/orders/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId: order.id }),
-      });
+      const response = await fetch(`/api/admin/export?orderId=${order.id}`);
 
       if (!response.ok) {
         // Проверяем Content-Type перед парсингом
@@ -370,66 +292,46 @@ export default function OrdersManagement({
                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
               >
                 <CardContent className="py-3">
-                  <div>
-                    <div className="flex items-center justify-between gap-4">
-                      {/* Левая часть: номер, партнер, дата */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap ">
-                          <span className="font-semibold">
-                            Заказ #{order.id}
-                          </span>
-                          <Badge
-                            className={`${
-                              STATUS_COLORS[order.status as OrderStatusType] ||
-                              'bg-gray-500'
-                            } text-xs`}
-                          >
-                            {STATUS_LABELS[order.status as OrderStatusType] ||
-                              order.status}
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Левая часть: номер, партнер, дата */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-semibold">Заказ #{order.id}</span>
+                        <Badge
+                          className={`${
+                            ORDER_STATUS_COLORS[
+                              order.status as OrderStatusType
+                            ] || 'bg-gray-500'
+                          } text-xs`}
+                        >
+                          {ORDER_STATUS_LABELS[
+                            order.status as OrderStatusType
+                          ] || order.status}
+                        </Badge>
+                        {(order as any).isRealization && (
+                          <Badge className="bg-transparent border border-purple-400 text-xs text-purple-400">
+                            На реализацию
                           </Badge>
-                          {(order as any).isRealization && (
-                            <Badge className="bg-transparent border border-purple-400 text-xs text-purple-400">
-                              На реализацию
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2 truncate">
-                          {order.partner.name} •{' '}
-                          {new Date(order.createdAt).toLocaleDateString(
-                            'ru-RU',
-                            {
-                              day: 'numeric',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            }
-                          )}
-                        </p>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-2 truncate">
+                        {order.partner.name} • {formatDate(order.createdAt)}
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center">
+                      {/* Центр: количество товаров */}
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Товаров</p>
+                        <p className="font-semibold">{totalItems} шт</p>
                       </div>
 
-                      <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center ">
-                        {/* Центр: количество товаров */}
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">
-                            Товаров
-                          </p>
-                          <p className="font-semibold">{totalItems} шт</p>
-                        </div>
-
-                        {/* Правая часть: сумма и стрелка */}
-                        <div className="flex items-center gap-3">
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Сумма
-                            </p>
-                            <p className="font-bold text-lg">
-                              {Number(order.totalPrice).toFixed(0)} MDL
-                            </p>
-                          </div>
-                          <div className="text-muted-foreground text-xl">
-                            {isExpanded ? '▲' : '▼'}
-                          </div>
-                        </div>
+                      {/* Правая часть: сумма */}
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">Сумма</p>
+                        <p className="font-semibold">
+                          {Number(order.totalPrice).toFixed(2)} MDL
+                        </p>
                       </div>
                     </div>
                   </div>
