@@ -19,9 +19,12 @@ export async function GET(request: NextRequest) {
     if (partnerId) {
       prices = await prisma.price.findMany({
         where: { partnerId: parseInt(partnerId) },
+        include: { group: true },
       });
     } else {
-      prices = await prisma.price.findMany();
+      prices = await prisma.price.findMany({
+        include: { group: true },
+      });
     }
     return NextResponse.json(prices);
   } catch (error) {
@@ -48,10 +51,10 @@ export async function POST(request: NextRequest) {
     // Check if price already exists
     const existing = await prisma.price.findUnique({
       where: {
-        partnerId_type_materialId: {
+        partnerId_type_groupId: {
           partnerId: data.partnerId,
           type: data.type,
-          materialId: data.materialId,
+          groupId: data.groupId || null,
         },
       },
     });
@@ -60,10 +63,10 @@ export async function POST(request: NextRequest) {
     if (existing) {
       price = await prisma.price.update({
         where: {
-          partnerId_type_materialId: {
+          partnerId_type_groupId: {
             partnerId: data.partnerId,
             type: data.type,
-            materialId: data.materialId,
+            groupId: data.groupId || null,
           },
         },
         data: {
@@ -75,7 +78,7 @@ export async function POST(request: NextRequest) {
         data: {
           partnerId: data.partnerId,
           type: data.type,
-          materialId: data.materialId,
+          groupId: data.groupId || null,
           price: data.price,
         },
       });

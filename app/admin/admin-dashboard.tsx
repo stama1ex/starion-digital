@@ -11,7 +11,7 @@ import OrdersManagement from './sections/orders-management';
 import PartnersManagement from './sections/partners-management';
 import PricesManagement from './sections/prices-management';
 import ProductsManagement from './sections/products-management';
-import MaterialsManagement from './sections/materials-management';
+import { GroupsManagement } from './sections/groups-management';
 import AdminSettings from './sections/admin-settings';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
@@ -40,6 +40,7 @@ export default function AdminDashboard({
     to: new Date().toISOString().split('T')[0],
   });
   const [useCustomRange, setUseCustomRange] = useState(false);
+  const [activeTab, setActiveTab] = useState('orders');
 
   const handleRefreshOrders = async () => {
     try {
@@ -67,93 +68,12 @@ export default function AdminDashboard({
 
   return (
     <div className="space-y-6 p-4 md:p-0">
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => {
-              setDateRange('day');
-              setUseCustomRange(false);
-            }}
-            className={`px-3 py-2 text-sm rounded ${
-              !useCustomRange && dateRange === 'day'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-foreground'
-            }`}
-          >
-            День
-          </button>
-          <button
-            onClick={() => {
-              setDateRange('week');
-              setUseCustomRange(false);
-            }}
-            className={`px-3 py-2 text-sm rounded ${
-              !useCustomRange && dateRange === 'week'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-foreground'
-            }`}
-          >
-            Неделя
-          </button>
-          <button
-            onClick={() => {
-              setDateRange('month');
-              setUseCustomRange(false);
-            }}
-            className={`px-3 py-2 text-sm rounded ${
-              !useCustomRange && dateRange === 'month'
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-secondary text-foreground'
-            }`}
-          >
-            Месяц
-          </button>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-          <label className="text-sm font-medium whitespace-nowrap">
-            Промежуток:
-          </label>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground whitespace-nowrap">
-                От:
-              </label>
-              <input
-                type="date"
-                value={customDateRange.from}
-                onChange={(e) => {
-                  setCustomDateRange({
-                    ...customDateRange,
-                    from: e.target.value,
-                  });
-                  setUseCustomRange(true);
-                }}
-                className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs text-muted-foreground whitespace-nowrap">
-                До:
-              </label>
-              <input
-                type="date"
-                value={customDateRange.to}
-                onChange={(e) => {
-                  setCustomDateRange({
-                    ...customDateRange,
-                    to: e.target.value,
-                  });
-                  setUseCustomRange(true);
-                }}
-                className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Tabs defaultValue="orders" className="w-full">
+      <Tabs
+        defaultValue="orders"
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="w-full"
+      >
         <TabsList className="grid w-full grid-cols-3 gap-1 h-auto">
           <TabsTrigger value="orders" className="text-xs sm:text-sm py-2">
             <span className="hidden sm:inline">📋 </span>Заказы
@@ -196,6 +116,92 @@ export default function AdminDashboard({
 
         {/* Анализ */}
         <TabsContent value="analytics" className="space-y-4">
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setDateRange('day');
+                  setUseCustomRange(false);
+                }}
+                className={`px-3 py-2 text-sm rounded ${
+                  !useCustomRange && dateRange === 'day'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                День
+              </button>
+              <button
+                onClick={() => {
+                  setDateRange('week');
+                  setUseCustomRange(false);
+                }}
+                className={`px-3 py-2 text-sm rounded ${
+                  !useCustomRange && dateRange === 'week'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                Неделя
+              </button>
+              <button
+                onClick={() => {
+                  setDateRange('month');
+                  setUseCustomRange(false);
+                }}
+                className={`px-3 py-2 text-sm rounded ${
+                  !useCustomRange && dateRange === 'month'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                Месяц
+              </button>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+              <label className="text-sm font-medium whitespace-nowrap">
+                Промежуток:
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground whitespace-nowrap">
+                    От:
+                  </label>
+                  <input
+                    type="date"
+                    value={customDateRange.from}
+                    onChange={(e) => {
+                      setCustomDateRange({
+                        ...customDateRange,
+                        from: e.target.value,
+                      });
+                      setUseCustomRange(true);
+                    }}
+                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted-foreground whitespace-nowrap">
+                    До:
+                  </label>
+                  <input
+                    type="date"
+                    value={customDateRange.to}
+                    onChange={(e) => {
+                      setCustomDateRange({
+                        ...customDateRange,
+                        to: e.target.value,
+                      });
+                      setUseCustomRange(true);
+                    }}
+                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           <Tabs defaultValue="sales" className="w-full">
             <TabsList className="grid w-full grid-cols-2 gap-1">
               <TabsTrigger value="sales" className="text-xs sm:text-sm">
@@ -254,7 +260,7 @@ export default function AdminDashboard({
         {/* Редактировать */}
         <TabsContent value="edit" className="space-y-4">
           <Tabs defaultValue="partners" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 gap-1">
+            <TabsList className="grid w-full grid-cols-3 gap-1">
               <TabsTrigger value="partners" className="text-xs sm:text-sm">
                 Партнеры
               </TabsTrigger>
@@ -264,8 +270,8 @@ export default function AdminDashboard({
               <TabsTrigger value="catalog" className="text-xs sm:text-sm">
                 Товары
               </TabsTrigger>
-              <TabsTrigger value="materials" className="text-xs sm:text-sm">
-                Материалы
+              <TabsTrigger value="groups" className="text-xs sm:text-sm">
+                Группы
               </TabsTrigger>
               <TabsTrigger value="settings" className="text-xs sm:text-sm">
                 Админ-данные
@@ -284,8 +290,8 @@ export default function AdminDashboard({
               <ProductsManagement />
             </TabsContent>
 
-            <TabsContent value="materials">
-              <MaterialsManagement />
+            <TabsContent value="groups">
+              <GroupsManagement />
             </TabsContent>
 
             <TabsContent value="settings">

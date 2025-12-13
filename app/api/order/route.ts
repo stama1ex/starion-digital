@@ -82,12 +82,12 @@ export async function POST(req: Request) {
       }
 
       const priceEntry = prices.find(
-        (p) => p.type === product.type && p.materialId === product.materialId
+        (p) => p.type === product.type && p.groupId === product.groupId
       );
 
       if (!priceEntry) {
         throw new Error(
-          `Missing price for ${product.type}/${product.materialId}`
+          `Missing price for ${product.type}/${product.groupId || 'no-group'}`
         );
       }
 
@@ -147,14 +147,11 @@ export async function POST(req: Request) {
       `🛒 Состав заказа:\n${itemsText}\n\n` +
       `💰 Итого: ${total} MDL`;
 
-    console.log('📊 Creating Excel for partner order:', order.id);
     try {
       const excelBuffer = await createOrderExcel(order);
-      console.log('📊 Excel created, buffer size:', excelBuffer.length);
       await sendOrderExcel(excelBuffer.buffer as ArrayBuffer, captionText);
-      console.log('✅ Excel sent to Telegram');
     } catch (excelError) {
-      console.error('❌ Error sending Excel:', excelError);
+      console.error('Error sending Excel to Telegram:', excelError);
     }
 
     return Response.json({ ok: true, orderId: order.id });

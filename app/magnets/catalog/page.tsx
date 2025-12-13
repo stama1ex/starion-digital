@@ -24,24 +24,21 @@ export default async function MagnetsCatalogPage({ params }: any) {
   const locale = params.locale;
   await getTranslations({ locale, namespace: 'Catalog' });
 
-  // ❗ Берём товары с материалами
+  // ❗ Берём товары с группами
   const rawProducts = await prisma.product.findMany({
     where: { type: 'MAGNET' },
     orderBy: { number: 'asc' },
-    include: { material: true },
+    include: { group: true },
   });
 
-  // ❗ Удаляем Decimal и добавляем material label
-  const products = toPlain(rawProducts).map((p: any) => ({
-    ...p,
-    material: p.material.name,
-  }));
+  // ❗ Удаляем Decimal
+  const products = toPlain(rawProducts);
 
   // --- ценообразование ---
   const session = (await cookies()).get('session')?.value;
   let prices: {
     type: 'MAGNET' | 'PLATE';
-    material: string;
+    group: { id: number; slug: string; translations: any } | null;
     price: number;
   }[] = [];
 
@@ -49,12 +46,18 @@ export default async function MagnetsCatalogPage({ params }: any) {
     const partnerId = Number(session);
     const raw = await prisma.price.findMany({
       where: { partnerId },
-      include: { material: true },
+      include: { group: true },
     });
 
     prices = raw.map((p) => ({
       type: p.type as 'MAGNET' | 'PLATE',
-      material: p.material.name,
+      group: p.group
+        ? {
+            id: p.group.id,
+            slug: p.group.slug,
+            translations: p.group.translations,
+          }
+        : null,
       price: Number(p.price),
     }));
   }

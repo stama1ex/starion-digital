@@ -12,14 +12,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Edit2, Plus } from 'lucide-react';
+import { Trash2, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
 
 export default function PartnersManagement() {
   const [partners, setPartners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     login: '',
@@ -143,18 +145,36 @@ export default function PartnersManagement() {
 
   if (loading) return <div className="p-4">Загрузка...</div>;
 
+  // Фильтрация партнёров по поисковому запросу
+  const filteredPartners = partners.filter((partner) => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      partner.name.toLowerCase().includes(query) ||
+      partner.login.toLowerCase().includes(query)
+    );
+  });
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold">Партнеры</h2>
-        <Button onClick={handleOpenNew} className="gap-2">
-          <Plus size={16} />
-          Добавить партнера
-        </Button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Input
+            placeholder="Поиск по имени или логину..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full sm:w-64"
+          />
+          <Button onClick={handleOpenNew} className="gap-2">
+            <Plus size={16} />
+            Добавить партнера
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4">
-        {partners.map((partner) => (
+        {filteredPartners.map((partner) => (
           <Card key={partner.id}>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
@@ -232,14 +252,24 @@ export default function PartnersManagement() {
             </div>
             <div>
               <label className="text-sm font-medium">Пароль</label>
-              <Input
-                type="password"
-                value={formData.password || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                placeholder="password"
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={formData.password || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  placeholder="password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
           </div>
           <DialogFooter>

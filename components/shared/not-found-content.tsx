@@ -25,7 +25,7 @@ export default function NotFoundContent({
     >
       <Title
         text={translations.title}
-        className="w-full !text-4xl md:!text-6xl font-extrabold mb-8 animate-gradient-flow"
+        className="w-full text-4xl! md:text-6xl! font-extrabold mb-8 animate-gradient-flow"
       />
       <motion.p
         className="text-md md:text-lg text-muted-foreground mb-8 max-w-2xl mx-auto"

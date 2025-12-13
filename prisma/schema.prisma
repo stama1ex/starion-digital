@@ -26,36 +26,43 @@ model Product {
   number    String   @unique
   country   String
   image     String
-  materialId Int     // Связь с MaterialCatalog
+  groupId   Int?     // Необязательная связь с группой
   costPrice Decimal  @db.Decimal(10,2) @default(0) // Себестоимость
 
-  material  MaterialCatalog @relation(fields: [materialId], references: [id])
+  group    ProductGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   items     OrderItem[]
   realizationItems RealizationItem[]
+
+  @@index([type])
+  @@index([groupId])
 }
 
-// Каталог материалов - для легкого добавления новых материалов
-model MaterialCatalog {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique // MARBLE, WOOD, ACRYLIC, METAL и тд
-  label     String   // Мрамор, Дерево, Акрил, Металл
-  createdAt DateTime @default(now())
+// Группы товаров - гибкая система группировки
+model ProductGroup {
+  id           Int      @id @default(autoincrement())
+  slug         String   // WOOD, MARBLE, GLASS, etc.
+  translations Json     // {"en": "Wood", "ro": "Lemn", "ru": "Дерево"}
+  type         ProductType // К какому типу товара относится группа
+  createdAt    DateTime @default(now())
 
   products Product[]
   prices   Price[]
+
+  @@index([type])
+  @@index([slug, type])
 }
 
 model Price {
   id        Int      @id @default(autoincrement())
   partnerId Int
   type      ProductType
-  materialId Int     // Связь с MaterialCatalog
+  groupId   Int?     // Необязательная связь с группой (может быть цена на тип без группы)
   price     Decimal  @db.Decimal(10,2)
 
-  partner   Partner          @relation(fields: [partnerId], references: [id])
-  material  MaterialCatalog  @relation(fields: [materialId], references: [id])
+  partner   Partner       @relation(fields: [partnerId], references: [id])
+  group     ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
-  @@unique([partnerId, type, materialId]) // У одного партнёра только одна цена на каждую комбинацию
+  @@unique([partnerId, type, groupId]) // У одного партнёра только одна цена на каждую комбинацию
 }
 
 model Order {

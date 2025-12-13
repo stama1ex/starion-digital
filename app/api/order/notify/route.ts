@@ -4,16 +4,13 @@ import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 
 export async function POST(req: Request) {
-  console.log('🔔 Notify endpoint called');
   try {
     const session = (await cookies()).get('session')?.value;
     if (!session) {
-      console.log('❌ No session');
       return new Response('Unauthorized', { status: 401 });
     }
 
     const { orderId, comment } = await req.json();
-    console.log('📝 Order ID:', orderId, 'Comment:', comment);
     if (!orderId) return new Response('No orderId', { status: 400 });
 
     const order = await prisma.order.findUnique({
@@ -50,16 +47,12 @@ export async function POST(req: Request) {
       `🛒 Состав заказа:\n${itemsText}\n\n` +
       `💰 Итого: ${order.totalPrice} MDL`;
 
-    console.log('📊 Creating Excel for order:', order.id);
     const excelBuffer = await createOrderExcel(order);
-    console.log('📊 Excel created, buffer size:', excelBuffer.length);
 
-    // Отправляем файл с текстом заказа в caption
     try {
       await sendOrderExcel(excelBuffer.buffer as ArrayBuffer, captionText);
-      console.log('✅ Excel sent successfully');
     } catch (excelError) {
-      console.error('❌ Error sending Excel:', excelError);
+      console.error('Error sending Excel to Telegram:', excelError);
     }
 
     return Response.json({ ok: true, sent: true });

@@ -61,7 +61,7 @@ export default function LandingCarousel() {
         setMagnetImgs(imgs);
         setCurrentImgs((prev) => ({ ...prev, magnet: getRandomImgs(imgs, 4) }));
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error('Error loading magnets:', err));
     fetch('/plates.json')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch plates');
@@ -72,7 +72,7 @@ export default function LandingCarousel() {
         setPlateImgs(imgs);
         setCurrentImgs((prev) => ({ ...prev, plate: getRandomImgs(imgs, 4) }));
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error('Error loading plates:', err));
   }, []);
 
   useEffect(() => {

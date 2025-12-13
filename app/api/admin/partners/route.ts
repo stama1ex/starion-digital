@@ -81,16 +81,16 @@ export async function POST(request: NextRequest) {
     });
 
     // Добавляем дефолтные цены для нового партнёра
-    // Получаем ID материалов
-    const materials = await prisma.materialCatalog.findMany({
+    // Получаем группы продуктов
+    const groups = await prisma.productGroup.findMany({
       where: {
-        name: { in: ['MARBLE', 'WOOD'] },
+        slug: { in: ['MARBLE', 'WOOD'] },
       },
     });
 
-    const materialMap = new Map(materials.map((m) => [m.name, m.id]));
-    const marbleId = materialMap.get('MARBLE');
-    const woodId = materialMap.get('WOOD');
+    const groupMap = new Map(groups.map((g) => [g.slug, g.id]));
+    const marbleId = groupMap.get('MARBLE');
+    const woodId = groupMap.get('WOOD');
 
     if (marbleId && woodId) {
       await prisma.price.createMany({
@@ -98,25 +98,25 @@ export async function POST(request: NextRequest) {
           {
             partnerId: partner.id,
             type: 'MAGNET',
-            materialId: marbleId,
+            groupId: marbleId,
             price: 20,
           },
           {
             partnerId: partner.id,
             type: 'MAGNET',
-            materialId: woodId,
+            groupId: woodId,
             price: 12,
           },
           {
             partnerId: partner.id,
             type: 'PLATE',
-            materialId: marbleId,
+            groupId: marbleId,
             price: 120,
           },
           {
             partnerId: partner.id,
             type: 'PLATE',
-            materialId: woodId,
+            groupId: woodId,
             price: 90,
           },
         ],

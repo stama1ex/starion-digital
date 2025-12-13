@@ -16,13 +16,16 @@ import { useTranslations } from 'next-intl';
 
 // Types match Prisma enums
 type ProductType = string;
-type Material = string;
 
 interface ProductDTO {
   id: number;
   number: string;
   type: ProductType;
-  material: Material;
+  group?: {
+    id: number;
+    slug: string;
+    translations: unknown;
+  } | null;
   image: string;
   country: string;
 }

@@ -41,7 +41,7 @@ export default function TermsContent({ translations }: TermsContentProps) {
     <>
       <Title
         text={translations.title}
-        className="w-full !text-4xl font-bold mb-8 text-center animate-gradient-flow break-words"
+        className="w-full text-4xl! font-bold mb-8 text-center animate-gradient-flow wrap-break-word"
       />
 
       <p className="text-muted-foreground text-center mb-12">
