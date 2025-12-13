@@ -9,7 +9,7 @@ export async function GET() {
 
   const prices = await prisma.price.findMany({
     where: { partnerId },
-    select: { type: true, material: true, price: true },
+    select: { type: true, group: true, price: true },
   });
 
   return Response.json(prices);

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { Container } from '@/components/shared/container';
@@ -8,13 +9,16 @@ import { ProductCard } from './product-card';
 
 // Типы такие же, как в Prisma
 type ProductType = string;
-type Material = string;
 
 interface ProductDTO {
   id: number;
   number: string;
   type: ProductType;
-  material: Material;
+  group?: {
+    id: number;
+    slug: string;
+    translations: any;
+  } | null;
   image: string;
   country: string;
 }
@@ -27,9 +31,14 @@ interface CatalogProps {
   modelUrls: Record<string, string>;
   prices?: {
     type: ProductType;
-    material: Material;
+    group: {
+      id: number;
+      slug: string;
+      translations: any;
+    } | null;
     price: number;
   }[];
+  hideTitle?: boolean;
 }
 
 const Catalog: React.FC<CatalogProps> = ({
@@ -39,6 +48,7 @@ const Catalog: React.FC<CatalogProps> = ({
   products,
   modelUrls,
   prices,
+  hideTitle = false,
 }) => {
   const t = useTranslations('Catalog');
 
@@ -49,19 +59,22 @@ const Catalog: React.FC<CatalogProps> = ({
   const getPrice = (p: ProductDTO) => {
     if (!prices) return null;
     const match = prices.find(
-      (x) => x.type === p.type && x.material === p.material
+      (x) => x.type === p.type && x.group?.id === p.group?.id
     );
     return match?.price ?? null;
   };
 
-  const materials = [...new Set(products.map((p) => p.material))] as Material[];
+  // Получаем уникальные группы (объекты, не строки)
+  const uniqueGroups = products
+    .map((p) => p.group)
+    .filter((g): g is NonNullable<typeof g> => !!g)
+    .filter(
+      (group, index, self) => self.findIndex((g) => g.id === group.id) === index
+    )
+    .sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
 
-  const materialOrder: Material[] = ['MARBLE', 'WOOD', 'ACRYLIC'];
-  const sortedMaterials = materials.sort(
-    (a, b) => materialOrder.indexOf(a) - materialOrder.indexOf(b)
-  );
-
-  const materialHeader = (m: Material) => t(`material.${m.toLowerCase()}`);
+  // Товары без группы
+  const ungroupedProducts = products.filter((p) => !p.group);
 
   return (
     <div className={className}>
@@ -81,25 +94,27 @@ const Catalog: React.FC<CatalogProps> = ({
           />
         )}
 
-        <hr className="my-12" />
+        {!hideTitle && (
+          <>
+            <hr className="my-12" />
+            <div className="flex justify-center w-full h-full">
+              <Title
+                text={t(titleKey)}
+                className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
+              />
+            </div>
+          </>
+        )}
 
-        <div className="flex justify-center w-full h-full">
-          <Title
-            text={t(titleKey)}
-            className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
-          />
-        </div>
-
-        {sortedMaterials.map((mat) => (
-          <div key={mat} className="my-10">
-            <h2 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-start">
-              {materialHeader(mat)}
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 px-4 md:px-0">
-              {products
-                .filter((p) => p.material === mat)
-                .map((product) => (
+        {/* Товары по группам */}
+        {uniqueGroups.map((group) => {
+          const groupProducts = products.filter(
+            (p) => p.group?.id === group.id
+          );
+          return (
+            <div key={group.id}>
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 px-4 md:px-0">
+                {groupProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -107,11 +122,30 @@ const Catalog: React.FC<CatalogProps> = ({
                     getPrice={getPrice}
                   />
                 ))}
+              </div>
             </div>
+          );
+        })}
 
-            <hr className="my-8 opacity-50" />
+        {/* Товары без группы */}
+        {ungroupedProducts.length > 0 && (
+          <div className="my-10">
+            <h2 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-start">
+              Другие товары
+            </h2>
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 px-4 md:px-0">
+              {ungroupedProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  modelUrls={modelUrls}
+                  getPrice={getPrice}
+                />
+              ))}
+            </div>
           </div>
-        ))}
+        )}
       </Container>
     </div>
   );

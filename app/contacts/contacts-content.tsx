@@ -35,7 +35,7 @@ export default function ContactsContent({
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
           <motion.h1
-            className="text-4xl !mt-12 !md:mt-0 text-center md:text-start md:text-6xl font-extrabold leading-tight animate-gradient-flow"
+            className="text-4xl mt-12! !md:mt-0 text-center md:text-start md:text-6xl font-extrabold leading-tight animate-gradient-flow"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}

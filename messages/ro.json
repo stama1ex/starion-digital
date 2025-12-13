@@ -78,6 +78,7 @@
     },
     "magnets_title": "Catalog Magnete",
     "plates_title": "Catalog Farfurii",
+    "all_others": "Toate Celelalte",
     "fetch_error": "Nu s-a putut încărca {type}",
     "error": "Eroare: {message}",
     "number": "Nr. {number}",
@@ -96,7 +97,6 @@
     "try_product": "Încearcă Produsul",
     "scan_qr": "Scanați codul QR și îndreptați camera spre imagine",
     "hold_camera": "Țineți camera deasupra imaginii până când apare videoclipul",
-    "souvenir_number": "Suvenir Nr. {number}",
     "close": "Închide"
   },
   "Scene": {
@@ -266,10 +266,5 @@
     "no_access": "Acces doar pentru parteneri",
     "login": "Autentificare",
     "logout": "Deconectare"
-  },
-  "material": {
-    "marble": "De marmură",
-    "wood": "Din lemn",
-    "acrylic": "Din acril"
   }
 }

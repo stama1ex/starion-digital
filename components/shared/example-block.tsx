@@ -110,8 +110,8 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
                   alt={souvenir.name ?? 'Товар'}
                   className={cn(
                     'w-60 h-60 md:w-70 md:h-70 object-contain mx-auto drop-shadow group-hover:scale-105 transition duration-300 ease-in-out',
-                    'md:absolute md:top-1/2 md:-translate-y-1/2 md:right-[-50rem]',
-                    reverse ? 'md:right-[-2rem]' : 'md:left-[-2rem]'
+                    'md:absolute md:top-1/2 md:-translate-y-1/2 md:-right-200',
+                    reverse ? 'md:-right-8' : 'md:-left-8'
                   )}
                 />
               </div>
@@ -123,7 +123,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
       <DrawerContent>
         <DrawerHeader>
           <DrawerTitle className="text-2xl font-bold text-center">
-            {t('souvenir_number', { number: souvenir.number })}
+            {t('try_product')}
           </DrawerTitle>
         </DrawerHeader>
         <div className="flex items-center justify-center h-[75vh]">

@@ -71,13 +71,9 @@
       "description": "Browse our collection of augmented reality magnets, featuring unique designs from various countries.",
       "description_plates": "Discover our collection of augmented reality souvenir plates, showcasing unique designs from various countries."
     },
-    "material": {
-      "marble": "Marble",
-      "wood": "Wooden",
-      "acrylic": "Acrylic"
-    },
     "magnets_title": "Magnets Catalog",
     "plates_title": "Plates Catalog",
+    "all_others": "All Others",
     "fetch_error": "Failed to load {type}",
     "error": "Error: {message}",
     "number": "№ {number}",
@@ -96,7 +92,6 @@
     "try_product": "Try the Product",
     "scan_qr": "Scan the QR code and point your camera at the image",
     "hold_camera": "Hold the camera over the image until the video appears",
-    "souvenir_number": "Souvenir № {number}",
     "close": "Close"
   },
   "Scene": {

@@ -14,6 +14,9 @@ export async function GET() {
     }
 
     const products = await prisma.product.findMany({
+      include: {
+        group: true,
+      },
       orderBy: { number: 'asc' },
     });
     return NextResponse.json(products);
@@ -43,7 +46,7 @@ export async function POST(request: NextRequest) {
         type: data.type,
         country: data.country,
         image: data.imageUrl || data.image || 'public/default.avif',
-        materialId: parseInt(data.materialId),
+        groupId: data.groupId ? parseInt(data.groupId) : null,
         costPrice: data.costPrice,
       },
     });
@@ -73,7 +76,7 @@ export async function PUT(request: NextRequest) {
       number: data.number,
       type: data.type,
       country: data.country,
-      materialId: parseInt(data.materialId),
+      groupId: data.groupId ? parseInt(data.groupId) : null,
       costPrice: data.costPrice,
     };
 

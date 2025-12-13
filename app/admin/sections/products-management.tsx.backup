@@ -30,18 +30,16 @@ const PRODUCT_TYPES: ProductType[] = [
   'BALL',
 ];
 
-interface ProductGroup {
+interface Material {
   id: number;
-  slug: string;
-  translations: any;
-  type: ProductType;
+  name: string;
+  label: string;
 }
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<any[]>([]);
-  const [groups, setGroups] = useState<ProductGroup[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -49,23 +47,26 @@ export default function ProductsManagement() {
     number: '',
     type: 'MAGNET' as ProductType,
     country: 'MD',
-    groupId: '',
+    materialId: '',
     costPrice: '',
     image: '',
   });
 
   useEffect(() => {
-    fetchGroups();
+    fetchMaterials();
     fetchProducts();
   }, []);
 
-  const fetchGroups = async () => {
+  const fetchMaterials = async () => {
     try {
-      const res = await fetch('/api/admin/groups');
+      const res = await fetch('/api/admin/materials');
       const data = await res.json();
-      setGroups(data);
+      setMaterials(data);
+      if (data.length > 0 && !formData.materialId) {
+        setFormData({ ...formData, materialId: data[0].id.toString() });
+      }
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      console.error('Error fetching materials:', error);
     }
   };
 
@@ -115,30 +116,23 @@ export default function ProductsManagement() {
     try {
       const url = '/api/admin/products';
       const method = editingId ? 'PUT' : 'POST';
-
-      // Обрабатываем groupId: если "NONE" или пустая строка, то null
-      const groupId =
-        formData.groupId && formData.groupId !== 'NONE'
-          ? parseInt(formData.groupId)
-          : null;
-
       const body = editingId
         ? {
             id: editingId,
             number: formData.number,
             type: formData.type,
             country: formData.country,
-            groupId,
+            materialId: formData.materialId,
             costPrice: parseFloat(formData.costPrice),
-            imageUrl: formData.image,
+            imageUrl: formData.image, // <--- вот это!
           }
         : {
             number: formData.number,
             type: formData.type,
             country: formData.country,
-            groupId,
+            materialId: formData.materialId,
             costPrice: parseFloat(formData.costPrice),
-            imageUrl: formData.image,
+            imageUrl: formData.image, // <--- и тут
           };
 
       const res = await fetch(url, {
@@ -164,7 +158,7 @@ export default function ProductsManagement() {
       number: product.number,
       type: product.type,
       country: product.country,
-      groupId: product.groupId ? product.groupId.toString() : 'NONE',
+      materialId: product.materialId.toString(),
       costPrice: product.costPrice.toString(),
       image: product.image,
     });
@@ -204,7 +198,7 @@ export default function ProductsManagement() {
       number: '',
       type: 'MAGNET',
       country: 'MD',
-      groupId: '',
+      materialId: materials.length > 0 ? materials[0].id.toString() : '',
       costPrice: '',
       image: '',
     });
@@ -218,91 +212,74 @@ export default function ProductsManagement() {
 
   if (loading) return <div className="p-4">Загрузка...</div>;
 
-  // Фильтрация товаров по поисковому запросу
-  const filteredProducts = products.filter((product) => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      product.number.toLowerCase().includes(query) ||
-      product.country.toLowerCase().includes(query) ||
-      product.type.toLowerCase().includes(query) ||
-      product.group?.name?.toLowerCase().includes(query)
-    );
-  });
-
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Товары</h2>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Input
-            placeholder="Поиск по артикулу, стране, типу..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-64"
-          />
-          <Button onClick={handleOpenNew} className="gap-2">
-            <Plus size={16} />
-            Добавить товар
-          </Button>
-        </div>
+        <Button onClick={handleOpenNew} className="gap-2">
+          <Plus size={16} />
+          Добавить товар
+        </Button>
       </div>
 
       <div className="grid gap-2">
-        {filteredProducts.map((product) => (
-          <Card key={product.id} className="p-0">
-            <CardContent className="p-3">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-                {/* Информация в одну строку */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">№</span>
-                    <span className="font-mono font-bold">
+        {products.map((product) => (
+          <Card key={product.id} className="py-2">
+            <CardContent>
+              <div className="flex flex-col gap-4">
+                {/* Сетка 2x2 для информации */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Артикул</p>
+                    <p className="font-mono font-bold text-sm">
                       {product.number}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Тип:</span>
-                    <span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Тип</p>
+                    <p className="text-sm">
                       {product.type === 'MAGNET'
                         ? 'Магнит'
                         : product.type === 'PLATE'
                         ? 'Тарелка'
                         : product.type}
-                    </span>
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">
-                      Группа:
-                    </span>
-                    <span>{product.group?.name || 'Без группы'}</span>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Материал</p>
+                    <p className="text-sm">
+                      {materials.find((m) => m.id === product.materialId)
+                        ?.label || 'N/A'}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Цена:</span>
-                    <span className="font-semibold">
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      Себестоимость
+                    </p>
+                    <p className="font-semibold text-sm">
                       {product.costPrice} MDL
-                    </span>
+                    </p>
                   </div>
                 </div>
 
-                {/* Кнопки действий */}
-                <div className="flex gap-2">
+                {/* Кнопки действий снизу */}
+                <div className="flex gap-2 pt-2 border-t">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(product)}
-                    className="gap-1 h-8"
+                    className="gap-2 flex-1"
                   >
-                    <Edit2 size={14} />
+                    <Edit2 size={16} />
                     <span className="hidden sm:inline">Редактировать</span>
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
                     onClick={() => handleDelete(product.id)}
-                    className="gap-1 h-8"
+                    className="gap-2 flex-1"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={16} />
                     <span className="hidden sm:inline">Удалить</span>
                   </Button>
                 </div>
@@ -355,27 +332,25 @@ export default function ProductsManagement() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium">
-                Группа (необязательно)
-              </label>
+              <label className="text-sm font-medium">Материал</label>
               <Select
-                value={formData.groupId || ''}
+                value={formData.materialId || ''}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, groupId: value })
+                  setFormData({ ...formData, materialId: value })
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите группу или оставьте пустым" />
+                  <SelectValue placeholder="Выберите материал" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NONE">Без группы</SelectItem>
-                  {groups
-                    .filter((g) => g.type === formData.type)
-                    .map((group) => (
-                      <SelectItem key={group.id} value={group.id.toString()}>
-                        {(group.translations as any)?.ru || group.slug}
-                      </SelectItem>
-                    ))}
+                  {materials.map((material) => (
+                    <SelectItem
+                      key={material.id}
+                      value={material.id.toString()}
+                    >
+                      {material.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

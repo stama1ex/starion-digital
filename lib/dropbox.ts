@@ -20,13 +20,13 @@ export async function getAccessToken(): Promise<string> {
     }),
   });
 
-  const data = await res.json();
   if (!res.ok) {
     const errorText = await parseDropboxError(res);
-    console.error('UPLOAD ERROR:', errorText);
-    throw new Error(`Dropbox upload failed: ${errorText}`);
+    console.error('Dropbox token error:', errorText);
+    throw new Error(`Dropbox token failed: ${errorText}`);
   }
 
+  const data = await res.json();
   return data.access_token as string;
 }
 
