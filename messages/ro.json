@@ -79,6 +79,7 @@
     "magnets_title": "Catalog Magnete",
     "plates_title": "Catalog Farfurii",
     "all_others": "Toate Celelalte",
+    "search_placeholder": "Căutare după număr...",
     "fetch_error": "Nu s-a putut încărca {type}",
     "error": "Eroare: {message}",
     "number": "Nr. {number}",

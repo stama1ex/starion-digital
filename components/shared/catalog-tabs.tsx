@@ -2,9 +2,11 @@
 'use client';
 
 import { useState } from 'react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Catalog from '@/components/shared/catalog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Search } from 'lucide-react';
 
 interface ProductGroup {
   id: number;
@@ -43,6 +45,9 @@ export default function CatalogTabs({
   prices,
 }: CatalogTabsProps) {
   const locale = useLocale();
+  const t = useTranslations('Catalog');
+
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Переводы для "Все остальные"
   const allOthersTranslations: Record<string, string> = {
@@ -67,6 +72,14 @@ export default function CatalogTabs({
     uniqueGroups[0]?.id?.toString() || 'all'
   );
 
+  // Фильтрация товаров по поисковому запросу
+  const filterProducts = (productsList: ProductDTO[]) => {
+    if (!searchQuery.trim()) return productsList;
+    return productsList.filter((p) =>
+      p.number.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
   // Функция для получения перевода группы
   const getGroupName = (group: ProductGroup) => {
     if (group.translations && typeof group.translations === 'object') {
@@ -78,50 +91,73 @@ export default function CatalogTabs({
   };
 
   return (
-    <Tabs value={activeGroup} onValueChange={setActiveGroup} className="w-full">
-      <TabsList className="w-fit justify-start mb-6 flex-wrap h-auto">
-        {uniqueGroups.map((group) => (
-          <TabsTrigger
-            key={group.id}
-            value={group.id.toString()}
-            className="px-6"
-          >
-            {getGroupName(group)}
-          </TabsTrigger>
-        ))}
-        {ungroupedProducts.length > 0 && (
-          <TabsTrigger value="all" className="px-6">
-            {allOthersTranslations[locale] || allOthersTranslations.ru}
-          </TabsTrigger>
-        )}
-      </TabsList>
+    <>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4 md:px-0">
+        <Tabs
+          value={activeGroup}
+          onValueChange={setActiveGroup}
+          className="w-full md:w-auto"
+        >
+          <TabsList className="w-fit justify-start flex-wrap h-auto gap-2">
+            {uniqueGroups.map((group) => (
+              <TabsTrigger
+                key={group.id}
+                value={group.id.toString()}
+                className="px-6"
+              >
+                {getGroupName(group)}
+              </TabsTrigger>
+            ))}
+            {ungroupedProducts.length > 0 && (
+              <TabsTrigger value="all" className="px-6">
+                {allOthersTranslations[locale] || allOthersTranslations.ru}
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </Tabs>
+
+        <div className="relative w-full md:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="text"
+            placeholder={t('search_placeholder') || 'Поиск по номеру...'}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </div>
 
       {uniqueGroups.map((group) => {
         const groupProducts = products.filter((p) => p.group?.id === group.id);
+        const filteredProducts = filterProducts(groupProducts);
         return (
-          <TabsContent key={group.id} value={group.id.toString()}>
+          <div
+            key={group.id}
+            className={activeGroup === group.id.toString() ? 'block' : 'hidden'}
+          >
             <Catalog
               titleKey={titleKey}
-              products={groupProducts}
+              products={filteredProducts}
               modelUrls={modelUrls}
               prices={prices}
               hideTitle
             />
-          </TabsContent>
+          </div>
         );
       })}
 
       {ungroupedProducts.length > 0 && (
-        <TabsContent value="all">
+        <div className={activeGroup === 'all' ? 'block' : 'hidden'}>
           <Catalog
             titleKey={titleKey}
-            products={ungroupedProducts}
+            products={filterProducts(ungroupedProducts)}
             modelUrls={modelUrls}
             prices={prices}
             hideTitle
           />
-        </TabsContent>
+        </div>
       )}
-    </Tabs>
+    </>
   );
 }

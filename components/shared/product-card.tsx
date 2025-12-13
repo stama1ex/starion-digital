@@ -62,7 +62,7 @@ export function ProductCard({ product, getPrice }: Props) {
           height={800}
           src={imgSrc}
           alt={product.number}
-          className="w-lg h-128 object-contain"
+          className="w-full max-w-md h-64 md:h-80 object-contain"
         />
       </Tilt>
     ),
