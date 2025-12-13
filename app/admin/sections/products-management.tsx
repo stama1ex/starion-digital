@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,13 +30,6 @@ import {
   AdminAPI,
   handleApiError,
 } from '@/lib/admin';
-
-interface ProductGroup {
-  id: number;
-  slug: string;
-  translations: any;
-  type: ProductType;
-}
 
 export default function ProductsManagement() {
   const { products, loading, refetch: refetchProducts } = useProducts();

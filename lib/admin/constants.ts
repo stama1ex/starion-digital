@@ -21,9 +21,9 @@ export const ORDER_STATUS_COLORS: Record<OrderStatusType, string> = {
 export const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
   'PLATE',
-  'POSTCARD',
-  'STATUE',
-  'BALL',
+  //   'POSTCARD',
+  //   'STATUE',
+  //   'BALL',
 ];
 
 export const PRODUCT_TYPE_LABELS: Record<string, string> = {
