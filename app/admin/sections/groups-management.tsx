@@ -18,7 +18,7 @@ import {
   useGroups,
   AdminAPI,
   handleApiError,
-  PRODUCT_TYPE_LABELS_PLURAL,
+  PRODUCT_TYPES_OPTIONS,
   groupBy,
 } from '@/lib/admin';
 
@@ -117,14 +117,6 @@ export function GroupsManagement() {
     }
   };
 
-  const productTypes = [
-    { value: 'MAGNET', label: PRODUCT_TYPE_LABELS_PLURAL.MAGNET },
-    { value: 'PLATE', label: PRODUCT_TYPE_LABELS_PLURAL.PLATE },
-    { value: 'POSTCARD', label: PRODUCT_TYPE_LABELS_PLURAL.POSTCARD },
-    { value: 'STATUE', label: PRODUCT_TYPE_LABELS_PLURAL.STATUE },
-    { value: 'BALL', label: PRODUCT_TYPE_LABELS_PLURAL.BALL },
-  ];
-
   const groupedByType = groupBy(groups, (group) => group.type);
 
   return (
@@ -195,7 +187,7 @@ export function GroupsManagement() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {productTypes.map((type) => (
+                    {PRODUCT_TYPES_OPTIONS.map((type) => (
                       <SelectItem key={type.value} value={type.value}>
                         {type.label}
                       </SelectItem>
@@ -215,7 +207,7 @@ export function GroupsManagement() {
       </Card>
 
       {/* Список групп по типам */}
-      {productTypes.map((type) => {
+      {PRODUCT_TYPES_OPTIONS.map((type) => {
         const typeGroups = groupedByType[type.value] || [];
         if (typeGroups.length === 0) return null;
 

@@ -41,3 +41,9 @@ export const PRODUCT_TYPE_LABELS_PLURAL: Record<string, string> = {
   STATUE: 'Статуэтки',
   BALL: 'Шары',
 };
+
+// Available product types for UI
+export const PRODUCT_TYPES_OPTIONS = PRODUCT_TYPES.map((type) => ({
+  value: type,
+  label: PRODUCT_TYPE_LABELS_PLURAL[type],
+}));
