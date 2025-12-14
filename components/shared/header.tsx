@@ -131,7 +131,7 @@ export const Header: React.FC<Props> = ({ className }) => {
 
             <SheetContent
               side="right"
-              className="w-[80vw] max-w-[400px] h-full rounded-none bg-background text-card-foreground overflow-scroll"
+              className="w-[80vw] max-w-100 h-full rounded-none bg-background text-card-foreground overflow-scroll"
             >
               <DialogTitle className="hidden">{t('menu')}</DialogTitle>
 
@@ -297,7 +297,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                 </NavigationMenuTrigger>
 
                 <NavigationMenuContent className="bg-background/70 backdrop-blur-xl border border-border rounded-md shadow-lg">
-                  <ul className="grid w-[400px] gap-2 md:w-[500px] md:grid-cols-2 lg:w-[600px] p-2">
+                  <ul className="grid w-100 gap-2 md:w-125 md:grid-cols-2 lg:w-150 p-2">
                     {categories.map((item, idx) => {
                       const isSoon = idx >= 2;
                       return (
@@ -350,7 +350,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                 </NavigationMenuTrigger>
 
                 <NavigationMenuContent>
-                  <ul className="grid w-[100px] gap-2">
+                  <ul className="grid w-25 gap-2">
                     {languages.map((lang) => (
                       <li key={lang.short}>
                         <NavigationMenuLink asChild>

@@ -80,9 +80,9 @@ export async function PUT(request: NextRequest) {
       costPrice: data.costPrice,
     };
 
-    // Если передано новое изображение — обновляем
-    if (data.imageUrl) {
-      updateData.image = data.imageUrl;
+    // Если imageUrl передан (даже пустая строка) — обновляем
+    if (data.imageUrl !== undefined) {
+      updateData.image = data.imageUrl || '';
     }
 
     const product = await prisma.product.update({

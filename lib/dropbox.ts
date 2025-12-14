@@ -91,14 +91,3 @@ export async function uploadImage(buffer: ArrayBuffer, filename: string) {
   const url = await getTemporaryLink(path);
   return { path, url };
 }
-
-function sanitizeFilename(name: string) {
-  return (
-    name
-      .normalize('NFKD') // убирает диакритику
-      .replace(/[^\x00-\x7F]/g, '') // убирает не-ASCII
-      .replace(/\s+/g, '_') // заменяет пробелы
-      .replace(/[^a-zA-Z0-9._-]/g, '') || // оставляем безопасные символы
-    `file_${Date.now()}`
-  ); // fallback
-}
