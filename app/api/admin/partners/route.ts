@@ -192,7 +192,14 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { id } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const idParam = searchParams.get('id');
+
+    if (!idParam) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+
+    const id = parseInt(idParam);
 
     // Проверяем что партнёр не админ
     const partner = await prisma.partner.findUnique({

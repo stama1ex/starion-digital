@@ -14,6 +14,8 @@ import { usePartner } from '@/app/providers/partner-provider';
 import { Button } from '../ui/button';
 import { useTranslations } from 'next-intl';
 import { NoImageIcon } from './no-image-icon';
+import { useRouter } from 'next/navigation';
+import { Handshake } from 'lucide-react';
 
 // Types match Prisma enums
 type ProductType = string;
@@ -44,6 +46,7 @@ export function ProductCard({ product, getPrice }: Props) {
 
   const { isPartner } = usePartner();
   const addItem = useCartStore((s) => s.addItem);
+  const router = useRouter();
 
   const t = useTranslations('Catalog');
 
@@ -128,7 +131,7 @@ export function ProductCard({ product, getPrice }: Props) {
           </div>
         </div>
 
-        {isPartner && (
+        {isPartner ? (
           <div className="flex flex-col justify-between w-full">
             <div className="text-lg font-bold text-center mb-2">
               {total} MDL
@@ -167,6 +170,27 @@ export function ProductCard({ product, getPrice }: Props) {
               className="py-2 transition-all"
             >
               {t('add_to_order')}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-4 p-6 bg-muted/50 rounded-lg">
+            <Handshake className="w-16 h-16 text-primary" />
+            <div className="text-center">
+              <h3 className="font-bold text-lg mb-2">
+                {t('partner_cta_title')}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {t('partner_cta_description')}
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                setOpen(false);
+                router.push('/partnership');
+              }}
+              className="w-full"
+            >
+              {t('partner_cta_button')}
             </Button>
           </div>
         )}

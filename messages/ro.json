@@ -84,7 +84,10 @@
     "error": "Eroare: {message}",
     "number": "Nr. {number}",
     "type": "Produs",
-    "add_to_order": "Adaugă în comandă"
+    "add_to_order": "Adaugă în comandă",
+    "partner_cta_title": "Doriți să deveniți partener?",
+    "partner_cta_description": "Înregistrați-vă ca partener pentru a vedea prețurile și a plasa comenzi direct",
+    "partner_cta_button": "Trimiteți cerere de parteneriat"
   },
   "LandingDrawer": {
     "title": "De unde începem?",
@@ -260,12 +263,36 @@
     "submit": "Autentificare",
     "loading": "Se conectează...",
     "invalid": "Login sau parolă incorectă",
-    "success": "Autentificare reușită"
+    "success": "Autentificare reușită",
+    "no_account": "Nu aveți cont?",
+    "apply_partnership": "Trimiteți o cerere"
   },
   "PartnerUI": {
     "logout_success": "V-ați deconectat cu succes",
     "no_access": "Acces doar pentru parteneri",
     "login": "Autentificare",
     "logout": "Deconectare"
+  },
+  "Partnership": {
+    "title": "Cerere de parteneriat",
+    "description": "Completați formularul și vă vom contacta pentru a discuta condițiile de cooperare",
+    "phone_label": "Număr de telefon",
+    "phone_placeholder": "+XXX XXX XXX XX",
+    "login_label": "Login dorit",
+    "login_placeholder": "mycompany",
+    "password_label": "Parolă dorită",
+    "password_placeholder": "Minimum 6 caractere",
+    "password_hint": "Vom crea un cont pentru dvs. cu aceste date",
+    "message_label": "Informații suplimentare (opțional)",
+    "message_placeholder": "Spuneți-ne despre compania dvs., volumele de comenzi planificate etc.",
+    "submit_button": "Trimite cererea",
+    "sending": "Se pregătește...",
+    "required_fields": "* Câmpuri obligatorii",
+    "back": "Înapoi",
+    "success_title": "Cerere trimisă!",
+    "success_message": "Cererea dvs. a fost trimisă cu succes. O vom examina în curând și vă vom contacta.",
+    "back_to_home": "Înapoi la pagina principală",
+    "error_submit": "Eroare la trimiterea cererii",
+    "error_network": "Eroare la trimitere. Încercați mai târziu."
   }
 }

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
 export default function LoginForm() {
   const t = useTranslations('Login');
@@ -76,6 +77,18 @@ export default function LoginForm() {
             {loading ? t('loading') : t('submit')}
           </Button>
         </form>
+
+        <div className="mt-6 text-center">
+          <p className="text-sm text-muted-foreground">
+            {t('no_account')}{' '}
+            <Link
+              href="/partnership"
+              className="font-semibold text-primary hover:underline underline-offset-4"
+            >
+              {t('apply_partnership')}
+            </Link>
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
