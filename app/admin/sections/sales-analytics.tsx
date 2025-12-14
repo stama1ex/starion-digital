@@ -126,16 +126,31 @@ export default function SalesAnalytics({
     ([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime()
   );
 
-  const chartData = sortedEntries.map(([date, data]) => ({
-    date: new Date(date).toLocaleDateString('ru-RU', {
-      year: '2-digit',
-      month: 'short',
-      day: 'numeric',
-    }),
-    revenue: Math.round(data.revenue),
-    cost: Math.round(data.cost),
-    profit: Math.round(data.profit),
-  }));
+  const chartData = sortedEntries.map(([date, data]) => {
+    const d = new Date(date);
+    const months = [
+      'янв',
+      'фев',
+      'мар',
+      'апр',
+      'мая',
+      'июн',
+      'июл',
+      'авг',
+      'сен',
+      'окт',
+      'ноя',
+      'дек',
+    ];
+    const formattedDate = `${d.getDate()} ${months[d.getMonth()]}`;
+
+    return {
+      date: formattedDate,
+      revenue: Math.round(data.revenue),
+      cost: Math.round(data.cost),
+      profit: Math.round(data.profit),
+    };
+  });
 
   const periodLabel = customDateRange
     ? `с ${customDateRange.from} по ${customDateRange.to}`
