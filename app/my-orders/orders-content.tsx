@@ -52,12 +52,59 @@ export default function OrdersContent() {
       </Container>
     );
 
-  const formatDate = (date: string) =>
-    new Date(date).toLocaleDateString(locale, {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
+  const formatDate = (date: string) => {
+    const d = new Date(date);
+    const months: Record<string, string[]> = {
+      en: [
+        'January',
+        'February',
+        'March',
+        'April',
+        'May',
+        'June',
+        'July',
+        'August',
+        'September',
+        'October',
+        'November',
+        'December',
+      ],
+      ru: [
+        'января',
+        'февраля',
+        'марта',
+        'апреля',
+        'мая',
+        'июня',
+        'июля',
+        'августа',
+        'сентября',
+        'октября',
+        'ноября',
+        'декабря',
+      ],
+      ro: [
+        'ianuarie',
+        'februarie',
+        'martie',
+        'aprilie',
+        'mai',
+        'iunie',
+        'iulie',
+        'august',
+        'septembrie',
+        'octombrie',
+        'noiembrie',
+        'decembrie',
+      ],
+    };
+
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = months[locale]?.[d.getMonth()] || months.en[d.getMonth()];
+    const year = d.getFullYear();
+
+    return `${day} ${month} ${year}`;
+  };
 
   let lastDate = '';
 
