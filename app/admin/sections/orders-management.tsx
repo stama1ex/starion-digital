@@ -158,7 +158,13 @@ export default function OrdersManagement({
 
   const handleExportOrder = async (order: AdminOrder) => {
     try {
-      const response = await fetch(`/api/admin/export?orderId=${order.id}`);
+      const response = await fetch('/api/admin/orders/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderId: order.id }),
+      });
 
       if (!response.ok) {
         // Проверяем Content-Type перед парсингом
