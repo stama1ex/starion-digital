@@ -79,7 +79,10 @@
     "error": "Error: {message}",
     "number": "№ {number}",
     "type": "Product",
-    "add_to_order": "Add to order"
+    "add_to_order": "Add to order",
+    "partner_cta_title": "Want to become a partner?",
+    "partner_cta_description": "Register as a partner to see prices and place orders directly",
+    "partner_cta_button": "Apply for partnership"
   },
   "LandingDrawer": {
     "title": "Where to Start?",
@@ -255,12 +258,36 @@
     "submit": "Sign In",
     "loading": "Signing in...",
     "invalid": "Invalid login or password",
-    "success": "Logged in successfully"
+    "success": "Logged in successfully",
+    "no_account": "No account?",
+    "apply_partnership": "Apply for partnership"
   },
   "PartnerUI": {
     "logout_success": "You have successfully logged out",
     "no_access": "Access restricted to partners",
     "login": "Log in",
     "logout": "Log out"
+  },
+  "Partnership": {
+    "title": "Partnership Application",
+    "description": "Fill out the form and we will contact you to discuss cooperation terms",
+    "phone_label": "Phone Number",
+    "phone_placeholder": "+XXX XXX XXX XX",
+    "login_label": "Desired Login",
+    "login_placeholder": "mycompany",
+    "password_label": "Desired Password",
+    "password_placeholder": "Minimum 6 characters",
+    "password_hint": "We will create an account for you with these credentials",
+    "message_label": "Additional Information (optional)",
+    "message_placeholder": "Tell us about your company, planned order volumes, etc.",
+    "submit_button": "Submit Application",
+    "sending": "Preparing...",
+    "required_fields": "* Required fields",
+    "back": "Back",
+    "success_title": "Application Sent!",
+    "success_message": "Your application has been successfully submitted. We will review it soon and contact you.",
+    "back_to_home": "Return to Home",
+    "error_submit": "Error submitting application",
+    "error_network": "Error sending. Please try again later."
   }
 }

@@ -49,7 +49,7 @@ const Loader = () => {
         <p className="mb-2 text-md md:text-xl font-medium">
           {t('loading', { progress: progress.toFixed(0) })}
         </p>
-        <Progress value={progress} className="md:w-[500px] w-[300px]" />
+        <Progress value={progress} className="md:w-125 w-75" />
       </div>
     </Html>
   );

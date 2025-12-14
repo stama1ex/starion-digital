@@ -139,6 +139,24 @@ model RealizationPayment {
 
   realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
 }
+
+// Заявки на партнерство
+model PartnershipRequest {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  login     String
+  password  String
+  message   String?  @db.Text
+  ipAddress String?  // IP адрес для защиты от спама
+  status    RequestStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([ipAddress, createdAt]) // Индекс для проверки лимита заявок
+}
+
 enum PartnerRole {
   ADMIN
   PARTNER
@@ -164,4 +182,10 @@ enum RealizationStatus {
   PARTIAL    // Частичный платёж получен
   COMPLETED  // Полностью оплачена
   CANCELLED  // Отменена
+}
+
+enum RequestStatus {
+  PENDING    // Ожидает рассмотрения
+  APPROVED   // Одобрена (партнер создан)
+  REJECTED   // Отклонена
 }

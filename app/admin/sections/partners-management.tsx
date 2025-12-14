@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +20,7 @@ import {
   AdminAPI,
   handleApiError,
 } from '@/lib/admin';
+import { PartnershipRequests } from './partnership-requests';
 
 export default function PartnersManagement() {
   const { partners, loading, refetch } = usePartners(true);
@@ -111,69 +113,82 @@ export default function PartnersManagement() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-bold">Партнеры</h2>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <Input
-            placeholder="Поиск по имени или логину..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-64"
-          />
-          <Button onClick={handleOpenNew} className="gap-2">
-            <Plus size={16} />
-            Добавить партнера
-          </Button>
-        </div>
-      </div>
+    <Tabs defaultValue="list" className="space-y-4">
+      <TabsList className="grid w-full md:w-auto grid-cols-2">
+        <TabsTrigger value="list">Список партнеров</TabsTrigger>
+        <TabsTrigger value="requests">Заявки</TabsTrigger>
+      </TabsList>
 
-      <div className="grid gap-2">
-        {filteredPartners.map((partner) => (
-          <Card key={partner.id} className="py-1">
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                <div>
-                  <p className="text-sm text-muted-foreground">Имя</p>
-                  <p className="font-medium">{partner.name}</p>
+      <TabsContent value="list" className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <h2 className="text-2xl font-bold">Партнеры</h2>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Input
+              placeholder="Поиск по имени или логину..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64"
+            />
+            <Button onClick={handleOpenNew} className="gap-2">
+              <Plus size={16} />
+              Добавить партнера
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid gap-2">
+          {filteredPartners.map((partner) => (
+            <Card key={partner.id} className="py-1">
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Имя</p>
+                    <p className="font-medium">{partner.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Логин</p>
+                    <p className="font-mono text-sm">{partner.login}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Пароль</p>
+                    <p className="font-mono text-sm">•••••</p>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(partner)}
+                      className="gap-2"
+                    >
+                      <Edit2 size={16} />
+                      Редактировать
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(partner.id)}
+                      disabled={partner.id === user?.id}
+                      title={
+                        partner.id === user?.id
+                          ? 'Вы не можете удалить себя'
+                          : ''
+                      }
+                      className="gap-2"
+                    >
+                      <Trash2 size={16} />
+                      Удалить
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Логин</p>
-                  <p className="font-mono text-sm">{partner.login}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Пароль</p>
-                  <p className="font-mono text-sm">•••••</p>
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(partner)}
-                    className="gap-2"
-                  >
-                    <Edit2 size={16} />
-                    Редактировать
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(partner.id)}
-                    disabled={partner.id === user?.id}
-                    title={
-                      partner.id === user?.id ? 'Вы не можете удалить себя' : ''
-                    }
-                    className="gap-2"
-                  >
-                    <Trash2 size={16} />
-                    Удалить
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </TabsContent>
+
+      <TabsContent value="requests">
+        <PartnershipRequests />
+      </TabsContent>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
@@ -233,6 +248,6 @@ export default function PartnersManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </Tabs>
   );
 }
