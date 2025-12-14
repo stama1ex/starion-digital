@@ -141,9 +141,18 @@ export default function RealizationTracking({
                               className="flex justify-between text-sm p-1 bg-secondary rounded"
                             >
                               <span>
-                                {new Date(
-                                  payment.createdAt
-                                ).toLocaleDateString()}
+                                {(() => {
+                                  const d = new Date(payment.createdAt);
+                                  const day = String(d.getDate()).padStart(
+                                    2,
+                                    '0'
+                                  );
+                                  const month = String(
+                                    d.getMonth() + 1
+                                  ).padStart(2, '0');
+                                  const year = d.getFullYear();
+                                  return `${day}.${month}.${year}`;
+                                })()}
                               </span>
                               <span className="font-semibold">
                                 {Number(payment.amount).toFixed(2)} MDL

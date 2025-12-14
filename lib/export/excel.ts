@@ -16,9 +16,11 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   // Дата
   sheet.mergeCells('A2:E2');
   const dateCell = sheet.getCell('A2');
-  dateCell.value = `Дата: ${new Date(order.createdAt).toLocaleDateString(
-    'ru-RU'
-  )}`;
+  const date = new Date(order.createdAt);
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  dateCell.value = `Дата: ${day}.${month}.${year}`;
   dateCell.alignment = { horizontal: 'center' };
   sheet.getRow(2).height = 20;
 
