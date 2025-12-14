@@ -20,7 +20,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Edit2, Plus, Upload } from 'lucide-react';
+import { Trash2, Edit2, Plus, Upload, X } from 'lucide-react';
 import { ProductType } from '@prisma/client';
 import {
   useProducts,
@@ -30,6 +30,7 @@ import {
   AdminAPI,
   handleApiError,
 } from '@/lib/admin';
+import { NoImageIcon } from '@/components/shared/no-image-icon';
 
 export default function ProductsManagement() {
   const { products, loading, refetch: refetchProducts } = useProducts();
@@ -40,6 +41,7 @@ export default function ProductsManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [formData, setFormData] = useState({
     number: '',
     type: 'MAGNET' as ProductType,
@@ -49,9 +51,11 @@ export default function ProductsManagement() {
     image: '',
   });
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadFile = async (file: File) => {
+    if (!file || !file.type.startsWith('image/')) {
+      alert('Пожалуйста, выберите файл изображения');
+      return;
+    }
 
     try {
       setUploadingImage(true);
@@ -65,7 +69,6 @@ export default function ProductsManagement() {
 
       const result = await res.json();
       if (res.ok) {
-        // сохраняем именно URL!
         setFormData({ ...formData, image: result.url });
       } else {
         alert(result.error || 'Ошибка загрузки изображения');
@@ -76,6 +79,33 @@ export default function ProductsManagement() {
     } finally {
       setUploadingImage(false);
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await uploadFile(file);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      await uploadFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   const handleSave = async () => {
@@ -401,39 +431,56 @@ export default function ProductsManagement() {
             </div>
             <div>
               <label className="text-sm font-medium">Изображение</label>
-              <div className="border-2 border-dashed rounded-lg p-4 text-center">
+              <div
+                className={`border-2 border-dashed rounded-lg p-4 transition-colors ${
+                  isDragging ? 'border-primary bg-primary/5' : 'border-border'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
                 {formData.image ? (
                   <div className="space-y-3">
-                    <img
-                      src={formData.image}
-                      alt="Preview"
-                      className="w-full max-w-xs mx-auto rounded-lg object-contain"
-                      style={{ maxHeight: '200px' }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, image: '' })}
-                      className="text-sm text-red-500 hover:underline"
-                    >
-                      Удалить изображение
-                    </button>
+                    <div className="relative">
+                      <img
+                        src={formData.image}
+                        alt="Preview"
+                        className="w-full max-w-xs mx-auto rounded-lg object-contain"
+                        style={{ maxHeight: '200px' }}
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setFormData({ ...formData, image: '' })}
+                        className="absolute top-2 right-2 h-8 w-8 p-0"
+                      >
+                        <X size={16} />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-center text-muted-foreground">
+                      Изображение загружено
+                    </p>
                   </div>
                 ) : (
-                  <label className="cursor-pointer">
-                    <div className="flex flex-col items-center gap-2">
-                      <Upload size={24} className="text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        Выберите файл или перетащите сюда
-                      </span>
-                    </div>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      className="hidden"
-                    />
-                  </label>
+                  <div className="space-y-3">
+                    <NoImageIcon className="w-32 h-32 mx-auto text-muted-foreground/30" />
+                    <label className="cursor-pointer block">
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload size={24} className="text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Нет изображения. Нажмите для загрузки
+                        </span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={uploadingImage}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 )}
               </div>
               {uploadingImage && (

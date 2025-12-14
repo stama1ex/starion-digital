@@ -222,7 +222,7 @@ export default function OrdersManagement({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Card className="flex-1 min-w-[150px] p-3">
+        <Card className="flex-1 min-w-37.5 p-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Новые
@@ -230,7 +230,7 @@ export default function OrdersManagement({
             <span className="text-2xl font-bold">{stats.NEW}</span>
           </div>
         </Card>
-        <Card className="flex-1 min-w-[150px] p-3">
+        <Card className="flex-1 min-w-37.5 p-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Подтверждённые
@@ -238,7 +238,7 @@ export default function OrdersManagement({
             <span className="text-2xl font-bold">{stats.CONFIRMED}</span>
           </div>
         </Card>
-        <Card className="flex-1 min-w-[150px] p-3">
+        <Card className="flex-1 min-w-37.5 p-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Оплаченные
@@ -246,7 +246,7 @@ export default function OrdersManagement({
             <span className="text-2xl font-bold">{stats.PAID}</span>
           </div>
         </Card>
-        <Card className="flex-1 min-w-[150px] p-3">
+        <Card className="flex-1 min-w-37.5 p-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Отменённые
