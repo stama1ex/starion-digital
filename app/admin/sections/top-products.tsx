@@ -68,12 +68,13 @@ export default function TopProducts({
     }
 
     order.items.forEach((item: any) => {
-      const productId = item.productId;
+      const productId = item.product.id;
+      const productNumber = item.product.number;
       const existing =
         productStats.get(productId) ||
         ({
           id: productId,
-          number: item.product.number,
+          number: productNumber,
           totalSales: 0,
           quantity: 0,
           profit: 0,
@@ -100,12 +101,13 @@ export default function TopProducts({
     const paidRatio = totalCost > 0 ? paidAmount / totalCost : 0;
 
     realization.items.forEach((item) => {
-      const productId = item.productId;
+      const productId = item.product.id;
+      const productNumber = item.product.number;
       const existing =
         productStats.get(productId) ||
         ({
           id: productId,
-          number: item.product.number,
+          number: productNumber,
           totalSales: 0,
           quantity: 0,
           profit: 0,
