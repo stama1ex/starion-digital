@@ -33,12 +33,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    console.log('[UPLOAD] File received:', file.name, file.size, 'bytes');
+    console.log(
+      '[UPLOAD] File received:',
+      file.name,
+      file.size,
+      'bytes',
+      'type:',
+      file.type
+    );
+
+    // Проверка размера файла (макс 10MB)
+    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    if (file.size > MAX_SIZE) {
+      console.log('[UPLOAD] File too large:', file.size);
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 10MB' },
+        { status: 400 }
+      );
+    }
+
+    // Проверка типа файла
+    if (!file.type.startsWith('image/')) {
+      console.log('[UPLOAD] Invalid file type:', file.type);
+      return NextResponse.json(
+        { error: 'Invalid file type. Only images are allowed' },
+        { status: 400 }
+      );
+    }
+
     const buffer = await file.arrayBuffer();
     const safeName = sanitizeFilename(file.name);
     const filename = `${Date.now()}_${safeName}`;
 
     console.log('[UPLOAD] Sanitized filename:', filename);
+    console.log('[UPLOAD] Buffer size:', buffer.byteLength);
     console.log('[UPLOAD] Uploading to Dropbox...');
 
     const { url } = await uploadImage(buffer, filename);

@@ -76,18 +76,26 @@ export async function getTemporaryLink(path: string): Promise<string> {
     }
   );
 
-  const data = await res.json();
   if (!res.ok) {
     const errorText = await parseDropboxError(res);
-    console.error('UPLOAD ERROR:', errorText);
-    throw new Error(`Dropbox upload failed: ${errorText}`);
+    console.error('GET TEMP LINK ERROR:', errorText);
+    throw new Error(`Dropbox temp link failed: ${JSON.stringify(errorText)}`);
   }
 
+  const data = await res.json();
   return data.link;
 }
 
 export async function uploadImage(buffer: ArrayBuffer, filename: string) {
-  const path = await uploadToDropbox(buffer, filename);
-  const url = await getTemporaryLink(path);
-  return { path, url };
+  try {
+    console.log('[DROPBOX] Starting upload process for:', filename);
+    const path = await uploadToDropbox(buffer, filename);
+    console.log('[DROPBOX] File uploaded to path:', path);
+    const url = await getTemporaryLink(path);
+    console.log('[DROPBOX] Temporary link generated:', url);
+    return { path, url };
+  } catch (error) {
+    console.error('[DROPBOX] Upload image error:', error);
+    throw error;
+  }
 }
