@@ -307,7 +307,12 @@ export default function ProductsManagement() {
                     <span className="text-xs text-muted-foreground">
                       Группа:
                     </span>
-                    <span>{product.group?.name || 'Без группы'}</span>
+                    <span>
+                      {product.group
+                        ? (product.group.translations as any)?.ru ||
+                          product.group.slug
+                        : 'Без группы'}
+                    </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Цена:</span>
