@@ -60,42 +60,104 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     { width: 18 },
   ];
 
-  // Товары
+  // Группируем товары по типу
+  const itemsByType: Record<string, any[]> = {};
   order.items.forEach((item: any) => {
-    const row = sheet.addRow([
-      item.product.number,
-      item.product.country,
-      item.quantity,
-      Number(item.pricePerItem).toFixed(2),
-      Number(item.sum).toFixed(2),
-    ]);
-
-    row.eachCell((cell) => {
-      cell.border = {
-        top: { style: 'thin' },
-        left: { style: 'thin' },
-        bottom: { style: 'thin' },
-        right: { style: 'thin' },
-      };
-    });
-
-    row.getCell(1).alignment = { horizontal: 'left' };
-    row.getCell(2).alignment = { horizontal: 'center' };
-    row.getCell(3).alignment = { horizontal: 'center' };
-    row.getCell(4).alignment = { horizontal: 'right' };
-    row.getCell(5).alignment = { horizontal: 'right' };
+    const type = item.product.type === 'MAGNET' ? 'Магниты' : 'Тарелки';
+    if (!itemsByType[type]) {
+      itemsByType[type] = [];
+    }
+    itemsByType[type].push(item);
   });
 
-  // Пустая строка
-  sheet.addRow([]);
+  // Функция для замены точки на запятую в числах
+  const formatNumber = (num: number): string => {
+    return num.toFixed(2).replace('.', ',');
+  };
 
-  // Итого
+  // Выводим товары по типам
+  const typeSummaries: { type: string; totalQty: number; totalSum: number }[] =
+    [];
+
+  Object.entries(itemsByType).forEach(([type, items]) => {
+    // Заголовок типа
+    const typeHeaderRow = sheet.addRow([type]);
+    sheet.mergeCells(`A${typeHeaderRow.number}:E${typeHeaderRow.number}`);
+    typeHeaderRow.font = { bold: true, size: 12 };
+    typeHeaderRow.getCell(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE8E8E8' },
+    };
+    typeHeaderRow.getCell(1).alignment = { horizontal: 'left' };
+
+    let typeQty = 0;
+    let typeSum = 0;
+
+    // Товары этого типа
+    items.forEach((item: any) => {
+      const qty = item.quantity;
+      const price = Number(item.pricePerItem);
+      const sum = Number(item.sum);
+
+      typeQty += qty;
+      typeSum += sum;
+
+      const row = sheet.addRow([
+        item.product.number,
+        item.product.country,
+        qty,
+        formatNumber(price),
+        formatNumber(sum),
+      ]);
+
+      row.eachCell((cell) => {
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+      });
+
+      row.getCell(1).alignment = { horizontal: 'left' };
+      row.getCell(2).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(4).alignment = { horizontal: 'right' };
+      row.getCell(5).alignment = { horizontal: 'right' };
+    });
+
+    // Промежуточный итог по типу
+    const subtotalRow = sheet.addRow([
+      '',
+      '',
+      typeQty,
+      'Итого:',
+      formatNumber(typeSum),
+    ]);
+    subtotalRow.font = { bold: true };
+    subtotalRow.getCell(3).alignment = { horizontal: 'center' };
+    subtotalRow.getCell(4).alignment = { horizontal: 'right' };
+    subtotalRow.getCell(5).alignment = { horizontal: 'right' };
+    subtotalRow.getCell(5).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFF0F0F0' },
+    };
+
+    typeSummaries.push({ type, totalQty: typeQty, totalSum: typeSum });
+
+    // Пустая строка после каждого типа
+    sheet.addRow([]);
+  });
+
+  // Общий итог
   const totalRow = sheet.addRow([
     '',
     '',
     '',
-    'Итого:',
-    Number(order.totalPrice).toFixed(2),
+    'ВСЕГО:',
+    formatNumber(Number(order.totalPrice)),
   ]);
   totalRow.font = { bold: true, size: 14 };
   totalRow.getCell(4).alignment = { horizontal: 'right' };
