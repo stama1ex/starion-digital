@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
 
 interface Order {
   id: number;
@@ -17,6 +18,40 @@ interface Order {
     sum: number;
     product: { number: string; image: string | null; country: string };
   }[];
+}
+
+function OrderItemImage({ imagePath }: { imagePath: string | null }) {
+  const { imgSrc, loading } = useDropboxImage(imagePath);
+
+  if (loading || !imgSrc) {
+    return (
+      <div className="w-12.5 h-12.5 rounded-md bg-muted animate-pulse" />
+    );
+  }
+
+  // Используем обычный img для Dropbox URL
+  if (imgSrc.includes('dropboxusercontent.com')) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imgSrc}
+        width={50}
+        height={50}
+        className="rounded-md object-cover"
+        alt=""
+      />
+    );
+  }
+
+  return (
+    <Image
+      src={imgSrc}
+      width={50}
+      height={50}
+      className="rounded-md object-cover"
+      alt=""
+    />
+  );
 }
 
 export default function OrdersContent() {
@@ -161,22 +196,9 @@ export default function OrdersContent() {
                   {order.items.map((it, i) => (
                     <div key={i} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        {it.product.image &&
-                          (() => {
-                            const imgSrc = it.product.image?.startsWith('http')
-                              ? it.product.image
-                              : '/' +
-                                it.product.image?.replace(/^public\//, '');
-                            return (
-                              <Image
-                                src={imgSrc}
-                                width={50}
-                                height={50}
-                                className="rounded-md object-cover"
-                                alt=""
-                              />
-                            );
-                          })()}
+                        {it.product.image && (
+                          <OrderItemImage imagePath={it.product.image} />
+                        )}
                         <div className="text-sm">
                           {t('number')} {it.product.number} — {it.quantity}{' '}
                           {t('pcs')}

@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,43 @@ import {
   handleApiError,
 } from '@/lib/admin';
 import { NoImageIcon } from '@/components/shared/no-image-icon';
+import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+
+function ProductImagePreview({ imagePath }: { imagePath: string }) {
+  const { imgSrc, loading } = useDropboxImage(imagePath);
+
+  if (loading) {
+    return (
+      <div className="w-full max-w-xs mx-auto rounded-lg bg-muted animate-pulse" style={{ height: '200px' }} />
+    );
+  }
+
+  if (!imgSrc) {
+    return <NoImageIcon className="w-32 h-32 mx-auto text-muted-foreground/30" />;
+  }
+
+  // Используем обычный img для Dropbox URL
+  if (imgSrc.includes('dropboxusercontent.com')) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={imgSrc}
+        alt="Preview"
+        className="w-full max-w-xs mx-auto rounded-lg object-contain"
+        style={{ maxHeight: '200px' }}
+      />
+    );
+  }
+
+  return (
+    <img
+      src={imgSrc}
+      alt="Preview"
+      className="w-full max-w-xs mx-auto rounded-lg object-contain"
+      style={{ maxHeight: '200px' }}
+    />
+  );
+}
 
 export default function ProductsManagement() {
   const { products, loading, refetch: refetchProducts } = useProducts();
@@ -69,7 +106,7 @@ export default function ProductsManagement() {
 
       const result = await res.json();
       if (res.ok) {
-        setFormData({ ...formData, image: result.url });
+        setFormData({ ...formData, image: result.path });
       } else {
         alert(result.error || 'Ошибка загрузки изображения');
       }
@@ -447,12 +484,7 @@ export default function ProductsManagement() {
                 {formData.image ? (
                   <div className="space-y-3">
                     <div className="relative">
-                      <img
-                        src={formData.image}
-                        alt="Preview"
-                        className="w-full max-w-xs mx-auto rounded-lg object-contain"
-                        style={{ maxHeight: '200px' }}
-                      />
+                      <ProductImagePreview imagePath={formData.image} />
                       <Button
                         type="button"
                         variant="destructive"
