@@ -51,13 +51,20 @@ export async function POST(req: NextRequest) {
     // Генерируем Excel файл
     const buffer = await createOrderExcel(order);
 
+    // Форматируем дату для имени файла
+    const date = new Date(order.createdAt);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const formattedDate = `${day}.${month}.${year}`;
+
     // Отправляем файл
     return new NextResponse(buffer as unknown as BodyInit, {
       status: 200,
       headers: {
         'Content-Type':
           'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="order-${orderId}.xlsx"`,
+        'Content-Disposition': `attachment; filename="Zakaz_${orderId}_${formattedDate}.xlsx"`,
       },
     });
   } catch (error) {
