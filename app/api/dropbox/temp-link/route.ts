@@ -6,10 +6,7 @@ export async function POST(request: NextRequest) {
     const { path } = await request.json();
 
     if (!path) {
-      return NextResponse.json(
-        { error: 'Path is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Path is required' }, { status: 400 });
     }
 
     const url = await getTemporaryLink(path);
