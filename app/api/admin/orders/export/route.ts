@@ -36,6 +36,7 @@ export async function POST(req: NextRequest) {
               select: {
                 number: true,
                 country: true,
+                type: true,
               },
             },
           },
