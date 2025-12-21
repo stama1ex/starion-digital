@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import SalesAnalytics from './sections/sales-analytics';
 import TopProducts from './sections/top-products';
 import DealerAnalytics from './sections/dealer-analytics';
@@ -41,6 +42,33 @@ export default function AdminDashboard({
   });
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [activeTab, setActiveTab] = useState('orders');
+  const [newOrdersCount, setNewOrdersCount] = useState(0);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  // Подсчет новых заказов
+  useEffect(() => {
+    const count = orders.filter((order) => order.status === 'NEW').length;
+    setNewOrdersCount(count);
+  }, [orders]);
+
+  // Загрузка количества pending заявок
+  useEffect(() => {
+    const fetchPendingRequests = async () => {
+      try {
+        const res = await fetch('/api/admin/partnership-requests');
+        if (res.ok) {
+          const data = await res.json();
+          const pendingCount = data.filter(
+            (req: { status: string }) => req.status === 'PENDING'
+          ).length;
+          setPendingRequestsCount(pendingCount);
+        }
+      } catch (error) {
+        console.error('Error fetching pending requests:', error);
+      }
+    };
+    fetchPendingRequests();
+  }, []);
 
   const handleRefreshOrders = async () => {
     try {
@@ -66,6 +94,21 @@ export default function AdminDashboard({
     }
   };
 
+  const handleRefreshPendingRequests = async () => {
+    try {
+      const res = await fetch('/api/admin/partnership-requests');
+      if (res.ok) {
+        const data = await res.json();
+        const pendingCount = data.filter(
+          (req: { status: string }) => req.status === 'PENDING'
+        ).length;
+        setPendingRequestsCount(pendingCount);
+      }
+    } catch (error) {
+      console.error('Error refreshing pending requests:', error);
+    }
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-0">
       <Tabs
@@ -75,14 +118,36 @@ export default function AdminDashboard({
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-3 gap-1 h-auto">
-          <TabsTrigger value="orders" className="text-xs sm:text-sm py-2">
+          <TabsTrigger
+            value="orders"
+            className="text-xs sm:text-sm py-2 relative"
+          >
             <span className="hidden sm:inline">📋 </span>Заказы
+            {newOrdersCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="ml-1 h-5 min-w-5 px-1 text-xs"
+              >
+                {newOrdersCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="analytics" className="text-xs sm:text-sm py-2">
             <span className="hidden sm:inline">📊 </span>Анализ
           </TabsTrigger>
-          <TabsTrigger value="edit" className="text-xs sm:text-sm py-2">
+          <TabsTrigger
+            value="edit"
+            className="text-xs sm:text-sm py-2 relative"
+          >
             <span className="hidden sm:inline">⚙️ </span>Настройки
+            {pendingRequestsCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="ml-1 h-5 min-w-5 px-1 text-xs"
+              >
+                {pendingRequestsCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -90,8 +155,19 @@ export default function AdminDashboard({
         <TabsContent value="orders" className="space-y-4">
           <Tabs defaultValue="orders-list" className="w-full">
             <TabsList className="grid w-full grid-cols-2 gap-1">
-              <TabsTrigger value="orders-list" className="text-xs sm:text-sm">
+              <TabsTrigger
+                value="orders-list"
+                className="text-xs sm:text-sm relative"
+              >
                 Заказы
+                {newOrdersCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-1 h-5 min-w-5 px-1 text-xs"
+                  >
+                    {newOrdersCount}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="realization" className="text-xs sm:text-sm">
                 Реализ.
@@ -261,8 +337,19 @@ export default function AdminDashboard({
         <TabsContent value="edit" className="space-y-4">
           <Tabs defaultValue="partners" className="w-full">
             <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 gap-1">
-              <TabsTrigger value="partners" className="text-xs sm:text-sm">
+              <TabsTrigger
+                value="partners"
+                className="text-xs sm:text-sm relative"
+              >
                 Партнеры
+                {pendingRequestsCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="ml-1 h-5 min-w-5 px-1 text-xs"
+                  >
+                    {pendingRequestsCount}
+                  </Badge>
+                )}
               </TabsTrigger>
               <TabsTrigger value="prices" className="text-xs sm:text-sm">
                 Цены
@@ -279,7 +366,10 @@ export default function AdminDashboard({
             </TabsList>
 
             <TabsContent value="partners">
-              <PartnersManagement />
+              <PartnersManagement
+                onRequestsChange={handleRefreshPendingRequests}
+                pendingRequestsCount={pendingRequestsCount}
+              />
             </TabsContent>
 
             <TabsContent value="prices">

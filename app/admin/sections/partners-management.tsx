@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -22,7 +23,15 @@ import {
 } from '@/lib/admin';
 import { PartnershipRequests } from './partnership-requests';
 
-export default function PartnersManagement() {
+interface PartnersManagementProps {
+  onRequestsChange?: () => void;
+  pendingRequestsCount?: number;
+}
+
+export default function PartnersManagement({
+  onRequestsChange,
+  pendingRequestsCount = 0,
+}: PartnersManagementProps) {
   const { partners, loading, refetch } = usePartners(true);
   const { user } = useCurrentUser();
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,7 +125,17 @@ export default function PartnersManagement() {
     <Tabs defaultValue="list" className="space-y-4">
       <TabsList className="grid w-full md:w-auto grid-cols-2">
         <TabsTrigger value="list">Список партнеров</TabsTrigger>
-        <TabsTrigger value="requests">Заявки</TabsTrigger>
+        <TabsTrigger value="requests" className="relative">
+          Заявки
+          {pendingRequestsCount > 0 && (
+            <Badge
+              variant="destructive"
+              className="ml-1 h-5 min-w-5 px-1 text-xs"
+            >
+              {pendingRequestsCount}
+            </Badge>
+          )}
+        </TabsTrigger>
       </TabsList>
 
       <TabsContent value="list" className="space-y-4">
@@ -187,7 +206,7 @@ export default function PartnersManagement() {
       </TabsContent>
 
       <TabsContent value="requests">
-        <PartnershipRequests />
+        <PartnershipRequests onRequestsChange={onRequestsChange} />
       </TabsContent>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
