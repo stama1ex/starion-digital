@@ -28,7 +28,13 @@ interface PartnershipRequest {
   updatedAt: string;
 }
 
-export function PartnershipRequests() {
+interface PartnershipRequestsProps {
+  onRequestsChange?: () => void;
+}
+
+export function PartnershipRequests({
+  onRequestsChange,
+}: PartnershipRequestsProps) {
   const [requests, setRequests] = useState<PartnershipRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<number | null>(null);
@@ -65,6 +71,7 @@ export function PartnershipRequests() {
 
       if (res.ok) {
         await fetchRequests();
+        onRequestsChange?.(); // Обновляем счетчик
         alert(
           action === 'approve' ? 'Партнер успешно создан!' : 'Заявка отклонена'
         );
@@ -91,6 +98,7 @@ export function PartnershipRequests() {
 
       if (res.ok) {
         await fetchRequests();
+        onRequestsChange?.(); // Обновляем счетчик
         alert('Заявка удалена');
       } else {
         const result = await res.json();
