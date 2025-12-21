@@ -90,44 +90,56 @@ export function ProductCard({ product, getPrice }: Props) {
 
   const handleQuantity = (v: number) => setQuantity(Math.max(1, v));
 
+  const cardContent = (
+    <div
+      className={`border rounded-lg p-4 flex flex-col items-center transition-all ${
+        hasImage && !loading
+          ? 'hover:bg-popover/50 hover:scale-102 cursor-pointer'
+          : 'opacity-50 cursor-not-allowed'
+      }`}
+    >
+      {!hasImage || loading || !imgSrc ? (
+        <NoImageIcon className="md:w-64 md:h-64 w-32 h-32 text-primary mb-2" />
+      ) : imgSrc.includes('dropboxusercontent.com') ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={imgSrc}
+          alt={product.number}
+          className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <Image
+          width={500}
+          height={500}
+          src={imgSrc}
+          alt={product.number}
+          className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
+          onError={() => setImgError(true)}
+        />
+      )}
+
+      <div className="font-semibold">
+        {t('number', { number: product.number })}
+      </div>
+
+      {isPartner && (
+        <div className="text-sm font-bold text-primary">{price} MDL</div>
+      )}
+
+      <div className="text-xs text-primary/60">
+        {product.country.toUpperCase()}
+      </div>
+    </div>
+  );
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <div className="border hover:bg-popover/50 rounded-lg p-4 flex flex-col items-center hover:scale-102 transition-all cursor-pointer">
-          {!hasImage || loading || !imgSrc ? (
-            <NoImageIcon className="md:w-64 md:h-64 w-32 h-32 text-primary mb-2" />
-          ) : imgSrc.includes('dropboxusercontent.com') ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imgSrc}
-              alt={product.number}
-              className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <Image
-              width={500}
-              height={500}
-              src={imgSrc}
-              alt={product.number}
-              className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
-              onError={() => setImgError(true)}
-            />
-          )}
-
-          <div className="font-semibold">
-            {t('number', { number: product.number })}
-          </div>
-
-          {isPartner && (
-            <div className="text-sm font-bold text-primary">{price} MDL</div>
-          )}
-
-          <div className="text-xs text-primary/60">
-            {product.country.toUpperCase()}
-          </div>
-        </div>
-      </DialogTrigger>
+      {hasImage && !loading ? (
+        <DialogTrigger asChild>{cardContent}</DialogTrigger>
+      ) : (
+        cardContent
+      )}
 
       <DialogContent showCloseButton>
         <DialogTitle>

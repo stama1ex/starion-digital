@@ -24,9 +24,7 @@ function OrderItemImage({ imagePath }: { imagePath: string | null }) {
   const { imgSrc, loading } = useDropboxImage(imagePath);
 
   if (loading || !imgSrc) {
-    return (
-      <div className="w-12.5 h-12.5 rounded-md bg-muted animate-pulse" />
-    );
+    return <div className="w-12.5 h-12.5 rounded-md bg-muted animate-pulse" />;
   }
 
   // Используем обычный img для Dropbox URL

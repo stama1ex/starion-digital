@@ -38,12 +38,17 @@ function ProductImagePreview({ imagePath }: { imagePath: string }) {
 
   if (loading) {
     return (
-      <div className="w-full max-w-xs mx-auto rounded-lg bg-muted animate-pulse" style={{ height: '200px' }} />
+      <div
+        className="w-full max-w-xs mx-auto rounded-lg bg-muted animate-pulse"
+        style={{ height: '200px' }}
+      />
     );
   }
 
   if (!imgSrc) {
-    return <NoImageIcon className="w-32 h-32 mx-auto text-muted-foreground/30" />;
+    return (
+      <NoImageIcon className="w-32 h-32 mx-auto text-muted-foreground/30" />
+    );
   }
 
   // Используем обычный img для Dropbox URL

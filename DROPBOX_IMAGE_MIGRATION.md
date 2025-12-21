@@ -7,27 +7,35 @@
 ## Решение
 
 Изменена архитектура работы с изображениями:
+
 - В базе данных теперь сохраняется **путь** к файлу в Dropbox (например, `/products/1234567890_image.avif`)
 - Временные ссылки генерируются динамически при загрузке страницы через новый API эндпоинт
 
 ## Внесенные изменения
 
 ### 1. API для загрузки изображений
+
 **Файл:** `app/api/admin/upload/route.ts`
+
 - Изменено: возвращает `path` вместо `url`
 
 ### 2. Новый API эндпоинт для получения временных ссылок
+
 **Файл:** `app/api/dropbox/temp-link/route.ts`
+
 - Принимает путь к файлу в Dropbox
 - Возвращает временную ссылку для загрузки
 
 ### 3. Хук для работы с изображениями Dropbox
+
 **Файл:** `lib/hooks/useDropboxImage.ts`
+
 - Автоматически определяет тип пути (Dropbox, HTTP URL, локальный файл)
 - Загружает временные ссылки для путей Dropbox
 - Поддерживает состояния загрузки и ошибок
 
 ### 4. Обновленные компоненты
+
 - `components/shared/product-card.tsx` - использует `useDropboxImage`
 - `app/my-orders/orders-content.tsx` - использует `useDropboxImage`
 - `app/admin/sections/products-management.tsx` - использует `useDropboxImage` для превью
@@ -37,6 +45,7 @@
 Если в базе данных есть товары со старыми временными URL (начинаются с `https://`), нужно:
 
 ### Опция 1: Перезагрузить изображения
+
 1. Зайти в админ-панель
 2. Для каждого товара с неработающим изображением:
    - Открыть редактирование
@@ -44,19 +53,21 @@
    - Сохранить
 
 ### Опция 2: SQL миграция (если есть доступ к БД)
+
 ```sql
 -- Если изображения уже загружены в Dropbox и известны пути
-UPDATE "Product" 
+UPDATE "Product"
 SET image = '/products/' || regexp_replace(image, '^.*/([^/]+)$', '\\1')
 WHERE image LIKE 'https://dl.dropboxusercontent.com%';
 
 -- Или очистить старые URL, чтобы загрузить заново
-UPDATE "Product" 
+UPDATE "Product"
 SET image = ''
 WHERE image LIKE 'https://%' AND image LIKE '%dropbox%';
 ```
 
 ### Опция 3: Скрипт миграции
+
 Создать скрипт для автоматической миграции:
 
 ```typescript
@@ -66,9 +77,9 @@ async function migrateImages() {
   const products = await prisma.product.findMany({
     where: {
       image: {
-        startsWith: 'https://'
-      }
-    }
+        startsWith: 'https://',
+      },
+    },
   });
 
   console.log(`Found ${products.length} products with HTTP URLs`);
@@ -88,6 +99,7 @@ async function migrateImages() {
 ## Совместимость
 
 Хук `useDropboxImage` поддерживает:
+
 - ✅ Новые пути Dropbox: `/products/123_image.avif`
 - ✅ Старые HTTP URL: `https://...` (для обратной совместимости)
 - ✅ Локальные пути: `public/magnets/M01.avif`
@@ -104,6 +116,7 @@ async function migrateImages() {
 ### Обработка изображений из Dropbox
 
 Изображения из Dropbox загружаются через обычный `<img>` тег вместо Next.js `<Image>` компонента, потому что:
+
 - Временные ссылки Dropbox содержат сложные параметры запроса
 - Next.js Image Optimizer не может корректно обработать такие URL (ошибка 400)
 - Прямая загрузка через `<img>` работает надежнее для внешних временных ссылок
