@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
     console.log('[UPLOAD] Buffer size:', buffer.byteLength);
     console.log('[UPLOAD] Uploading to Dropbox...');
 
-    const { url } = await uploadImage(buffer, filename);
+    const { path } = await uploadImage(buffer, filename);
 
-    console.log('[UPLOAD] Upload successful, URL:', url);
-    return NextResponse.json({ success: true, url });
+    console.log('[UPLOAD] Upload successful, path:', path);
+    return NextResponse.json({ success: true, path });
   } catch (error) {
     console.error('[UPLOAD] Error uploading file:', error);
     return NextResponse.json(
