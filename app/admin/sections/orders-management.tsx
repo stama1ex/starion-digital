@@ -58,9 +58,7 @@ export default function OrdersManagement({
   >([]);
   const [creating, setCreating] = useState(false);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
-  const [productSearchQueries, setProductSearchQueries] = useState<
-    Record<number, string>
-  >({});
+  const [productSearchQuery, setProductSearchQuery] = useState('');
 
   useEffect(() => {
     if (partners.length > 0 && !selectedPartnerId) {
@@ -75,19 +73,6 @@ export default function OrdersManagement({
   };
 
   const handleRemoveItem = (index: number) => {
-    const updatedQueries = { ...productSearchQueries };
-    delete updatedQueries[index];
-    // Переиндексируем запросы
-    const reindexed: Record<number, string> = {};
-    Object.keys(updatedQueries).forEach((key) => {
-      const numKey = parseInt(key);
-      if (numKey > index) {
-        reindexed[numKey - 1] = updatedQueries[numKey];
-      } else {
-        reindexed[numKey] = updatedQueries[numKey];
-      }
-    });
-    setProductSearchQueries(reindexed);
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
@@ -120,7 +105,7 @@ export default function OrdersManagement({
       setOrderItems([]);
       setOrderType('regular');
       setPartnerSearchQuery('');
-      setProductSearchQueries({});
+      setProductSearchQuery('');
       onRefresh();
     } catch (error) {
       const message = await handleApiError(error);
@@ -235,14 +220,12 @@ export default function OrdersManagement({
     partner.name.toLowerCase().includes(partnerSearchQuery.toLowerCase())
   );
 
-  // Функция фильтрации товаров по индексу
-  const getFilteredProducts = (index: number) => {
-    const query = productSearchQueries[index] || '';
-    if (!query) return products;
-    return products.filter((product) =>
-      product.number.toLowerCase().includes(query.toLowerCase())
-    );
-  };
+  // Фильтрация товаров по поисковому запросу
+  const filteredProducts = productSearchQuery
+    ? products.filter((product) =>
+        product.number.toLowerCase().includes(productSearchQuery.toLowerCase())
+      )
+    : products;
 
   return (
     <div className="space-y-3">
@@ -562,80 +545,72 @@ export default function OrdersManagement({
 
             {/* Order Items */}
             <div className="space-y-2">
-              <Label>Товары</Label>
-              {orderItems.map((item, index) => {
-                const filteredProductsForItem = getFilteredProducts(index);
-                return (
-                  <div key={index} className="space-y-2 p-3 border rounded-lg">
-                    <div className="flex gap-2 items-start">
-                      <div className="flex-1 space-y-2">
-                        <Input
-                          type="text"
-                          placeholder="Поиск товара по номеру..."
-                          value={productSearchQueries[index] || ''}
-                          onChange={(e) =>
-                            setProductSearchQueries({
-                              ...productSearchQueries,
-                              [index]: e.target.value,
-                            })
-                          }
-                        />
-                        <Select
-                          value={item.productId?.toString() || ''}
-                          onValueChange={(val) =>
-                            handleItemChange(index, 'productId', parseInt(val))
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите товар" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {filteredProductsForItem.length === 0 ? (
-                              <div className="p-2 text-sm text-muted-foreground text-center">
-                                Товары не найдены
-                              </div>
-                            ) : (
-                              filteredProductsForItem.map((product) => (
-                                <SelectItem
-                                  key={product.id}
-                                  value={product.id.toString()}
-                                >
-                                  {product.number}
-                                </SelectItem>
-                              ))
-                            )}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="w-24">
-                        <Label className="text-xs mb-1 block">Кол-во</Label>
-                        <Input
-                          type="number"
-                          placeholder="Кол-во"
-                          min="1"
-                          value={item.qty || ''}
-                          onChange={(e) =>
-                            handleItemChange(
-                              index,
-                              'qty',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveItem(index)}
-                        className="mt-5"
+              <div className="space-y-2">
+                <Label>Товары</Label>
+                <Input
+                  type="text"
+                  placeholder="Поиск товара по номеру..."
+                  value={productSearchQuery}
+                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                />
+              </div>
+              {orderItems.map((item, index) => (
+                <div key={index} className="space-y-2 p-3 border rounded-lg">
+                  <div className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Select
+                        value={item.productId?.toString() || ''}
+                        onValueChange={(val) =>
+                          handleItemChange(index, 'productId', parseInt(val))
+                        }
                       >
-                        <X className="h-4 w-4" />
-                      </Button>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите товар" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredProducts.length === 0 ? (
+                            <div className="p-2 text-sm text-muted-foreground text-center">
+                              Товары не найдены
+                            </div>
+                          ) : (
+                            filteredProducts.map((product) => (
+                              <SelectItem
+                                key={product.id}
+                                value={product.id.toString()}
+                              >
+                                {product.number}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                     </div>
+                    <div className="w-24">
+                      <Input
+                        type="number"
+                        placeholder="Кол-во"
+                        min="1"
+                        value={item.qty || ''}
+                        onChange={(e) =>
+                          handleItemChange(
+                            index,
+                            'qty',
+                            parseInt(e.target.value) || 0
+                          )
+                        }
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveItem(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
-                );
-              })}
+                </div>
+              ))}
               <Button
                 type="button"
                 variant="outline"
