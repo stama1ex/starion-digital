@@ -4,6 +4,8 @@ import { cookies } from 'next/headers';
 interface RealizationPaymentBody {
   realizationId: number;
   amount: number;
+  notes?: string;
+  paymentDate?: string;
 }
 
 export async function POST(req: Request) {
@@ -23,7 +25,7 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as RealizationPaymentBody;
-    const { realizationId, amount } = body;
+    const { realizationId, amount, notes, paymentDate } = body;
 
     if (
       !realizationId ||
@@ -52,6 +54,8 @@ export async function POST(req: Request) {
       data: {
         realizationId,
         amount,
+        notes: notes || null,
+        paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
       },
     });
 
