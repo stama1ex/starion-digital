@@ -37,6 +37,7 @@ export default async function AdminPage() {
         totalPrice: true,
         status: true,
         isRealization: true,
+        notes: true,
         createdAt: true,
         partner: {
           select: {

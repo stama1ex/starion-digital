@@ -22,6 +22,7 @@ interface CreateOrderForPartnerBody {
   partnerId: number;
   items: { productId: number; qty: number }[];
   orderType?: 'regular' | 'realization';
+  notes?: string;
 }
 
 export async function POST(req: Request) {
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as CreateOrderForPartnerBody;
-    const { partnerId, items, orderType = 'regular' } = body;
+    const { partnerId, items, orderType = 'regular', notes } = body;
 
     // Validate input
     if (!partnerId || !Array.isArray(items) || items.length === 0) {
@@ -104,6 +105,7 @@ export async function POST(req: Request) {
             totalPrice: total,
             status: 'CONFIRMED',
             isRealization: orderType === 'realization',
+            notes: notes || null,
             items: { create: dbItems },
           },
           include: {

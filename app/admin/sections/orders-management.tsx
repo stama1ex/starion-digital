@@ -20,7 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, X, Trash2, Download } from 'lucide-react';
+import { Plus, Trash2, Download, Pencil } from 'lucide-react';
 import type { AdminOrder } from '../types';
 import {
   ORDER_STATUS_LABELS,
@@ -29,8 +29,11 @@ import {
   AdminAPI,
   usePartners,
   useProducts,
+  useGroups,
   handleApiError,
   formatDate,
+  PRODUCT_TYPES,
+  PRODUCT_TYPE_LABELS_PLURAL,
 } from '@/lib/admin';
 
 interface OrdersManagementProps {
@@ -49,67 +52,151 @@ export default function OrdersManagement({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { partners } = usePartners(true);
   const { products } = useProducts();
+  const { groups } = useGroups();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [orderType, setOrderType] = useState<'regular' | 'realization'>(
     'regular'
   );
-  const [orderItems, setOrderItems] = useState<
-    { productId: number; qty: number }[]
-  >([]);
   const [creating, setCreating] = useState(false);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
-
+  const [orderNotes, setOrderNotes] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  const [isEditNotesDialogOpen, setIsEditNotesDialogOpen] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
+  const [editNotesValue, setEditNotesValue] = useState('');
+  const [updatingNotes, setUpdatingNotes] = useState(false);
   useEffect(() => {
     if (partners.length > 0 && !selectedPartnerId) {
       setSelectedPartnerId(partners[0].id.toString());
     }
   }, [partners, selectedPartnerId]);
 
-  const handleAddItem = () => {
-    if (products.length > 0) {
-      setOrderItems([...orderItems, { productId: products[0].id, qty: 1 }]);
+  useEffect(() => {
+    // Initialize quantities when dialog opens
+    if (isCreateDialogOpen) {
+      const initialQuantities: Record<number, number> = {};
+      products.forEach((product) => {
+        initialQuantities[product.id] = 0;
+      });
+      setQuantities(initialQuantities);
     }
+  }, [isCreateDialogOpen, products]);
+
+  const handleQuantityChange = (productId: number, value: string) => {
+    const qty = parseInt(value) || 0;
+    setQuantities((prev) => ({
+      ...prev,
+      [productId]: Math.max(0, qty),
+    }));
   };
 
-  const handleRemoveItem = (index: number) => {
-    setOrderItems(orderItems.filter((_, i) => i !== index));
-  };
-
-  const handleItemChange = (
-    index: number,
-    field: 'productId' | 'qty',
-    value: number
+  const handleOpenEditNotes = (
+    orderId: number,
+    currentNotes: string | null
   ) => {
-    const updated = [...orderItems];
-    updated[index][field] = value;
-    setOrderItems(updated);
+    setEditingOrderId(orderId);
+    setEditNotesValue(currentNotes || '');
+    setIsEditNotesDialogOpen(true);
+  };
+
+  const handleUpdateNotes = async () => {
+    if (!editingOrderId) return;
+
+    try {
+      setUpdatingNotes(true);
+      const response = await fetch('/api/admin/orders/notes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: editingOrderId,
+          notes: editNotesValue.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      setOrders((prev) =>
+        prev.map((order) =>
+          order.id === editingOrderId
+            ? { ...order, notes: editNotesValue.trim() || null }
+            : order
+        )
+      );
+      setIsEditNotesDialogOpen(false);
+      onRefresh();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Ошибка';
+      alert(`Ошибка при обновлении примечания: ${message}`);
+    } finally {
+      setUpdatingNotes(false);
+    }
   };
 
   const handleCreateOrder = async () => {
-    if (!selectedPartnerId || orderItems.length === 0) {
-      alert('Выберите партнера и добавьте товары');
+    if (!selectedPartnerId) {
+      alert('Выберите партнера');
       return;
     }
 
+    // Collect items with qty > 0
+    const items = Object.entries(quantities)
+      .filter(([, qty]) => qty > 0)
+      .map(([productId, qty]) => ({
+        productId: parseInt(productId),
+        qty,
+      }));
+
+    if (items.length === 0) {
+      alert('Добавьте хотя бы один товар');
+      return;
+    }
+
+    const requestData = {
+      partnerId: parseInt(selectedPartnerId),
+      orderType,
+      items,
+      notes: orderNotes.trim() || undefined,
+    };
+
+    console.log('Creating order with data:', requestData);
+
     try {
       setCreating(true);
-      await AdminAPI.createOrder({
-        partnerId: parseInt(selectedPartnerId),
-        orderType,
-        items: orderItems,
+      const response = await fetch('/api/admin/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error:', errorText);
+        throw new Error(errorText || 'Failed to create order');
+      }
+
+      const result = await response.json();
+      console.log('Order created:', result);
 
       alert('Заказ создан успешно');
       setIsCreateDialogOpen(false);
-      setOrderItems([]);
       setOrderType('regular');
       setPartnerSearchQuery('');
       setProductSearchQuery('');
+      setOrderNotes('');
+      setSelectedGroupId('all');
+      setQuantities({});
       onRefresh();
     } catch (error) {
-      const message = await handleApiError(error);
-      alert(`Ошибка: ${message}`);
+      console.error('Error creating order:', error);
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
+      alert(`Ошибка при создании заказа: ${message}`);
     } finally {
       setCreating(false);
     }
@@ -228,12 +315,102 @@ export default function OrdersManagement({
     partner.name.toLowerCase().includes(partnerSearchQuery.toLowerCase())
   );
 
-  // Фильтрация товаров по поисковому запросу
-  const filteredProducts = productSearchQuery
-    ? products.filter((product) =>
+  // Фильтрация товаров
+  const getFilteredProducts = () => {
+    let filtered = products;
+
+    // Фильтр по типу товара
+    if (selectedTypeFilter !== 'ALL') {
+      filtered = filtered.filter((p) => p.type === selectedTypeFilter);
+    }
+
+    // Фильтр по группе
+    if (selectedGroupId !== 'all') {
+      if (selectedGroupId === 'no-group') {
+        filtered = filtered.filter((p) => !p.groupId);
+      } else {
+        filtered = filtered.filter(
+          (p) => p.groupId === parseInt(selectedGroupId)
+        );
+      }
+    }
+
+    // Фильтр по поисковому запросу
+    if (productSearchQuery) {
+      filtered = filtered.filter((product) =>
         product.number.toLowerCase().includes(productSearchQuery.toLowerCase())
-      )
-    : products;
+      );
+    }
+
+    return filtered;
+  };
+
+  const filteredProducts = getFilteredProducts();
+
+  // Подсчет итогов
+  const getTotals = () => {
+    if (!selectedPartnerId) return { totalItems: 0, totalSum: 0 };
+
+    const partner = partners.find((p) => p.id === parseInt(selectedPartnerId));
+    if (!partner || !partner.prices) return { totalItems: 0, totalSum: 0 };
+
+    let totalItems = 0;
+    let totalSum = 0;
+
+    Object.entries(quantities).forEach(([productIdStr, qty]) => {
+      if (qty > 0) {
+        const productId = parseInt(productIdStr);
+        const product = products.find((p) => p.id === productId);
+        if (product) {
+          totalItems += qty;
+          // Find price for this product
+          const priceEntry = partner.prices.find(
+            (p: any) => p.type === product.type && p.groupId === product.groupId
+          );
+          if (priceEntry) {
+            totalSum += qty * Number(priceEntry.price);
+          }
+        }
+      }
+    });
+
+    return { totalItems, totalSum };
+  };
+
+  // Подсчет итогов по типам
+  const getTotalsByType = () => {
+    if (!selectedPartnerId) return {};
+
+    const partner = partners.find((p) => p.id === parseInt(selectedPartnerId));
+    if (!partner || !partner.prices) return {};
+
+    const byType: Record<string, { count: number; sum: number }> = {};
+
+    Object.entries(quantities).forEach(([productIdStr, qty]) => {
+      if (qty > 0) {
+        const productId = parseInt(productIdStr);
+        const product = products.find((p) => p.id === productId);
+        if (product) {
+          if (!byType[product.type]) {
+            byType[product.type] = { count: 0, sum: 0 };
+          }
+          byType[product.type].count += qty;
+
+          const priceEntry = partner.prices.find(
+            (p: any) => p.type === product.type && p.groupId === product.groupId
+          );
+          if (priceEntry) {
+            byType[product.type].sum += qty * Number(priceEntry.price);
+          }
+        }
+      }
+    });
+
+    return byType;
+  };
+
+  const { totalItems, totalSum } = getTotals();
+  const totalsByType = getTotalsByType();
 
   return (
     <div className="space-y-3">
@@ -368,6 +545,36 @@ export default function OrdersManagement({
 
                   {isExpanded && (
                     <div className="mt-4 space-y-3 border-t pt-3">
+                      {/* Order Notes */}
+                      <div className="bg-secondary p-3 rounded">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1">
+                            <p className="text-xs font-medium text-muted-foreground mb-1">
+                              Примечание:
+                            </p>
+                            <p className="text-sm">
+                              {order.notes || (
+                                <span className="text-muted-foreground italic">
+                                  Нет примечания
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditNotes(order.id, order.notes);
+                            }}
+                            title="Редактировать примечание"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+
                       <div>
                         <h4 className="text-sm font-medium mb-2">Товары:</h4>
                         <div className="space-y-1">
@@ -487,169 +694,304 @@ export default function OrdersManagement({
 
       {/* Create Order Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] lg:max-w-7xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Создать новый заказ</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            {/* Partner Selection */}
-            <div>
-              <Label htmlFor="partner-search" className="mb-2">
-                Партнёр
-              </Label>
-              <Input
-                id="partner-search"
-                type="text"
-                placeholder="Поиск по названию партнёра..."
-                value={partnerSearchQuery}
-                onChange={(e) => setPartnerSearchQuery(e.target.value)}
-                className="mb-2"
-              />
-              <Select
-                value={selectedPartnerId}
-                onValueChange={setSelectedPartnerId}
-              >
-                <SelectTrigger id="partner-select">
-                  <SelectValue placeholder="Выберите партнёра" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredPartners.length === 0 ? (
-                    <div className="p-2 text-sm text-muted-foreground text-center">
-                      Партнёры не найдены
-                    </div>
-                  ) : (
-                    filteredPartners.map((partner) => (
-                      <SelectItem
-                        key={partner.id}
-                        value={partner.id.toString()}
-                      >
-                        {partner.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Order Type */}
-            <div>
-              <Label htmlFor="order-type">Тип заказа</Label>
-              <Select
-                value={orderType}
-                onValueChange={(v) =>
-                  setOrderType(v as 'regular' | 'realization')
-                }
-              >
-                <SelectTrigger id="order-type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="regular">Обычный</SelectItem>
-                  <SelectItem value="realization">На реализацию</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Order Items */}
-            <div className="space-y-2">
-              <div className="space-y-2">
-                <Label>Товары</Label>
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left side - Form fields */}
+            <div className="space-y-4 flex-1">
+              {/* Partner Selection */}
+              <div>
+                <Label htmlFor="partner-search" className="mb-2">
+                  Партнёр
+                </Label>
                 <Input
+                  id="partner-search"
                   type="text"
-                  placeholder="Поиск товара по номеру..."
-                  value={productSearchQuery}
-                  onChange={(e) => setProductSearchQuery(e.target.value)}
+                  placeholder="Поиск по названию партнёра..."
+                  value={partnerSearchQuery}
+                  onChange={(e) => setPartnerSearchQuery(e.target.value)}
+                  className="mb-2"
+                />
+                <Select
+                  value={selectedPartnerId}
+                  onValueChange={setSelectedPartnerId}
+                >
+                  <SelectTrigger id="partner-select">
+                    <SelectValue placeholder="Выберите партнёра" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredPartners.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground text-center">
+                        Партнёры не найдены
+                      </div>
+                    ) : (
+                      filteredPartners.map((partner) => (
+                        <SelectItem
+                          key={partner.id}
+                          value={partner.id.toString()}
+                        >
+                          {partner.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Order Type */}
+              <div>
+                <Label htmlFor="order-type" className="mb-1">
+                  Тип заказа
+                </Label>
+                <Select
+                  value={orderType}
+                  onValueChange={(v) =>
+                    setOrderType(v as 'regular' | 'realization')
+                  }
+                >
+                  <SelectTrigger id="order-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Обычный</SelectItem>
+                    <SelectItem value="realization">На реализацию</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <Label htmlFor="order-notes" className="mb-1">
+                  Примечание (необязательно)
+                </Label>
+                <Input
+                  id="order-notes"
+                  type="text"
+                  placeholder="Введите примечание к заказу..."
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
                 />
               </div>
-              {orderItems.map((item, index) => (
-                <div key={index} className="space-y-2 p-3 border rounded-lg">
-                  <div className="flex gap-2 items-start">
-                    <div className="flex-1">
-                      <Select
-                        value={item.productId?.toString() || ''}
-                        onValueChange={(val) =>
-                          handleItemChange(index, 'productId', parseInt(val))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Выберите товар" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {filteredProducts.length === 0 ? (
-                            <div className="p-2 text-sm text-muted-foreground text-center">
-                              Товары не найдены
-                            </div>
-                          ) : (
-                            filteredProducts.map((product) => (
-                              <SelectItem
-                                key={product.id}
-                                value={product.id.toString()}
-                              >
-                                {product.number}
-                              </SelectItem>
-                            ))
-                          )}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-24">
-                      <Input
-                        type="number"
-                        placeholder="Кол-во"
-                        min="1"
-                        value={item.qty || ''}
-                        onChange={(e) =>
-                          handleItemChange(
-                            index,
-                            'qty',
-                            parseInt(e.target.value) || 0
-                          )
-                        }
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveItem(index)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
+
+              {/* Totals Summary */}
+              <Card className="bg-secondary">
+                <CardContent>
+                  <h4 className="font-semibold mb-3">Итого по типам:</h4>
+                  <div className="space-y-2">
+                    {PRODUCT_TYPES.map((type) => {
+                      const typeData = totalsByType[type];
+                      if (!typeData || typeData.count === 0) return null;
+                      return (
+                        <div
+                          key={type}
+                          className="flex justify-between text-sm"
+                        >
+                          <span>{PRODUCT_TYPE_LABELS_PLURAL[type]}:</span>
+                          <span className="font-medium">
+                            {typeData.count} шт • {typeData.sum.toFixed(2)} MDL
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleAddItem}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Добавить товар
-              </Button>
+                  <div className="border-t mt-3 pt-3 flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Всего товаров
+                      </p>
+                      <p className="text-xl font-bold">{totalItems} шт</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">
+                        Итоговая сумма
+                      </p>
+                      <p className="text-xl font-bold">
+                        {totalSum.toFixed(2)} MDL
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
 
-            {/* Submit Button */}
-            <div className="flex justify-end gap-2 pt-4">
+            {/* Right side - Filters, Products grid and totals */}
+            <div className="space-y-4 flex-1 lg:min-w-112.5">
+              {/* Filters */}
+              <div className="flex gap-3">
+                {/* Product Search */}
+                <div>
+                  <Label htmlFor="product-search" className="mb-1">
+                    Поиск товара
+                  </Label>
+                  <Input
+                    id="product-search"
+                    type="text"
+                    placeholder="Поиск товара по номеру..."
+                    value={productSearchQuery}
+                    onChange={(e) => setProductSearchQuery(e.target.value)}
+                  />
+                </div>
+                {/* Product Type Filter */}
+                <div>
+                  <Label htmlFor="type-filter" className="mb-1">
+                    Тип товара
+                  </Label>
+                  <Select
+                    value={selectedTypeFilter}
+                    onValueChange={(value) => {
+                      setSelectedTypeFilter(value);
+                      setSelectedGroupId('all');
+                    }}
+                  >
+                    <SelectTrigger id="type-filter">
+                      <SelectValue placeholder="Все типы" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">Все типы</SelectItem>
+                      {PRODUCT_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {PRODUCT_TYPE_LABELS_PLURAL[type]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Group Filter */}
+                <div>
+                  <Label htmlFor="group-filter" className="mb-1">
+                    Группа товаров
+                  </Label>
+                  <Select
+                    value={selectedGroupId}
+                    onValueChange={setSelectedGroupId}
+                    disabled={selectedTypeFilter === 'ALL'}
+                  >
+                    <SelectTrigger id="group-filter">
+                      <SelectValue placeholder="Выберите группу" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Все группы</SelectItem>
+                      <SelectItem value="no-group">Без группы</SelectItem>
+                      {groups
+                        .filter(
+                          (group) =>
+                            selectedTypeFilter === 'ALL' ||
+                            group.type === selectedTypeFilter
+                        )
+                        .map((group) => (
+                          <SelectItem
+                            key={group.id}
+                            value={group.id.toString()}
+                          >
+                            {group.translations?.ru || group.slug}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {/* Products Grid */}
+              <div className="border rounded-lg p-4 max-h-150 overflow-y-auto">
+                <h4 className="font-semibold mb-3">
+                  Товары ({filteredProducts.length})
+                </h4>
+                {filteredProducts.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    Товары не найдены
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                    {filteredProducts.map((product) => (
+                      <div
+                        key={product.id}
+                        className="flex flex-col gap-1 p-2 border rounded"
+                      >
+                        <label
+                          htmlFor={`qty-${product.id}`}
+                          className="text-xs font-medium truncate"
+                          title={product.number}
+                        >
+                          {product.number}
+                        </label>
+                        <Input
+                          id={`qty-${product.id}`}
+                          type="number"
+                          min="0"
+                          value={quantities[product.id] || 0}
+                          onChange={(e) =>
+                            handleQuantityChange(product.id, e.target.value)
+                          }
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCreateDialogOpen(false);
+                setOrderNotes('');
+                setSelectedGroupId('all');
+                setSelectedTypeFilter('ALL');
+                setProductSearchQuery('');
+                setPartnerSearchQuery('');
+              }}
+            >
+              Отмена
+            </Button>
+            <Button
+              onClick={handleCreateOrder}
+              disabled={creating || !selectedPartnerId || totalItems === 0}
+            >
+              {creating ? 'Создание...' : 'Создать заказ'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Notes Dialog */}
+      <Dialog
+        open={isEditNotesDialogOpen}
+        onOpenChange={setIsEditNotesDialogOpen}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Редактировать примечание</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-notes">Примечание к заказу</Label>
+              <Input
+                id="edit-notes"
+                type="text"
+                placeholder="Введите примечание..."
+                value={editNotesValue}
+                onChange={(e) => setEditNotesValue(e.target.value)}
+                className="mt-2"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setIsCreateDialogOpen(false)}
+                onClick={() => setIsEditNotesDialogOpen(false)}
               >
                 Отмена
               </Button>
-              <Button
-                onClick={handleCreateOrder}
-                disabled={
-                  creating ||
-                  !selectedPartnerId ||
-                  orderItems.length === 0 ||
-                  orderItems.some((item) => !item.productId || !item.qty)
-                }
-              >
-                {creating ? 'Создание...' : 'Создать заказ'}
+              <Button onClick={handleUpdateNotes} disabled={updatingNotes}>
+                {updatingNotes ? 'Сохранение...' : 'Сохранить'}
               </Button>
             </div>
           </div>
