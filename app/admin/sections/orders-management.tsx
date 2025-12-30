@@ -20,7 +20,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Download, Pencil } from 'lucide-react';
+import { Plus, Trash2, Download, Pencil, DollarSign } from 'lucide-react';
+import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import type { AdminOrder } from '../types';
 import {
   ORDER_STATUS_LABELS,
@@ -29,21 +30,23 @@ import {
   AdminAPI,
   usePartners,
   useProducts,
-  useGroups,
   handleApiError,
   formatDate,
   PRODUCT_TYPES,
   PRODUCT_TYPE_LABELS_PLURAL,
 } from '@/lib/admin';
+import { ProductGroup } from '@prisma/client';
 
 interface OrdersManagementProps {
   orders: AdminOrder[];
   onRefresh: () => void;
+  groups: ProductGroup[];
 }
 
 export default function OrdersManagement({
   orders: initialOrders,
   onRefresh,
+  groups,
 }: OrdersManagementProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<OrderStatusType | 'ALL'>('ALL');
@@ -52,7 +55,7 @@ export default function OrdersManagement({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { partners } = usePartners(true);
   const { products } = useProducts();
-  const { groups } = useGroups();
+  // const { groups } = useGroups(); // Now passed as prop
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [orderType, setOrderType] = useState<'regular' | 'realization'>(
     'regular'
@@ -68,6 +71,13 @@ export default function OrdersManagement({
   const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
   const [editNotesValue, setEditNotesValue] = useState('');
   const [updatingNotes, setUpdatingNotes] = useState(false);
+  const [isEditPricesDialogOpen, setIsEditPricesDialogOpen] = useState(false);
+  const [editingPricesOrder, setEditingPricesOrder] =
+    useState<AdminOrder | null>(null);
+
+  useEffect(() => {
+    setOrders(initialOrders);
+  }, [initialOrders]);
   useEffect(() => {
     if (partners.length > 0 && !selectedPartnerId) {
       setSelectedPartnerId(partners[0].id.toString());
@@ -101,6 +111,17 @@ export default function OrdersManagement({
     setEditNotesValue(currentNotes || '');
     setIsEditNotesDialogOpen(true);
   };
+
+  const handleOpenEditPrices = (order: AdminOrder) => {
+    setEditingPricesOrder(order);
+    setIsEditPricesDialogOpen(true);
+  };
+
+  useEffect(() => {
+    if (!isEditPricesDialogOpen) {
+      setEditingPricesOrder(null);
+    }
+  }, [isEditPricesDialogOpen]);
 
   const handleUpdateNotes = async () => {
     if (!editingOrderId) return;
@@ -603,6 +624,21 @@ export default function OrdersManagement({
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                          {/* Кнопка редактирования цен */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full sm:w-auto"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditPrices(order);
+                            }}
+                            title="Редактировать цены для этого заказа"
+                          >
+                            <DollarSign className="h-4 w-4 sm:mr-0 mr-2" />
+                            <span className="sm:hidden">Цены</span>
+                          </Button>
+
                           {(order as any).isRealization &&
                           order.status === 'PAID' ? (
                             <div className="flex items-center gap-2">
@@ -887,7 +923,7 @@ export default function OrdersManagement({
                             key={group.id}
                             value={group.id.toString()}
                           >
-                            {group.translations?.ru || group.slug}
+                            {group.slug}
                           </SelectItem>
                         ))}
                     </SelectContent>
@@ -997,6 +1033,27 @@ export default function OrdersManagement({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Prices Dialog */}
+      {editingPricesOrder && (
+        <OrderCustomPricesDialog
+          open={isEditPricesDialogOpen}
+          onOpenChange={setIsEditPricesDialogOpen}
+          order={editingPricesOrder}
+          groups={groups}
+          onSuccess={(updatedOrder) => {
+            if (updatedOrder) {
+              setOrders((prev) =>
+                prev.map((o) =>
+                  o.id === updatedOrder.id ? (updatedOrder as any) : o
+                )
+              );
+              setEditingPricesOrder(updatedOrder as any);
+            }
+            onRefresh();
+          }}
+        />
+      )}
     </div>
   );
 }

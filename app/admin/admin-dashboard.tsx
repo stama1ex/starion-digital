@@ -16,17 +16,20 @@ import { GroupsManagement } from './sections/groups-management';
 import AdminSettings from './sections/admin-settings';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
+import { ProductGroup } from '@prisma/client';
 
 interface AdminDashboardProps {
   orders: AdminOrder[];
   partners: AdminPartner[];
   realizations: AdminRealization[];
+  groups: ProductGroup[];
 }
 
 export default function AdminDashboard({
   orders: initialOrders,
   partners,
   realizations: initialRealizations,
+  groups,
 }: AdminDashboardProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [realizations, setRealizations] = useState(initialRealizations);
@@ -178,6 +181,7 @@ export default function AdminDashboard({
               <OrdersManagement
                 orders={orders}
                 onRefresh={handleRefreshOrders}
+                groups={groups}
               />
             </TabsContent>
 
