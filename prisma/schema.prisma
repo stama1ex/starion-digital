@@ -72,6 +72,7 @@ model Order {
   status        OrderStatus @default(NEW)
   isRealization Boolean    @default(false) // Флаг заказа на реализацию
   notes         String?    @db.Text // Примечание к заказу
+  customPrices  Json?      // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}
   createdAt     DateTime   @default(now())
 
   partner    Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
