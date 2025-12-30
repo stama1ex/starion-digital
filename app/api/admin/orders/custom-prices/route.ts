@@ -47,18 +47,25 @@ export async function PATCH(request: NextRequest) {
     // Пересчитываем все позиции заказа с учетом новых цен
     const updatedItems = order.items.map((item) => {
       const key = `${item.product.type}-${item.product.groupId}`;
-      
+
       // Берем кастомную цену если есть, иначе стандартную цену партнера
       let pricePerItem: number;
-      
-      if (customPrices[key] !== undefined && customPrices[key] !== null && customPrices[key] !== '') {
+
+      if (
+        customPrices[key] !== undefined &&
+        customPrices[key] !== null &&
+        customPrices[key] !== ''
+      ) {
         pricePerItem = parseFloat(customPrices[key]);
       } else {
         // Если кастомная цена не задана, берем стандартную цену партнера
         const standardPrice = order.partner.prices.find(
-          (p) => p.type === item.product.type && p.groupId === item.product.groupId
+          (p) =>
+            p.type === item.product.type && p.groupId === item.product.groupId
         );
-        pricePerItem = standardPrice ? Number(standardPrice.price) : Number(item.pricePerItem);
+        pricePerItem = standardPrice
+          ? Number(standardPrice.price)
+          : Number(item.pricePerItem);
       }
 
       const sum = pricePerItem * item.quantity;
