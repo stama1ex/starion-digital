@@ -48,7 +48,7 @@ export function OrderCustomPricesDialog({
     if (open && order) {
       // Инициализируем цены из customPrices заказа или стандартных цен партнера
       const initialPrices: Record<string, number | string> = {};
-      
+
       // Получаем все уникальные комбинации type-groupId из товаров заказа
       const uniqueCombinations = new Set<string>();
       order.items.forEach((item: any) => {
@@ -115,7 +115,8 @@ export function OrderCustomPricesDialog({
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving custom prices:', error);
-      const message = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
       alert(`Ошибка при сохранении цен: ${message}`);
     } finally {
       setSaving(false);
@@ -128,13 +129,14 @@ export function OrderCustomPricesDialog({
   };
 
   // Проверяем, есть ли в заказе товары данного типа и группы
-  const hasProductsOfTypeAndGroup = (type: ProductType, groupId: number | null) => {
-    return order?.items?.some(
-      (item: any) => {
-        const itemGroupId = item.product.groupId ?? null;
-        return item.product.type === type && itemGroupId === groupId;
-      }
-    );
+  const hasProductsOfTypeAndGroup = (
+    type: ProductType,
+    groupId: number | null
+  ) => {
+    return order?.items?.some((item: any) => {
+      const itemGroupId = item.product.groupId ?? null;
+      return item.product.type === type && itemGroupId === groupId;
+    });
   };
 
   if (!order) return null;
@@ -152,8 +154,9 @@ export function OrderCustomPricesDialog({
               <strong>Партнёр:</strong> {order.partner.name}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Измените цены для конкретных групп товаров. Эти цены будут применены
-              ТОЛЬКО к этому заказу и не повлияют на стандартные цены партнёра.
+              Измените цены для конкретных групп товаров. Эти цены будут
+              применены ТОЛЬКО к этому заказу и не повлияют на стандартные цены
+              партнёра.
             </p>
           </div>
 
@@ -206,7 +209,9 @@ export function OrderCustomPricesDialog({
                     {/* Без группы */}
                     {hasNoGroupProducts && (
                       <div className="space-y-2">
-                        <label className="text-sm font-medium">Без группы</label>
+                        <label className="text-sm font-medium">
+                          Без группы
+                        </label>
                         <div className="flex items-center gap-2">
                           <Input
                             type="number"
