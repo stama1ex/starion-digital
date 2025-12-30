@@ -923,7 +923,8 @@ export default function OrdersManagement({
                             key={group.id}
                             value={group.id.toString()}
                           >
-                            {group.slug}
+                            {(group.translations as { ru?: string })?.ru ||
+                              group.slug}
                           </SelectItem>
                         ))}
                     </SelectContent>
