@@ -982,7 +982,7 @@ export default function OrdersManagement({
                           onChange={(e) =>
                             handleQuantityChange(product.id, e.target.value)
                           }
-                          className="h-6 w-10 text-xs px-1 text-center"
+                          className="h-6 w-12 text-xs px-1 text-center"
                         />
                       </div>
                     ))}
