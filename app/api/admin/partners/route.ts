@@ -124,8 +124,14 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(partner);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating partner:', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Партнер с таким логином уже существует' },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to create partner' },
       { status: 500 }
@@ -145,10 +151,15 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json();
 
-    const updateData: any = {
-      name: data.name,
-      login: data.login,
-    };
+    const updateData: any = {};
+
+    if (data.name && data.name.trim()) {
+      updateData.name = data.name;
+    }
+
+    if (data.login && data.login.trim()) {
+      updateData.login = data.login;
+    }
 
     // Обновлять пароль только если он явно передан
     if (data.password && data.password.length > 0) {
@@ -158,6 +169,13 @@ export async function PUT(request: NextRequest) {
     // Менять роль можно, но только если ты уверен – можно вообще убрать это
     if (data.role) {
       updateData.role = data.role;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json(
+        { error: 'Нет данных для обновления' },
+        { status: 400 }
+      );
     }
 
     const partner = await prisma.partner.update({
@@ -173,8 +191,14 @@ export async function PUT(request: NextRequest) {
     });
 
     return NextResponse.json(partner);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating partner:', error);
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { error: 'Партнер с таким логином уже существует' },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to update partner' },
       { status: 500 }
