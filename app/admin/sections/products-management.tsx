@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -55,7 +55,6 @@ function ProductImagePreview({ imagePath }: { imagePath: string }) {
   // Используем обычный img для Dropbox URL
   if (imgSrc.includes('dropboxusercontent.com')) {
     return (
-      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={imgSrc}
         alt="Preview"
@@ -330,7 +329,7 @@ export default function ProductsManagement() {
       <div className="grid gap-2">
         {filteredProducts.map((product) => (
           <Card key={product.id} className="p-0">
-            <CardContent className="p-3">
+            <CardContent className="px-3 py-1">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 {/* Информация в одну строку */}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">

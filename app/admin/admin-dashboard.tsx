@@ -302,6 +302,7 @@ export default function AdminDashboard({
               <SalesAnalytics
                 orders={orders}
                 realizations={realizations}
+                partners={partners}
                 dateRange={dateRange}
                 customDateRange={useCustomRange ? customDateRange : null}
               />

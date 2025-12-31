@@ -441,7 +441,7 @@ export default function OrdersManagement({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-2">
         <h2 className="text-2xl font-bold">Заказы</h2>
         <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
           <Plus size={16} />
@@ -450,7 +450,7 @@ export default function OrdersManagement({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <Card className="flex-1 min-w-37.5 p-3">
+        <Card className="flex-1 min-w-37.5 px-3 py-1">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Новые
@@ -458,7 +458,7 @@ export default function OrdersManagement({
             <span className="text-2xl font-bold">{stats.NEW}</span>
           </div>
         </Card>
-        <Card className="flex-1 min-w-37.5 p-3">
+        <Card className="flex-1 min-w-37.5 px-3 py-1">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Подтверждённые
@@ -466,7 +466,7 @@ export default function OrdersManagement({
             <span className="text-2xl font-bold">{stats.CONFIRMED}</span>
           </div>
         </Card>
-        <Card className="flex-1 min-w-37.5 p-3">
+        <Card className="flex-1 min-w-37.5 px-3 py-1">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Оплаченные
@@ -474,7 +474,7 @@ export default function OrdersManagement({
             <span className="text-2xl font-bold">{stats.PAID}</span>
           </div>
         </Card>
-        <Card className="flex-1 min-w-37.5 p-3">
+        <Card className="flex-1 min-w-37.5 px-3 py-1">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
               Отменённые
@@ -525,7 +525,7 @@ export default function OrdersManagement({
                 className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
               >
-                <CardContent className="py-3">
+                <CardContent>
                   <div className="flex items-center justify-between gap-4">
                     {/* Левая часть: номер, партнер, дата */}
                     <div className="flex-1 min-w-0">
