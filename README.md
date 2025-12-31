@@ -1,6 +1,6 @@
 <div align="center">
   <h1>🚀 Starion Digital</h1>
-  <p><strong>Modern E-commerce Platform for Magnets and License Plates</strong></p>
+  <p><strong>Modern E-commerce Platform for Souvenirs</strong></p>
   
   ![Next.js](https://img.shields.io/badge/Next.js-15.5-black?style=for-the-badge&logo=next.js)
   ![React](https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react)

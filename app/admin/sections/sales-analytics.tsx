@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, calculateMetrics } from '../utils';
 import {
@@ -13,10 +14,21 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 interface SalesAnalyticsProps {
   orders: any[];
   realizations: any[];
+  partners: any[];
   dateRange: 'day' | 'week' | 'month';
   customDateRange?: { from: string; to: string } | null;
 }
@@ -24,19 +36,41 @@ interface SalesAnalyticsProps {
 export default function SalesAnalytics({
   orders,
   realizations,
+  partners,
   dateRange,
   customDateRange,
 }: SalesAnalyticsProps) {
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
+  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+
+  // Фильтрация по партнеру
+  const partnerFilteredOrders =
+    selectedPartnerId === 'ALL'
+      ? orders
+      : orders.filter((o) => o.partnerId.toString() === selectedPartnerId);
+
+  const partnerFilteredRealizations =
+    selectedPartnerId === 'ALL'
+      ? realizations
+      : realizations.filter(
+          (r) => r.partnerId.toString() === selectedPartnerId
+        );
+
   const filteredOrders = filterByDateRange(
-    orders,
+    partnerFilteredOrders,
     dateRange,
     customDateRange || undefined
   );
 
   const filteredRealizations = filterByDateRange(
-    realizations,
+    partnerFilteredRealizations,
     dateRange,
     customDateRange || undefined
+  );
+
+  // Фильтрация списка партнеров для поиска
+  const filteredPartners = partners.filter((p) =>
+    p.name.toLowerCase().includes(partnerSearchQuery.toLowerCase())
   );
 
   // Маппер себестоимости (в дальнейшем можно получать из БД)
@@ -162,6 +196,57 @@ export default function SalesAnalytics({
 
   return (
     <div className="space-y-6">
+      {/* Фильтр по партнеру */}
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-card p-4 rounded-lg border shadow-sm">
+        <div className="flex-1 w-full sm:w-auto">
+          <label className="text-sm font-medium mb-1 block">
+            Поиск партнера
+          </label>
+          <Input
+            placeholder="Введите имя..."
+            value={partnerSearchQuery}
+            onChange={(e) => setPartnerSearchQuery(e.target.value)}
+            className="max-w-xs"
+          />
+        </div>
+        <div className="flex-1 w-full sm:w-auto">
+          <label className="text-sm font-medium mb-1 block">
+            Выберите партнера
+          </label>
+          <div className="flex gap-2">
+            <Select
+              value={selectedPartnerId}
+              onValueChange={setSelectedPartnerId}
+            >
+              <SelectTrigger className="w-full sm:w-62.5">
+                <SelectValue placeholder="Все партнеры" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Все партнеры</SelectItem>
+                {filteredPartners.map((partner) => (
+                  <SelectItem key={partner.id} value={partner.id.toString()}>
+                    {partner.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedPartnerId !== 'ALL' && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSelectedPartnerId('ALL');
+                  setPartnerSearchQuery('');
+                }}
+                title="Сбросить фильтр"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* === KPI блоки === */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
