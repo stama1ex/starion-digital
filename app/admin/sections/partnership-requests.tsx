@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   Check,
   X,
@@ -72,16 +73,16 @@ export function PartnershipRequests({
       if (res.ok) {
         await fetchRequests();
         onRequestsChange?.(); // Обновляем счетчик
-        alert(
+        toast.success(
           action === 'approve' ? 'Партнер успешно создан!' : 'Заявка отклонена'
         );
       } else {
         const result = await res.json();
-        alert(result.error || 'Ошибка при обработке заявки');
+        toast.error(result.error || 'Ошибка при обработке заявки');
       }
     } catch (error) {
       console.error('Error processing request:', error);
-      alert('Ошибка при обработке заявки');
+      toast.error('Ошибка при обработке заявки');
     } finally {
       setProcessing(null);
     }
@@ -99,14 +100,14 @@ export function PartnershipRequests({
       if (res.ok) {
         await fetchRequests();
         onRequestsChange?.(); // Обновляем счетчик
-        alert('Заявка удалена');
+        toast.success('Заявка удалена');
       } else {
         const result = await res.json();
-        alert(result.error || 'Ошибка при удалении заявки');
+        toast.error(result.error || 'Ошибка при удалении заявки');
       }
     } catch (error) {
       console.error('Error deleting request:', error);
-      alert('Ошибка при удалении заявки');
+      toast.error('Ошибка при удалении заявки');
     } finally {
       setProcessing(null);
     }
@@ -179,7 +180,7 @@ export function PartnershipRequests({
       <h3 className="text-lg font-semibold">Заявки на партнерство</h3>
       {requests.map((req) => (
         <Card key={req.id}>
-          <CardContent className="p-4">
+          <CardContent>
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 space-y-3">
                 <div className="flex items-center justify-between">

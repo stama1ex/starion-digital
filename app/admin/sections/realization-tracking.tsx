@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,7 +77,7 @@ export default function RealizationTracking({
 
     const amount = Number(paymentAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      alert('Введите корректную сумму');
+      toast.error('Введите корректную сумму');
       return;
     }
 
@@ -97,11 +98,11 @@ export default function RealizationTracking({
         onRefresh();
       } else {
         const error = await response.text();
-        alert(`Ошибка: ${error}`);
+        toast.error(`Ошибка: ${error}`);
       }
     } catch (error) {
       console.error('Error adding payment:', error);
-      alert('Ошибка при добавлении платежа');
+      toast.error('Ошибка при добавлении платежа');
     }
   };
 
@@ -110,7 +111,7 @@ export default function RealizationTracking({
 
     const amount = Number(paymentAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
-      alert('Введите корректную сумму');
+      toast.error('Введите корректную сумму');
       return;
     }
 
@@ -133,11 +134,11 @@ export default function RealizationTracking({
         onRefresh();
       } else {
         const error = await response.text();
-        alert(`Ошибка: ${error}`);
+        toast.error(`Ошибка: ${error}`);
       }
     } catch (error) {
       console.error('Error updating payment:', error);
-      alert('Ошибка при обновлении платежа');
+      toast.error('Ошибка при обновлении платежа');
     }
   };
 
@@ -158,11 +159,11 @@ export default function RealizationTracking({
         onRefresh();
       } else {
         const error = await response.text();
-        alert(`Ошибка: ${error}`);
+        toast.error(`Ошибка: ${error}`);
       }
     } catch (error) {
       console.error('Error deleting payment:', error);
-      alert('Ошибка при удалении платежа');
+      toast.error('Ошибка при удалении платежа');
     }
   };
 

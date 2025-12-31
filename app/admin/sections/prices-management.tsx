@@ -4,6 +4,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -201,13 +202,13 @@ export default function PricesManagement() {
       );
 
       await Promise.all(promises.flat().filter((p) => p !== null));
-      alert('Пресет успешно применён ко всем партнерам!');
+      toast.success('Пресет успешно применён ко всем партнерам!');
       setShowPresetModal(null);
       setPresetPrices({});
       await fetchPrices(); // Обновляем данные для текущего партнера
     } catch (error) {
       console.error('Error applying preset:', error);
-      alert('Ошибка при применении пресета');
+      toast.error('Ошибка при применении пресета');
     } finally {
       setApplyingPreset(false);
     }
@@ -257,12 +258,12 @@ export default function PricesManagement() {
       );
 
       await Promise.all(promises);
-      alert('Цена успешно применена ко всем партнерам!');
+      toast.success('Цена успешно применена ко всем партнерам!');
       setShowGroupPresetModal(null);
       await fetchPrices();
     } catch (error) {
       console.error('Error applying group preset:', error);
-      alert('Ошибка при применении цены');
+      toast.error('Ошибка при применении цены');
     } finally {
       setApplyingPreset(false);
     }
@@ -561,7 +562,7 @@ export default function PricesManagement() {
                         parseFloat(priceValue.toString())
                       );
                     } else {
-                      alert('Пожалуйста, введите цену');
+                      toast.error('Пожалуйста, введите цену');
                     }
                   }}
                   disabled={applyingPreset}

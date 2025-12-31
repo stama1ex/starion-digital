@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -45,14 +46,16 @@ export default function PartnersManagement({
   });
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.login.trim()) {
-      alert('Заполните имя и логин');
-      return;
-    }
+    if (!editingId) {
+      if (!formData.name.trim() || !formData.login.trim()) {
+        toast.error('Заполните имя и логин');
+        return;
+      }
 
-    if (!editingId && formData.password.length < 4) {
-      alert('Пароль должен быть минимум 4 символа');
-      return;
+      if (formData.password.length < 4) {
+        toast.error('Пароль должен быть минимум 4 символа');
+        return;
+      }
     }
 
     try {
@@ -68,10 +71,10 @@ export default function PartnersManagement({
       setEditingId(null);
       setIsDialogOpen(false);
       await refetch();
-      alert(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
+      toast.success(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
     } catch (error) {
       const message = await handleApiError(error);
-      alert(`Ошибка: ${message}`);
+      toast.error(`Ошибка: ${message}`);
     }
   };
 
@@ -79,7 +82,7 @@ export default function PartnersManagement({
     setFormData({
       name: partner.name,
       login: partner.login,
-      password: partner.password,
+      password: '',
     });
     setEditingId(partner.id);
     setIsDialogOpen(true);
@@ -87,7 +90,7 @@ export default function PartnersManagement({
 
   const handleDelete = async (id: number) => {
     if (id === user?.id) {
-      alert('Вы не можете удалить самого себя');
+      toast.error('Вы не можете удалить самого себя');
       return;
     }
 
@@ -96,10 +99,10 @@ export default function PartnersManagement({
     try {
       await AdminAPI.deletePartner(id);
       await refetch();
-      alert('Партнёр удалён');
+      toast.success('Партнёр удалён');
     } catch (error) {
       const message = await handleApiError(error);
-      alert(`Ошибка: ${message}`);
+      toast.error(`Ошибка: ${message}`);
     }
   };
 

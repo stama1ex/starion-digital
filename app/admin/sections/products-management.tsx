@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -95,7 +96,7 @@ export default function ProductsManagement() {
 
   const uploadFile = async (file: File) => {
     if (!file || !file.type.startsWith('image/')) {
-      alert('Пожалуйста, выберите файл изображения');
+      toast.error('Пожалуйста, выберите файл изображения');
       return;
     }
 
@@ -113,11 +114,11 @@ export default function ProductsManagement() {
       if (res.ok) {
         setFormData({ ...formData, image: result.path });
       } else {
-        alert(result.error || 'Ошибка загрузки изображения');
+        toast.error(result.error || 'Ошибка загрузки изображения');
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Ошибка при загрузке изображения');
+      toast.error('Ошибка при загрузке изображения');
     } finally {
       setUploadingImage(false);
     }
@@ -176,10 +177,10 @@ export default function ProductsManagement() {
       resetForm();
       setIsDialogOpen(false);
       await refetchProducts();
-      alert('Товар сохранён');
+      toast.success('Товар сохранён');
     } catch (error) {
       const message = await handleApiError(error);
-      alert('Ошибка при сохранении товара: ' + message);
+      toast.error('Ошибка при сохранении товара: ' + message);
     }
   };
 
@@ -202,10 +203,10 @@ export default function ProductsManagement() {
     try {
       await AdminAPI.deleteProduct(id);
       await refetchProducts();
-      alert('Товар удалён');
+      toast.success('Товар удалён');
     } catch (error) {
       const message = await handleApiError(error);
-      alert('Ошибка при удалении товара: ' + message);
+      toast.error('Ошибка при удалении товара: ' + message);
     }
   };
 

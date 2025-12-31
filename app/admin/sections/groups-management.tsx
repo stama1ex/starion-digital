@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +36,6 @@ interface ProductGroup {
 
 export function GroupsManagement() {
   const { groups, refetch } = useGroups();
-  const [newGroupSlug, setNewGroupSlug] = useState('');
   const [newGroupTranslations, setNewGroupTranslations] = useState({
     en: '',
     ro: '',
@@ -43,7 +43,6 @@ export function GroupsManagement() {
   });
   const [newGroupType, setNewGroupType] = useState<string>('MAGNET');
   const [editingGroup, setEditingGroup] = useState<ProductGroup | null>(null);
-  const [editSlug, setEditSlug] = useState('');
   const [editTranslations, setEditTranslations] = useState({
     en: '',
     ro: '',
@@ -51,19 +50,20 @@ export function GroupsManagement() {
   });
 
   const handleCreate = async () => {
-    if (!newGroupSlug.trim()) {
-      alert('Введите slug группы');
+    const generatedSlug = newGroupTranslations.en.trim().toUpperCase();
+    if (!generatedSlug) {
+      toast.error('Введите название на английском (для генерации slug)');
       return;
     }
     if (!newGroupTranslations.ru.trim()) {
-      alert('Введите название на русском');
+      toast.error('Введите название на русском');
       return;
     }
 
     try {
       await AdminAPI.createGroup({
         type: newGroupType,
-        slug: newGroupSlug.trim(),
+        slug: generatedSlug,
         translations: {
           en: newGroupTranslations.en.trim() || newGroupTranslations.ru.trim(),
           ro: newGroupTranslations.ro.trim() || newGroupTranslations.ru.trim(),
@@ -71,23 +71,26 @@ export function GroupsManagement() {
         },
       });
 
-      setNewGroupSlug('');
       setNewGroupTranslations({ en: '', ro: '', ru: '' });
       refetch();
     } catch (error: any) {
       const message = await handleApiError(error);
-      alert('Ошибка: ' + message);
+      toast.error('Ошибка: ' + message);
     }
   };
 
   const handleUpdate = async () => {
-    if (!editingGroup || !editSlug.trim() || !editTranslations.ru.trim())
+    const generatedSlug = editTranslations.en.trim().toUpperCase();
+    if (!editingGroup || !generatedSlug || !editTranslations.ru.trim()) {
+      if (!generatedSlug)
+        toast.error('Введите название на английском (для генерации slug)');
       return;
+    }
 
     try {
       await AdminAPI.updateGroup({
         id: editingGroup.id,
-        slug: editSlug.trim(),
+        slug: generatedSlug,
         translations: {
           en: editTranslations.en.trim() || editTranslations.ru.trim(),
           ro: editTranslations.ro.trim() || editTranslations.ru.trim(),
@@ -96,12 +99,11 @@ export function GroupsManagement() {
       });
 
       setEditingGroup(null);
-      setEditSlug('');
       setEditTranslations({ en: '', ro: '', ru: '' });
       refetch();
     } catch (error: any) {
       const message = await handleApiError(error);
-      alert('Ошибка: ' + message);
+      toast.error('Ошибка: ' + message);
     }
   };
 
@@ -113,7 +115,7 @@ export function GroupsManagement() {
       refetch();
     } catch (error) {
       const message = await handleApiError(error);
-      alert('Ошибка при удалении группы: ' + message);
+      toast.error('Ошибка при удалении группы: ' + message);
     }
   };
 
@@ -128,15 +130,6 @@ export function GroupsManagement() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div>
-              <Label className="mb-2">Slug (для БД)</Label>
-              <Input
-                value={newGroupSlug}
-                onChange={(e) => setNewGroupSlug(e.target.value.toUpperCase())}
-                placeholder="WOOD, MARBLE, GLASS"
-              />
-            </div>
-
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label className="mb-2">Русский</Label>
@@ -225,15 +218,6 @@ export function GroupsManagement() {
                   >
                     {editingGroup?.id === group.id ? (
                       <div className="space-y-3">
-                        <div>
-                          <Label>Slug</Label>
-                          <Input
-                            value={editSlug}
-                            onChange={(e) =>
-                              setEditSlug(e.target.value.toUpperCase())
-                            }
-                          />
-                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                           <div>
                             <Label>English</Label>
@@ -281,7 +265,6 @@ export function GroupsManagement() {
                             variant="outline"
                             onClick={() => {
                               setEditingGroup(null);
-                              setEditSlug('');
                               setEditTranslations({ en: '', ro: '', ru: '' });
                             }}
                           >
@@ -312,7 +295,6 @@ export function GroupsManagement() {
                             variant="outline"
                             onClick={() => {
                               setEditingGroup(group);
-                              setEditSlug(group.slug || '');
                               const trans = group.translations as any;
                               setEditTranslations({
                                 en: trans?.en || '',

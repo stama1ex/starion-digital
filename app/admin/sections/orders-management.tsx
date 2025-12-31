@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -64,6 +65,9 @@ export default function OrdersManagement({
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
+  const [orderDate, setOrderDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
   const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
   const [quantities, setQuantities] = useState<Record<number, number>>({});
@@ -153,7 +157,7 @@ export default function OrdersManagement({
       onRefresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Ошибка';
-      alert(`Ошибка при обновлении примечания: ${message}`);
+      toast.error(`Ошибка при обновлении примечания: ${message}`);
     } finally {
       setUpdatingNotes(false);
     }
@@ -161,7 +165,7 @@ export default function OrdersManagement({
 
   const handleCreateOrder = async () => {
     if (!selectedPartnerId) {
-      alert('Выберите партнера');
+      toast.error('Выберите партнера');
       return;
     }
 
@@ -174,7 +178,7 @@ export default function OrdersManagement({
       }));
 
     if (items.length === 0) {
-      alert('Добавьте хотя бы один товар');
+      toast.error('Добавьте хотя бы один товар');
       return;
     }
 
@@ -183,6 +187,7 @@ export default function OrdersManagement({
       orderType,
       items,
       notes: orderNotes.trim() || undefined,
+      createdAt: orderDate ? new Date(orderDate).toISOString() : undefined,
     };
 
     console.log('Creating order with data:', requestData);
@@ -204,12 +209,13 @@ export default function OrdersManagement({
       const result = await response.json();
       console.log('Order created:', result);
 
-      alert('Заказ создан успешно');
+      toast.success('Заказ создан успешно');
       setIsCreateDialogOpen(false);
       setOrderType('regular');
       setPartnerSearchQuery('');
       setProductSearchQuery('');
       setOrderNotes('');
+      setOrderDate(new Date().toISOString().split('T')[0]);
       setSelectedGroupId('all');
       setQuantities({});
       onRefresh();
@@ -217,7 +223,7 @@ export default function OrdersManagement({
       console.error('Error creating order:', error);
       const message =
         error instanceof Error ? error.message : 'Неизвестная ошибка';
-      alert(`Ошибка при создании заказа: ${message}`);
+      toast.error(`Ошибка при создании заказа: ${message}`);
     } finally {
       setCreating(false);
     }
@@ -243,7 +249,7 @@ export default function OrdersManagement({
       onRefresh();
     } catch (error) {
       const message = await handleApiError(error);
-      alert(`Ошибка: ${message}`);
+      toast.error(`Ошибка: ${message}`);
     } finally {
       setUpdating(null);
     }
@@ -264,7 +270,7 @@ export default function OrdersManagement({
       onRefresh();
     } catch (error) {
       const message = await handleApiError(error);
-      alert(`Ошибка: ${message}`);
+      toast.error(`Ошибка: ${message}`);
     }
   };
 
@@ -312,7 +318,7 @@ export default function OrdersManagement({
       console.error('Error exporting order:', error);
       const message =
         error instanceof Error ? error.message : 'Неизвестная ошибка';
-      alert(`Ошибка при экспорте заказа: ${message}`);
+      toast.error(`Ошибка при экспорте заказа: ${message}`);
     }
   };
 
@@ -812,6 +818,20 @@ export default function OrdersManagement({
                 />
               </div>
 
+              {/* Date Selection */}
+              <div>
+                <Label htmlFor="order-date" className="mb-1">
+                  Дата заказа
+                </Label>
+                <Input
+                  id="order-date"
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  className="w-fit"
+                />
+              </div>
+
               {/* Totals Summary */}
               <Card className="bg-secondary">
                 <CardContent>
@@ -941,15 +961,15 @@ export default function OrdersManagement({
                     Товары не найдены
                   </p>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                  <div className="columns-3 sm:columns-5 gap-2">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
-                        className="flex flex-col gap-1 p-2 border rounded"
+                        className="break-inside-avoid mb-0 flex items-center justify-between p-1 border rounded"
                       >
                         <label
                           htmlFor={`qty-${product.id}`}
-                          className="text-xs font-medium truncate"
+                          className="text-xs font-medium truncate pl-1"
                           title={product.number}
                         >
                           {product.number}
@@ -962,7 +982,7 @@ export default function OrdersManagement({
                           onChange={(e) =>
                             handleQuantityChange(product.id, e.target.value)
                           }
-                          className="h-8 text-sm"
+                          className="h-6 w-10 text-xs px-1 text-center"
                         />
                       </div>
                     ))}
@@ -980,6 +1000,7 @@ export default function OrdersManagement({
               onClick={() => {
                 setIsCreateDialogOpen(false);
                 setOrderNotes('');
+                setOrderDate(new Date().toISOString().split('T')[0]);
                 setSelectedGroupId('all');
                 setSelectedTypeFilter('ALL');
                 setProductSearchQuery('');

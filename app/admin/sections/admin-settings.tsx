@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff } from 'lucide-react';
@@ -19,17 +20,17 @@ export default function AdminSettings() {
 
   const handleUpdateCredentials = async () => {
     if (!currentPassword) {
-      alert('Введите текущий пароль');
+      toast.error('Введите текущий пароль');
       return;
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      alert('Новые пароли не совпадают');
+      toast.error('Новые пароли не совпадают');
       return;
     }
 
     if (!login && !newPassword) {
-      alert('Введите новый логин или новый пароль');
+      toast.error('Введите новый логин или новый пароль');
       return;
     }
 
@@ -46,7 +47,7 @@ export default function AdminSettings() {
       });
 
       if (res.ok) {
-        alert('Данные успешно обновлены');
+        toast.success('Данные успешно обновлены');
         setLogin('');
         setCurrentPassword('');
         setNewPassword('');
@@ -60,11 +61,11 @@ export default function AdminSettings() {
         } catch {
           errorMessage = error || errorMessage;
         }
-        alert(`Ошибка: ${errorMessage}`);
+        toast.error(`Ошибка: ${errorMessage}`);
       }
     } catch (error) {
       console.error('Error updating credentials:', error);
-      alert('Ошибка при обновлении данных');
+      toast.error('Ошибка при обновлении данных');
     } finally {
       setUpdating(false);
     }

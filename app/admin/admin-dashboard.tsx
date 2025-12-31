@@ -203,7 +203,7 @@ export default function AdminDashboard({
                   setDateRange('day');
                   setUseCustomRange(false);
                 }}
-                className={`px-3 py-2 text-sm rounded ${
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
                   !useCustomRange && dateRange === 'day'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-secondary text-foreground'
@@ -216,7 +216,7 @@ export default function AdminDashboard({
                   setDateRange('week');
                   setUseCustomRange(false);
                 }}
-                className={`px-3 py-2 text-sm rounded ${
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
                   !useCustomRange && dateRange === 'week'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-secondary text-foreground'
@@ -229,7 +229,7 @@ export default function AdminDashboard({
                   setDateRange('month');
                   setUseCustomRange(false);
                 }}
-                className={`px-3 py-2 text-sm rounded ${
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
                   !useCustomRange && dateRange === 'month'
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-secondary text-foreground'
