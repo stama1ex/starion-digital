@@ -59,14 +59,14 @@ export default function OrdersManagement({
   // const { groups } = useGroups(); // Now passed as prop
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [orderType, setOrderType] = useState<'regular' | 'realization'>(
-    'regular'
+    'regular',
   );
   const [creating, setCreating] = useState(false);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [orderDate, setOrderDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split('T')[0],
   );
   const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
@@ -109,7 +109,7 @@ export default function OrdersManagement({
 
   const handleOpenEditNotes = (
     orderId: number,
-    currentNotes: string | null
+    currentNotes: string | null,
   ) => {
     setEditingOrderId(orderId);
     setEditNotesValue(currentNotes || '');
@@ -150,8 +150,8 @@ export default function OrdersManagement({
         prev.map((order) =>
           order.id === editingOrderId
             ? { ...order, notes: editNotesValue.trim() || null }
-            : order
-        )
+            : order,
+        ),
       );
       setIsEditNotesDialogOpen(false);
       onRefresh();
@@ -230,7 +230,7 @@ export default function OrdersManagement({
   };
   const handleStatusChange = async (
     orderId: number,
-    newStatus: OrderStatusType
+    newStatus: OrderStatusType,
   ) => {
     try {
       setUpdating(orderId);
@@ -243,8 +243,8 @@ export default function OrdersManagement({
                 ...order,
                 status: newStatus as unknown as typeof order.status,
               }
-            : order
-        )
+            : order,
+        ),
       );
       onRefresh();
     } catch (error) {
@@ -258,7 +258,7 @@ export default function OrdersManagement({
   const handleDeleteOrder = async (orderId: number) => {
     if (
       !confirm(
-        'Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.'
+        'Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.',
       )
     ) {
       return;
@@ -290,7 +290,7 @@ export default function OrdersManagement({
         if (contentType && contentType.includes('application/json')) {
           const errorData = await response.json();
           throw new Error(
-            errorData.details || errorData.error || 'Ошибка экспорта'
+            errorData.details || errorData.error || 'Ошибка экспорта',
           );
         } else {
           throw new Error(`Ошибка сервера: ${response.status}`);
@@ -339,7 +339,7 @@ export default function OrdersManagement({
 
   // Фильтрация партнеров по поиску
   const filteredPartners = partners.filter((partner) =>
-    partner.name.toLowerCase().includes(partnerSearchQuery.toLowerCase())
+    partner.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
   );
 
   // Фильтрация товаров
@@ -357,7 +357,7 @@ export default function OrdersManagement({
         filtered = filtered.filter((p) => !p.groupId);
       } else {
         filtered = filtered.filter(
-          (p) => p.groupId === parseInt(selectedGroupId)
+          (p) => p.groupId === parseInt(selectedGroupId),
         );
       }
     }
@@ -365,7 +365,7 @@ export default function OrdersManagement({
     // Фильтр по поисковому запросу
     if (productSearchQuery) {
       filtered = filtered.filter((product) =>
-        product.number.toLowerCase().includes(productSearchQuery.toLowerCase())
+        product.number.toLowerCase().includes(productSearchQuery.toLowerCase()),
       );
     }
 
@@ -392,7 +392,8 @@ export default function OrdersManagement({
           totalItems += qty;
           // Find price for this product
           const priceEntry = partner.prices.find(
-            (p: any) => p.type === product.type && p.groupId === product.groupId
+            (p: any) =>
+              p.type === product.type && p.groupId === product.groupId,
           );
           if (priceEntry) {
             totalSum += qty * Number(priceEntry.price);
@@ -424,7 +425,8 @@ export default function OrdersManagement({
           byType[product.type].count += qty;
 
           const priceEntry = partner.prices.find(
-            (p: any) => p.type === product.type && p.groupId === product.groupId
+            (p: any) =>
+              p.type === product.type && p.groupId === product.groupId,
           );
           if (priceEntry) {
             byType[product.type].sum += qty * Number(priceEntry.price);
@@ -516,7 +518,7 @@ export default function OrdersManagement({
             const isExpanded = expandedOrderId === order.id;
             const totalItems = order.items.reduce(
               (sum, item) => sum + item.quantity,
-              0
+              0,
             );
 
             return (
@@ -665,7 +667,7 @@ export default function OrdersManagement({
                                 onValueChange={(value) =>
                                   handleStatusChange(
                                     order.id,
-                                    value as OrderStatusType
+                                    value as OrderStatusType,
                                   )
                                 }
                                 disabled={updating === order.id}
@@ -936,7 +938,7 @@ export default function OrdersManagement({
                         .filter(
                           (group) =>
                             selectedTypeFilter === 'ALL' ||
-                            group.type === selectedTypeFilter
+                            group.type === selectedTypeFilter,
                         )
                         .map((group) => (
                           <SelectItem
@@ -961,7 +963,7 @@ export default function OrdersManagement({
                     Товары не найдены
                   </p>
                 ) : (
-                  <div className="columns-3 sm:columns-5 gap-2">
+                  <div className="columns-3 sm:columns-4 gap-2">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
@@ -982,7 +984,7 @@ export default function OrdersManagement({
                           onChange={(e) =>
                             handleQuantityChange(product.id, e.target.value)
                           }
-                          className="h-6 w-12 text-xs px-1 text-center"
+                          className="h-6 min-w-12 max-w-12 text-xs px-1 text-center"
                         />
                       </div>
                     ))}
@@ -1067,8 +1069,8 @@ export default function OrdersManagement({
             if (updatedOrder) {
               setOrders((prev) =>
                 prev.map((o) =>
-                  o.id === updatedOrder.id ? (updatedOrder as any) : o
-                )
+                  o.id === updatedOrder.id ? (updatedOrder as any) : o,
+                ),
               );
               setEditingPricesOrder(updatedOrder as any);
             }
