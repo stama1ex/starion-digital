@@ -984,6 +984,7 @@ export default function OrdersManagement({
                           onChange={(e) =>
                             handleQuantityChange(product.id, e.target.value)
                           }
+                          onFocus={(e) => e.currentTarget.select()}
                           className="h-6 min-w-12 max-w-12 text-xs px-1 text-center"
                         />
                       </div>
