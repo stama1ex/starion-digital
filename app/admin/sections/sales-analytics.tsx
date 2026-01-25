@@ -346,12 +346,17 @@ export default function SalesAnalytics({
                     }
                   });
 
+                  const totalSum =
+                    statusStats.CONFIRMED.sum + statusStats.PAID.sum;
+                  const totalCount =
+                    statusStats.CONFIRMED.count + statusStats.PAID.count;
+
                   return (
                     <>
                       <tr className="border-b hover:bg-muted/50">
                         <td className="py-3 px-4">
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Подтвержденные
+                            Подтвережденные
                           </span>
                         </td>
                         <td className="text-right py-3 px-4 font-semibold">
@@ -372,6 +377,15 @@ export default function SalesAnalytics({
                         </td>
                         <td className="text-right py-3 px-4">
                           {statusStats.PAID.count}
+                        </td>
+                      </tr>
+                      <tr className="border-b hover:bg-muted/50 bg-muted/40">
+                        <td className="py-3 px-4 font-semibold">Всего</td>
+                        <td className="text-right py-3 px-4 font-semibold">
+                          {totalSum.toFixed(2)}
+                        </td>
+                        <td className="text-right py-3 px-4 font-semibold">
+                          {totalCount}
                         </td>
                       </tr>
                     </>
