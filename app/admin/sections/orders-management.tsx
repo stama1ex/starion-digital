@@ -63,6 +63,7 @@ export default function OrdersManagement({
   );
   const [creating, setCreating] = useState(false);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [orderPartnerSearchQuery, setOrderPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [orderDate, setOrderDate] = useState<string>(
@@ -327,6 +328,12 @@ export default function OrdersManagement({
       ? orders
       : orders.filter((order) => order.status === filter);
 
+  const visibleOrders = filteredOrders.filter((order) =>
+    order.partner.name
+      .toLowerCase()
+      .includes(orderPartnerSearchQuery.toLowerCase()),
+  );
+
   // Группируем по статусам для статистики
   const stats = {
     NEW: orders.filter((o) => (o.status as string) === 'NEW').length,
@@ -486,7 +493,15 @@ export default function OrdersManagement({
         </Card>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 justify-between">
+        <div className="flex-1 max-w-xs">
+          <Input
+            value={orderPartnerSearchQuery}
+            onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
+            placeholder="Поиск по партнёру..."
+          />
+        </div>
+
         <Select
           value={filter}
           onValueChange={(v) => setFilter(v as OrderStatusType | 'ALL')}
@@ -505,7 +520,7 @@ export default function OrdersManagement({
       </div>
 
       <div className="space-y-2">
-        {filteredOrders.length === 0 ? (
+        {visibleOrders.length === 0 ? (
           <Card>
             <CardContent className="p-6">
               <p className="text-muted-foreground text-center">
@@ -514,7 +529,7 @@ export default function OrdersManagement({
             </CardContent>
           </Card>
         ) : (
-          filteredOrders.map((order) => {
+          visibleOrders.map((order) => {
             const isExpanded = expandedOrderId === order.id;
             const totalItems = order.items.reduce(
               (sum, item) => sum + item.quantity,
