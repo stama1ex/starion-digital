@@ -35,11 +35,9 @@ export default function DebtTracking({
     dateRange,
     customDateRange || undefined
   );
-  const filteredRealizations = filterByDateRange(
-    realizations,
-    dateRange,
-    customDateRange || undefined
-  );
+  // Для учёта долгов используем все реализации без фильтрации по дате,
+  // так как долг является постоянным обязательством независимо от даты создания
+  const filteredRealizations = realizations;
 
   type Balance = {
     id: number;
