@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,6 +39,7 @@ export default function RealizationTracking({
   realizations,
   onRefresh,
 }: RealizationTrackingProps) {
+  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [isEditPaymentDialogOpen, setIsEditPaymentDialogOpen] = useState(false);
@@ -48,7 +50,20 @@ export default function RealizationTracking({
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentDate, setPaymentDate] = useState(
-    new Date().toISOString().split('T')[0]
+    new Date().toISOString().split('T')[0],
+  );
+
+  const formatDate = (value: string | Date) =>
+    new Intl.DateTimeFormat('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(value));
+
+  const visibleRealizations = realizations.filter((realization) =>
+    realization.partner.name
+      .toLowerCase()
+      .includes(partnerSearchQuery.toLowerCase()),
   );
 
   const handleOpenPaymentDialog = (realizationId: number) => {
@@ -63,7 +78,7 @@ export default function RealizationTracking({
     paymentId: number,
     amount: number,
     notes: string | null,
-    date: string
+    date: string,
   ) => {
     setCurrentPaymentId(paymentId);
     setPaymentAmount(amount.toString());
@@ -89,7 +104,7 @@ export default function RealizationTracking({
           realizationId: currentRealizationId,
           amount,
           notes: paymentNotes || undefined,
-          paymentDate: paymentDate,
+          paymentDate,
         }),
       });
 
@@ -124,9 +139,9 @@ export default function RealizationTracking({
           body: JSON.stringify({
             amount,
             notes: paymentNotes || undefined,
-            paymentDate: paymentDate,
+            paymentDate,
           }),
-        }
+        },
       );
 
       if (response.ok) {
@@ -152,7 +167,7 @@ export default function RealizationTracking({
         `/api/admin/realization-payment/${paymentId}`,
         {
           method: 'DELETE',
-        }
+        },
       );
 
       if (response.ok) {
@@ -169,25 +184,46 @@ export default function RealizationTracking({
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle>Товары на реализации</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {realizations.length === 0 ? (
-              <p className="text-muted-foreground">Нет товаров на реализации</p>
-            ) : (
-              realizations.map((realization) => {
-                const remaining =
-                  Number(realization.totalCost) -
-                  Number(realization.paidAmount);
-                const isExpanded = expandedId === realization.id;
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-2xl font-bold">Товары на реализации</h2>
+        </div>
 
-                return (
-                  <div key={realization.id} className="border rounded-lg p-4">
+        <div className="max-w-xs">
+          <Input
+            value={partnerSearchQuery}
+            onChange={(e) => setPartnerSearchQuery(e.target.value)}
+            placeholder="Поиск по партнёру..."
+          />
+        </div>
+
+        <div className="space-y-2">
+          {visibleRealizations.length === 0 ? (
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-muted-foreground text-center">
+                  Нет товаров на реализации
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            visibleRealizations.map((realization) => {
+              const remaining =
+                Number(realization.totalCost) - Number(realization.paidAmount);
+              const isExpanded = expandedId === realization.id;
+              const totalItems = realization.items.reduce(
+                (sum, item) => sum + item.quantity,
+                0,
+              );
+
+              return (
+                <Card
+                  key={realization.id}
+                  className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
+                >
+                  <CardContent>
                     <div
-                      className={`flex justify-between items-center ${
+                      className={`flex items-center justify-between gap-4 ${
                         realization.status !== 'CANCELLED'
                           ? 'cursor-pointer'
                           : 'cursor-not-allowed opacity-60'
@@ -198,126 +234,134 @@ export default function RealizationTracking({
                         }
                       }}
                     >
-                      <div className="flex-1">
-                        <p className="font-bold">
-                          Дилер: {realization.partner.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Заказ #{realization.orderId}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold">
+                            Реализация #{realization.id}
+                          </span>
+                          <Badge
+                            className={`text-xs ${
+                              statusClasses[realization.status] ?? ''
+                            }`}
+                          >
+                            {statusLabels[realization.status] ??
+                              realization.status}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2 truncate">
+                          {realization.partner.name} •{' '}
+                          {formatDate(realization.createdAt)}
                         </p>
                       </div>
-                      <div className="text-right">
-                        <span
-                          className={`px-2 py-1 rounded text-sm font-medium ${
-                            statusClasses[realization.status] ?? ''
-                          }`}
-                        >
-                          {statusLabels[realization.status] ??
-                            realization.status}
-                        </span>
-                        <p className="mt-2 font-bold">
-                          Долг: {remaining.toFixed(2)} MDL
-                        </p>
+
+                      <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center shrink-0">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">
+                            Товаров
+                          </p>
+                          <p className="font-semibold">{totalItems} шт</p>
+                        </div>
+
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Долг</p>
+                          <p className="font-semibold">
+                            {remaining.toFixed(2)} MDL
+                          </p>
+                        </div>
                       </div>
                     </div>
 
                     {isExpanded && (
-                      <div className="mt-4 space-y-4 border-t pt-4">
-                        <div>
-                          <h4 className="font-semibold mb-2">Товары:</h4>
-                          <div className="space-y-2">
+                      <div className="mt-4 space-y-2 border-t pt-3">
+                        <div className="border rounded-lg p-3 space-y-2">
+                          <h4 className="text-sm font-medium">Товары</h4>
+                          <div className="space-y-1">
                             {realization.items.map((item) => (
                               <div
                                 key={item.id}
-                                className="bg-secondary p-2 rounded text-sm"
+                                className="text-sm flex justify-between"
                               >
-                                <p className="font-medium">
-                                  {item.product.number} — {item.quantity} шт
-                                </p>
-                                <p className="text-muted-foreground">
-                                  Цена: {Number(item.unitPrice).toFixed(2)} ×{' '}
-                                  {item.quantity} ={' '}
+                                <span>
+                                  {item.product.number} × {item.quantity}
+                                </span>
+                                <span>
                                   {Number(item.totalPrice).toFixed(2)} MDL
-                                </p>
+                                </span>
                               </div>
                             ))}
                           </div>
                         </div>
 
-                        <div>
-                          <h4 className="font-semibold mb-2">Платежи:</h4>
-                          <div className="space-y-1">
-                            {realization.payments.map((payment) => (
-                              <div
-                                key={payment.id}
-                                className="flex justify-between items-center text-sm p-2 bg-secondary rounded"
-                              >
-                                <div className="flex-1">
-                                  <span className="font-medium">
-                                    {(() => {
-                                      const d = new Date(
-                                        payment.paymentDate || payment.createdAt
-                                      );
-                                      const day = String(d.getDate()).padStart(
-                                        2,
-                                        '0'
-                                      );
-                                      const month = String(
-                                        d.getMonth() + 1
-                                      ).padStart(2, '0');
-                                      const year = d.getFullYear();
-                                      return `${day}.${month}.${year}`;
-                                    })()}
-                                  </span>
-                                  <span className="ml-2 font-semibold">
-                                    {Number(payment.amount).toFixed(2)} MDL
-                                  </span>
-                                  {payment.notes && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      {payment.notes}
-                                    </p>
-                                  )}
+                        <div className="border rounded-lg p-3 space-y-2">
+                          <h4 className="text-sm font-medium">Платежи</h4>
+                          {realization.payments.length === 0 ? (
+                            <p className="text-sm text-muted-foreground">
+                              Платежей пока не было
+                            </p>
+                          ) : (
+                            <div className="space-y-1">
+                              {realization.payments.map((payment) => (
+                                <div
+                                  key={payment.id}
+                                  className="flex justify-between items-center text-sm p-2 bg-secondary rounded"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <span className="font-medium">
+                                      {formatDate(
+                                        payment.paymentDate ||
+                                          payment.createdAt,
+                                      )}
+                                    </span>
+                                    <span className="ml-2 font-semibold">
+                                      {Number(payment.amount).toFixed(2)} MDL
+                                    </span>
+                                    {payment.notes && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {payment.notes}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1 ml-2 shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleOpenEditPaymentDialog(
+                                          payment.id,
+                                          Number(payment.amount),
+                                          payment.notes,
+                                          (
+                                            payment.paymentDate ||
+                                            payment.createdAt
+                                          ).toString(),
+                                        );
+                                      }}
+                                      title="Редактировать платёж"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeletePayment(payment.id);
+                                      }}
+                                      title="Удалить платёж"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
-                                <div className="flex gap-1 ml-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleOpenEditPaymentDialog(
-                                        payment.id,
-                                        Number(payment.amount),
-                                        payment.notes,
-                                        (
-                                          payment.paymentDate ||
-                                          payment.createdAt
-                                        ).toString()
-                                      );
-                                    }}
-                                    title="Редактировать платёж"
-                                  >
-                                    <Pencil className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-7 w-7 text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeletePayment(payment.id);
-                                    }}
-                                    title="Удалить платёж"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="bg-secondary p-3 rounded">
+                        <div className="border rounded-lg p-3">
                           <div className="grid grid-cols-3 gap-2 text-sm">
                             <div>
                               <p className="text-muted-foreground">Всего</p>
@@ -334,11 +378,11 @@ export default function RealizationTracking({
                             <div>
                               <p className="text-muted-foreground">Осталось</p>
                               <p
-                                className={`${
+                                className={
                                   remaining !== 0
                                     ? 'font-bold text-destructive'
                                     : 'font-bold text-green-600'
-                                } `}
+                                }
                               >
                                 {remaining.toFixed(2)} MDL
                               </p>
@@ -360,15 +404,14 @@ export default function RealizationTracking({
                           )}
                       </div>
                     )}
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
+      </div>
 
-      {/* Add Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -418,7 +461,6 @@ export default function RealizationTracking({
         </DialogContent>
       </Dialog>
 
-      {/* Edit Payment Dialog */}
       <Dialog
         open={isEditPaymentDialogOpen}
         onOpenChange={setIsEditPaymentDialogOpen}

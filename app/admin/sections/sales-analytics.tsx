@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { filterByDateRange, calculateMetrics } from '../utils';
+import { filterByDateRange, calculateMetrics, type DateRange } from '../utils';
 import {
   LineChart,
   Line,
@@ -29,7 +29,7 @@ interface SalesAnalyticsProps {
   orders: any[];
   realizations: any[];
   partners: any[];
-  dateRange: 'day' | 'week' | 'month';
+  dateRange: DateRange;
   customDateRange?: { from: string; to: string } | null;
 }
 
@@ -192,6 +192,7 @@ export default function SalesAnalytics({
         day: 'Сегодня',
         week: 'На этой неделе',
         month: 'В этом месяце',
+        all: 'За все время',
       }[dateRange];
 
   return (

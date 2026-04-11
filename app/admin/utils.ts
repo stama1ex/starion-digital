@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { AdminOrder } from './types';
 
-export type DateRange = 'day' | 'week' | 'month';
+export type DateRange = 'day' | 'week' | 'month' | 'all';
 
 export function getDateRangeFilter(
   dateRange: DateRange,
-  customRange?: { from: string; to: string }
+  customRange?: { from: string; to: string },
 ): {
   start: Date;
   end: Date;
@@ -19,6 +19,13 @@ export function getDateRangeFilter(
 
   const now = new Date();
   const start = new Date(now);
+
+  if (dateRange === 'all') {
+    return {
+      start: new Date('1970-01-01T00:00:00'),
+      end: now,
+    };
+  }
 
   switch (dateRange) {
     case 'day': {
@@ -45,7 +52,7 @@ export function getDateRangeFilter(
 export function filterByDateRange<T extends { createdAt: string | Date }>(
   items: T[],
   dateRange: DateRange,
-  customRange?: { from: string; to: string }
+  customRange?: { from: string; to: string },
 ): T[] {
   const { start, end } = getDateRangeFilter(dateRange, customRange);
 
@@ -64,7 +71,7 @@ export function calculateMetrics(orders: AdminOrder[], realizations: any[]) {
 
   // Собираем ID заказов которые имеют реализацию (чтобы не считать их дважды)
   const orderIdsWithRealization = new Set(
-    realizations.map((r: any) => r.orderId)
+    realizations.map((r: any) => r.orderId),
   );
 
   // Считаем только ОПЛАЧЕННЫЕ заказы (только те, которые НЕ являются реализациями)

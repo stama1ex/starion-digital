@@ -33,7 +33,7 @@ export default function AdminDashboard({
 }: AdminDashboardProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [realizations, setRealizations] = useState(initialRealizations);
-  const [dateRange, setDateRange] = useState<DateRange>('month');
+  const [dateRange, setDateRange] = useState<DateRange>('all');
   const [customDateRange, setCustomDateRange] = useState<{
     from: string;
     to: string;
@@ -62,7 +62,7 @@ export default function AdminDashboard({
         if (res.ok) {
           const data = await res.json();
           const pendingCount = data.filter(
-            (req: { status: string }) => req.status === 'PENDING'
+            (req: { status: string }) => req.status === 'PENDING',
           ).length;
           setPendingRequestsCount(pendingCount);
         }
@@ -103,7 +103,7 @@ export default function AdminDashboard({
       if (res.ok) {
         const data = await res.json();
         const pendingCount = data.filter(
-          (req: { status: string }) => req.status === 'PENDING'
+          (req: { status: string }) => req.status === 'PENDING',
         ).length;
         setPendingRequestsCount(pendingCount);
       }
@@ -236,6 +236,19 @@ export default function AdminDashboard({
                 }`}
               >
                 Месяц
+              </button>
+              <button
+                onClick={() => {
+                  setDateRange('all');
+                  setUseCustomRange(false);
+                }}
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                  !useCustomRange && dateRange === 'all'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                За все время
               </button>
             </div>
 
