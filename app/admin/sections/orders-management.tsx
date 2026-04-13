@@ -79,6 +79,7 @@ export default function OrdersManagement({
   const [isEditPricesDialogOpen, setIsEditPricesDialogOpen] = useState(false);
   const [editingPricesOrder, setEditingPricesOrder] =
     useState<AdminOrder | null>(null);
+  const [loadedOrdersCount, setLoadedOrdersCount] = useState(20);
 
   useEffect(() => {
     setOrders(initialOrders);
@@ -529,7 +530,7 @@ export default function OrdersManagement({
             </CardContent>
           </Card>
         ) : (
-          visibleOrders.map((order) => {
+          visibleOrders.slice(0, loadedOrdersCount).map((order) => {
             const isExpanded = expandedOrderId === order.id;
             const totalItems = order.items.reduce(
               (sum, item) => sum + item.quantity,
@@ -748,6 +749,16 @@ export default function OrdersManagement({
               </Card>
             );
           })
+        )}
+        {visibleOrders.length > loadedOrdersCount && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setLoadedOrdersCount((prev) => prev + 20)}
+            >
+              Показать больше
+            </Button>
+          </div>
         )}
       </div>
 
