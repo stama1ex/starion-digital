@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching realizations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch realizations' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
