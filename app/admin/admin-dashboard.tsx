@@ -23,6 +23,8 @@ interface AdminDashboardProps {
   partners: AdminPartner[];
   realizations: AdminRealization[];
   groups: ProductGroup[];
+  ordersHasMore: boolean;
+  realizationsHasMore: boolean;
 }
 
 export default function AdminDashboard({
@@ -30,9 +32,15 @@ export default function AdminDashboard({
   partners,
   realizations: initialRealizations,
   groups,
+  ordersHasMore: initialOrdersHasMore,
+  realizationsHasMore: initialRealizationsHasMore,
 }: AdminDashboardProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [realizations, setRealizations] = useState(initialRealizations);
+  const [ordersHasMore, setOrdersHasMore] = useState(initialOrdersHasMore);
+  const [realizationsHasMore, setRealizationsHasMore] = useState(
+    initialRealizationsHasMore,
+  );
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [customDateRange, setCustomDateRange] = useState<{
     from: string;
@@ -77,18 +85,20 @@ export default function AdminDashboard({
     try {
       // Загружаем свежие данные без перезагрузки страницы
       const [ordersRes, realizationsRes] = await Promise.all([
-        fetch('/api/admin/orders'),
-        fetch('/api/admin/realizations'),
+        fetch('/api/admin/orders?limit=20&offset=0'),
+        fetch('/api/admin/realizations?limit=20&offset=0'),
       ]);
 
       if (ordersRes.ok) {
         const ordersData = await ordersRes.json();
         setOrders(ordersData.orders || []);
+        setOrdersHasMore(Boolean(ordersData.hasMore));
       }
 
       if (realizationsRes.ok) {
         const realizationsData = await realizationsRes.json();
         setRealizations(realizationsData.realizations || []);
+        setRealizationsHasMore(Boolean(realizationsData.hasMore));
       }
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -182,6 +192,7 @@ export default function AdminDashboard({
                 orders={orders}
                 onRefresh={handleRefreshOrders}
                 groups={groups}
+                initialHasMore={ordersHasMore}
               />
             </TabsContent>
 
@@ -189,6 +200,7 @@ export default function AdminDashboard({
               <RealizationTracking
                 realizations={realizations}
                 onRefresh={handleRefreshOrders}
+                initialHasMore={realizationsHasMore}
               />
             </TabsContent>
           </Tabs>
