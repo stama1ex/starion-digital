@@ -377,7 +377,9 @@ export default function OrdersManagement({
         const searchPart = normalizedQuery
           ? `&partnerQuery=${encodeURIComponent(normalizedQuery)}`
           : '';
-        const response = await fetch(`/api/admin/orders?limit=20&offset=0${searchPart}`);
+        const response = await fetch(
+          `/api/admin/orders?limit=20&offset=0${searchPart}`,
+        );
 
         if (!response.ok) {
           throw new Error('Не удалось выполнить поиск заказов');

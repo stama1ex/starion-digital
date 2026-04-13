@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching orders:', error);
     return NextResponse.json(
       { error: 'Failed to fetch orders' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -75,7 +75,7 @@ export async function PUT(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -84,7 +84,7 @@ export async function PUT(request: NextRequest) {
     if (!orderId || !status) {
       return NextResponse.json(
         { error: 'Order ID and status are required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -115,7 +115,7 @@ export async function PUT(request: NextRequest) {
     if (existingOrder.isRealization && status === 'PAID') {
       return NextResponse.json(
         { error: 'Realization orders cannot be marked as PAID directly' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -191,7 +191,7 @@ export async function PUT(request: NextRequest) {
     console.error('Error updating order status:', error);
     return NextResponse.json(
       { error: 'Failed to update order status' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -202,7 +202,7 @@ export async function DELETE(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -212,7 +212,7 @@ export async function DELETE(request: NextRequest) {
     if (!orderId) {
       return NextResponse.json(
         { error: 'Order ID is required' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -236,7 +236,7 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting order:', error);
     return NextResponse.json(
       { error: 'Failed to delete order' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
