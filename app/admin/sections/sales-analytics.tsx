@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, calculateMetrics, type DateRange } from '../utils';
 import {
-  LineChart,
-  Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -406,25 +406,15 @@ export default function SalesAnalytics({
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={chartData}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis />
                 <Tooltip formatter={(value) => `${value} MDL`} />
                 <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="#3b82f6"
-                  name="Выручка"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="profit"
-                  stroke="#10b981"
-                  name="Прибыль"
-                />
-              </LineChart>
+                <Bar dataKey="revenue" fill="#3b82f6" name="Выручка" />
+                <Bar dataKey="profit" fill="#10b981" name="Прибыль" />
+              </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>

@@ -279,8 +279,7 @@ export function GroupsManagement() {
                             {(group.translations as any)?.ru || group.slug}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Slug: {group.slug || 'не указан'} | Товаров:{' '}
-                            {group._count?.products || 0}
+                            Товаров: {group._count?.products || 0}
                           </p>
                           {group.translations && (
                             <p className="text-xs text-muted-foreground mt-1">
