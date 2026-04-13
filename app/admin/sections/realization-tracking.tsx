@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -19,26 +19,29 @@ import type { AdminRealization } from '../types';
 interface RealizationTrackingProps {
   realizations: AdminRealization[];
   onRefresh: () => void;
+  initialHasMore: boolean;
 }
 
 const statusClasses: Record<string, string> = {
-  PENDING: 'bg-yellow-500/20 text-yellow-600',
-  PARTIAL: 'bg-blue-500/20 text-blue-600',
-  COMPLETED: 'bg-green-500/20 text-green-600',
-  CANCELLED: 'bg-red-500/20 text-red-600',
+  PENDING: 'bg-yellow-500',
+  PARTIAL: 'bg-blue-500',
+  COMPLETED: 'bg-green-500',
+  CANCELLED: 'bg-red-500',
 };
 
 const statusLabels: Record<string, string> = {
-  PENDING: 'Ожидание',
-  PARTIAL: 'Частично',
-  COMPLETED: 'Завершено',
+  PENDING: 'Ожидание оплаты',
+  PARTIAL: 'Частично оплачен',
+  COMPLETED: 'Оплачен',
   CANCELLED: 'Отменено',
 };
 
 export default function RealizationTracking({
-  realizations,
+  realizations: initialRealizations,
   onRefresh,
+  initialHasMore,
 }: RealizationTrackingProps) {
+  const [realizations, setRealizations] = useState(initialRealizations);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
@@ -52,6 +55,19 @@ export default function RealizationTracking({
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split('T')[0],
   );
+  const [hasMoreRealizations, setHasMoreRealizations] =
+    useState(initialHasMore);
+  const [loadingMoreRealizations, setLoadingMoreRealizations] = useState(false);
+  const [isSearchingRealizations, setIsSearchingRealizations] = useState(false);
+  const isFirstSearchRender = useRef(true);
+
+  useEffect(() => {
+    if (partnerSearchQuery.trim()) return;
+
+    setRealizations(initialRealizations);
+    setHasMoreRealizations(initialHasMore);
+    setExpandedId(null);
+  }, [initialRealizations, initialHasMore, partnerSearchQuery]);
 
   const formatDate = (value: string | Date) =>
     new Intl.DateTimeFormat('ru-RU', {
@@ -60,11 +76,7 @@ export default function RealizationTracking({
       year: 'numeric',
     }).format(new Date(value));
 
-  const visibleRealizations = realizations.filter((realization) =>
-    realization.partner.name
-      .toLowerCase()
-      .includes(partnerSearchQuery.toLowerCase()),
-  );
+  const visibleRealizations = realizations;
 
   const handleOpenPaymentDialog = (realizationId: number) => {
     setCurrentRealizationId(realizationId);
@@ -182,6 +194,73 @@ export default function RealizationTracking({
     }
   };
 
+  const handleLoadMoreRealizations = async () => {
+    if (loadingMoreRealizations || !hasMoreRealizations) return;
+
+    try {
+      setLoadingMoreRealizations(true);
+      const normalizedQuery = partnerSearchQuery.trim();
+      const searchPart = normalizedQuery
+        ? `&partnerQuery=${encodeURIComponent(normalizedQuery)}`
+        : '';
+      const response = await fetch(
+        `/api/admin/realizations?limit=20&offset=${realizations.length}${searchPart}`,
+      );
+
+      if (!response.ok) {
+        throw new Error('Не удалось загрузить следующие реализации');
+      }
+
+      const data = await response.json();
+      const nextRealizations = (data.realizations || []) as AdminRealization[];
+
+      setRealizations((prev) => [...prev, ...nextRealizations]);
+      setHasMoreRealizations(Boolean(data.hasMore));
+    } catch (error) {
+      console.error('Error loading more realizations:', error);
+      toast.error('Ошибка при загрузке реализаций');
+    } finally {
+      setLoadingMoreRealizations(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFirstSearchRender.current) {
+      isFirstSearchRender.current = false;
+      return;
+    }
+
+    setIsSearchingRealizations(true);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const normalizedQuery = partnerSearchQuery.trim();
+        const searchPart = normalizedQuery
+          ? `&partnerQuery=${encodeURIComponent(normalizedQuery)}`
+          : '';
+        const response = await fetch(
+          `/api/admin/realizations?limit=20&offset=0${searchPart}`,
+        );
+
+        if (!response.ok) {
+          throw new Error('Не удалось выполнить поиск реализаций');
+        }
+
+        const data = await response.json();
+        setRealizations((data.realizations || []) as AdminRealization[]);
+        setHasMoreRealizations(Boolean(data.hasMore));
+        setExpandedId(null);
+      } catch (error) {
+        console.error('Error searching realizations:', error);
+        toast.error('Ошибка при поиске реализаций');
+      } finally {
+        setIsSearchingRealizations(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [partnerSearchQuery]);
+
   return (
     <>
       <div className="space-y-3">
@@ -195,6 +274,11 @@ export default function RealizationTracking({
             onChange={(e) => setPartnerSearchQuery(e.target.value)}
             placeholder="Поиск по партнёру..."
           />
+          {isSearchingRealizations && (
+            <p className="text-xs text-muted-foreground mt-2 animate-pulse">
+              Поиск реализаций...
+            </p>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -208,208 +292,227 @@ export default function RealizationTracking({
             </Card>
           ) : (
             visibleRealizations.map((realization) => {
-              const remaining =
-                Number(realization.totalCost) - Number(realization.paidAmount);
-              const isExpanded = expandedId === realization.id;
-              const totalItems = realization.items.reduce(
-                (sum, item) => sum + item.quantity,
-                0,
-              );
+                const remaining =
+                  Number(realization.totalCost) -
+                  Number(realization.paidAmount);
+                const isExpanded = expandedId === realization.id;
+                const totalItems = realization.items.reduce(
+                  (sum, item) => sum + item.quantity,
+                  0,
+                );
 
-              return (
-                <Card
-                  key={realization.id}
-                  className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
-                >
-                  <CardContent>
-                    <div
-                      className={`flex items-center justify-between gap-4 ${
-                        realization.status !== 'CANCELLED'
-                          ? 'cursor-pointer'
-                          : 'cursor-not-allowed opacity-60'
-                      }`}
-                      onClick={() => {
-                        if (realization.status !== 'CANCELLED') {
-                          setExpandedId(isExpanded ? null : realization.id);
-                        }
-                      }}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold">
-                            Реализация #{realization.id}
-                          </span>
-                          <Badge
-                            className={`text-xs ${
-                              statusClasses[realization.status] ?? ''
-                            }`}
-                          >
-                            {statusLabels[realization.status] ??
-                              realization.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2 truncate">
-                          {realization.partner.name} •{' '}
-                          {formatDate(realization.createdAt)}
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center shrink-0">
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">
-                            Товаров
-                          </p>
-                          <p className="font-semibold">{totalItems} шт</p>
-                        </div>
-
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Долг</p>
-                          <p className="font-semibold">
-                            {remaining.toFixed(2)} MDL
+                return (
+                  <Card
+                    key={realization.id}
+                    className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
+                  >
+                    <CardContent>
+                      <div
+                        className={`flex items-center justify-between gap-4 ${
+                          realization.status !== 'CANCELLED'
+                            ? 'cursor-pointer'
+                            : 'cursor-not-allowed opacity-60'
+                        }`}
+                        onClick={() => {
+                          if (realization.status !== 'CANCELLED') {
+                            setExpandedId(isExpanded ? null : realization.id);
+                          }
+                        }}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold">
+                              Реализация #{realization.id}
+                            </span>
+                            <Badge
+                              className={`text-xs ${
+                                statusClasses[realization.status] ?? ''
+                              }`}
+                            >
+                              {statusLabels[realization.status] ??
+                                realization.status}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 truncate">
+                            {realization.partner.name} •{' '}
+                            {formatDate(realization.createdAt)}
                           </p>
                         </div>
-                      </div>
-                    </div>
 
-                    {isExpanded && (
-                      <div className="mt-4 space-y-2 border-t pt-3">
-                        <div className="border rounded-lg p-3 space-y-2">
-                          <h4 className="text-sm font-medium">Товары</h4>
-                          <div className="space-y-1">
-                            {realization.items.map((item) => (
-                              <div
-                                key={item.id}
-                                className="text-sm flex justify-between"
-                              >
-                                <span>
-                                  {item.product.number} × {item.quantity}
-                                </span>
-                                <span>
-                                  {Number(item.totalPrice).toFixed(2)} MDL
-                                </span>
-                              </div>
-                            ))}
+                        <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center shrink-0">
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">
+                              Товаров
+                            </p>
+                            <p className="font-semibold">{totalItems} шт</p>
+                          </div>
+
+                          <div className="text-right">
+                            <p className="text-xs text-muted-foreground">
+                              Долг
+                            </p>
+                            <p className="font-semibold">
+                              {remaining.toFixed(2)} MDL
+                            </p>
                           </div>
                         </div>
+                      </div>
 
-                        <div className="border rounded-lg p-3 space-y-2">
-                          <h4 className="text-sm font-medium">Платежи</h4>
-                          {realization.payments.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">
-                              Платежей пока не было
-                            </p>
-                          ) : (
+                      {isExpanded && (
+                        <div className="mt-4 space-y-2 border-t pt-3">
+                          <div className="border rounded-lg p-3 space-y-2">
+                            <h4 className="text-sm font-medium">Товары</h4>
                             <div className="space-y-1">
-                              {realization.payments.map((payment) => (
+                              {realization.items.map((item) => (
                                 <div
-                                  key={payment.id}
-                                  className="flex justify-between items-center text-sm p-2 bg-secondary rounded"
+                                  key={item.id}
+                                  className="text-sm flex justify-between"
                                 >
-                                  <div className="flex-1 min-w-0">
-                                    <span className="font-medium">
-                                      {formatDate(
-                                        payment.paymentDate ||
-                                          payment.createdAt,
-                                      )}
-                                    </span>
-                                    <span className="ml-2 font-semibold">
-                                      {Number(payment.amount).toFixed(2)} MDL
-                                    </span>
-                                    {payment.notes && (
-                                      <p className="text-xs text-muted-foreground mt-1">
-                                        {payment.notes}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <div className="flex gap-1 ml-2 shrink-0">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleOpenEditPaymentDialog(
-                                          payment.id,
-                                          Number(payment.amount),
-                                          payment.notes,
-                                          (
-                                            payment.paymentDate ||
-                                            payment.createdAt
-                                          ).toString(),
-                                        );
-                                      }}
-                                      title="Редактировать платёж"
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-7 w-7 text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeletePayment(payment.id);
-                                      }}
-                                      title="Удалить платёж"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
+                                  <span>
+                                    {item.product.number} × {item.quantity}
+                                  </span>
+                                  <span>
+                                    {Number(item.totalPrice).toFixed(2)} MDL
+                                  </span>
                                 </div>
                               ))}
                             </div>
-                          )}
-                        </div>
+                          </div>
 
-                        <div className="border rounded-lg p-3">
-                          <div className="grid grid-cols-3 gap-2 text-sm">
-                            <div>
-                              <p className="text-muted-foreground">Всего</p>
-                              <p className="font-bold">
-                                {Number(realization.totalCost).toFixed(2)} MDL
+                          <div className="border rounded-lg p-3 space-y-2">
+                            <h4 className="text-sm font-medium">Платежи</h4>
+                            {realization.payments.length === 0 ? (
+                              <p className="text-sm text-muted-foreground">
+                                Платежей пока не было
                               </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Оплачено</p>
-                              <p className="font-bold">
-                                {Number(realization.paidAmount).toFixed(2)} MDL
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-muted-foreground">Осталось</p>
-                              <p
-                                className={
-                                  remaining !== 0
-                                    ? 'font-bold text-destructive'
-                                    : 'font-bold text-green-600'
-                                }
-                              >
-                                {remaining.toFixed(2)} MDL
-                              </p>
+                            ) : (
+                              <div className="space-y-1">
+                                {realization.payments.map((payment) => (
+                                  <div
+                                    key={payment.id}
+                                    className="flex justify-between items-center text-sm p-2 bg-secondary rounded"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <span className="font-medium">
+                                        {formatDate(
+                                          payment.paymentDate ||
+                                            payment.createdAt,
+                                        )}
+                                      </span>
+                                      <span className="ml-2 font-semibold">
+                                        {Number(payment.amount).toFixed(2)} MDL
+                                      </span>
+                                      {payment.notes && (
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                          {payment.notes}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-1 ml-2 shrink-0">
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleOpenEditPaymentDialog(
+                                            payment.id,
+                                            Number(payment.amount),
+                                            payment.notes,
+                                            (
+                                              payment.paymentDate ||
+                                              payment.createdAt
+                                            ).toString(),
+                                          );
+                                        }}
+                                        title="Редактировать платёж"
+                                      >
+                                        <Pencil className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 text-destructive"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeletePayment(payment.id);
+                                        }}
+                                        title="Удалить платёж"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="border rounded-lg p-3">
+                            <div className="grid grid-cols-3 gap-2 text-sm">
+                              <div>
+                                <p className="text-muted-foreground">Всего</p>
+                                <p className="font-bold">
+                                  {Number(realization.totalCost).toFixed(2)} MDL
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">
+                                  Оплачено
+                                </p>
+                                <p className="font-bold">
+                                  {Number(realization.paidAmount).toFixed(2)}{' '}
+                                  MDL
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-muted-foreground">
+                                  Осталось
+                                </p>
+                                <p
+                                  className={
+                                    remaining !== 0
+                                      ? 'font-bold text-destructive'
+                                      : 'font-bold text-green-600'
+                                  }
+                                >
+                                  {remaining.toFixed(2)} MDL
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {remaining > 0 &&
-                          realization.status !== 'CANCELLED' && (
-                            <Button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenPaymentDialog(realization.id);
-                              }}
-                              className="w-full"
-                            >
-                              Добавить платёж
-                            </Button>
-                          )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })
+                          {remaining > 0 &&
+                            realization.status !== 'CANCELLED' && (
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenPaymentDialog(realization.id);
+                                }}
+                                className="w-full"
+                              >
+                                Добавить платёж
+                              </Button>
+                            )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })
           )}
         </div>
+        {hasMoreRealizations && !isSearchingRealizations && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={handleLoadMoreRealizations}
+              disabled={loadingMoreRealizations}
+            >
+              {loadingMoreRealizations ? 'Загрузка...' : 'Загрузить ещё'}
+            </Button>
+          </div>
+        )}
       </div>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>

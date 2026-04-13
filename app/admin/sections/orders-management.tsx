@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import {
@@ -42,12 +42,14 @@ interface OrdersManagementProps {
   orders: AdminOrder[];
   onRefresh: () => void;
   groups: ProductGroup[];
+  initialHasMore: boolean;
 }
 
 export default function OrdersManagement({
   orders: initialOrders,
   onRefresh,
   groups,
+  initialHasMore,
 }: OrdersManagementProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<OrderStatusType | 'ALL'>('ALL');
@@ -79,10 +81,18 @@ export default function OrdersManagement({
   const [isEditPricesDialogOpen, setIsEditPricesDialogOpen] = useState(false);
   const [editingPricesOrder, setEditingPricesOrder] =
     useState<AdminOrder | null>(null);
+  const [hasMoreOrders, setHasMoreOrders] = useState(initialHasMore);
+  const [loadingMoreOrders, setLoadingMoreOrders] = useState(false);
+  const [isSearchingOrders, setIsSearchingOrders] = useState(false);
+  const isFirstSearchRender = useRef(true);
 
   useEffect(() => {
+    if (orderPartnerSearchQuery.trim()) return;
+
     setOrders(initialOrders);
-  }, [initialOrders]);
+    setHasMoreOrders(initialHasMore);
+    setExpandedOrderId(null);
+  }, [initialOrders, initialHasMore, orderPartnerSearchQuery]);
   useEffect(() => {
     if (partners.length > 0 && !selectedPartnerId) {
       setSelectedPartnerId(partners[0].id.toString());
@@ -323,16 +333,77 @@ export default function OrdersManagement({
     }
   };
 
+  const handleLoadMoreOrders = async () => {
+    if (loadingMoreOrders || !hasMoreOrders) return;
+
+    try {
+      setLoadingMoreOrders(true);
+      const normalizedQuery = orderPartnerSearchQuery.trim();
+      const searchPart = normalizedQuery
+        ? `&partnerQuery=${encodeURIComponent(normalizedQuery)}`
+        : '';
+      const response = await fetch(
+        `/api/admin/orders?limit=20&offset=${orders.length}${searchPart}`,
+      );
+
+      if (!response.ok) {
+        throw new Error('Не удалось загрузить следующие заказы');
+      }
+
+      const data = await response.json();
+      const nextOrders = (data.orders || []) as AdminOrder[];
+
+      setOrders((prev) => [...prev, ...nextOrders]);
+      setHasMoreOrders(Boolean(data.hasMore));
+    } catch (error) {
+      console.error('Error loading more orders:', error);
+      toast.error('Ошибка при загрузке заказов');
+    } finally {
+      setLoadingMoreOrders(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isFirstSearchRender.current) {
+      isFirstSearchRender.current = false;
+      return;
+    }
+
+    setIsSearchingOrders(true);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const normalizedQuery = orderPartnerSearchQuery.trim();
+        const searchPart = normalizedQuery
+          ? `&partnerQuery=${encodeURIComponent(normalizedQuery)}`
+          : '';
+        const response = await fetch(`/api/admin/orders?limit=20&offset=0${searchPart}`);
+
+        if (!response.ok) {
+          throw new Error('Не удалось выполнить поиск заказов');
+        }
+
+        const data = await response.json();
+        setOrders((data.orders || []) as AdminOrder[]);
+        setHasMoreOrders(Boolean(data.hasMore));
+        setExpandedOrderId(null);
+      } catch (error) {
+        console.error('Error searching orders:', error);
+        toast.error('Ошибка при поиске заказов');
+      } finally {
+        setIsSearchingOrders(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [orderPartnerSearchQuery]);
+
   const filteredOrders =
     filter === 'ALL'
       ? orders
       : orders.filter((order) => order.status === filter);
 
-  const visibleOrders = filteredOrders.filter((order) =>
-    order.partner.name
-      .toLowerCase()
-      .includes(orderPartnerSearchQuery.toLowerCase()),
-  );
+  const visibleOrders = filteredOrders;
 
   // Группируем по статусам для статистики
   const stats = {
@@ -500,6 +571,11 @@ export default function OrdersManagement({
             onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
             placeholder="Поиск по партнёру..."
           />
+          {isSearchingOrders && (
+            <p className="text-xs text-muted-foreground mt-2 animate-pulse">
+              Поиск заказов...
+            </p>
+          )}
         </div>
 
         <Select
@@ -748,6 +824,17 @@ export default function OrdersManagement({
               </Card>
             );
           })
+        )}
+        {hasMoreOrders && !isSearchingOrders && (
+          <div className="flex justify-center pt-4">
+            <Button
+              variant="outline"
+              onClick={handleLoadMoreOrders}
+              disabled={loadingMoreOrders}
+            >
+              {loadingMoreOrders ? 'Загрузка...' : 'Загрузить ещё'}
+            </Button>
+          </div>
         )}
       </div>
 

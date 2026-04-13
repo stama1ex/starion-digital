@@ -6,6 +6,8 @@ import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import { toPlain } from '@/lib/toPlain';
 import { Title } from '@/components/shared/title';
 
+const PAGE_SIZE = 20;
+
 export default async function AdminPage() {
   const session = (await cookies()).get('session')?.value;
 
@@ -74,6 +76,7 @@ export default async function AdminPage() {
         where: {
           partner: { role: 'PARTNER' },
         },
+        take: PAGE_SIZE + 1,
       }),
       prisma.partner.findMany({
         where: { role: 'PARTNER' },
@@ -134,14 +137,20 @@ export default async function AdminPage() {
         where: {
           partner: { role: 'PARTNER' },
         },
+        take: PAGE_SIZE + 1,
       }),
       prisma.productGroup.findMany({
         orderBy: { slug: 'asc' },
       }),
     ]);
 
-  const realizations = toPlain(realizationsRaw) as AdminRealization[];
-  const ordersPlain = toPlain(ordersRaw) as AdminOrder[];
+  const ordersHasMore = ordersRaw.length > PAGE_SIZE;
+  const realizationsHasMore = realizationsRaw.length > PAGE_SIZE;
+
+  const realizations = toPlain(
+    realizationsRaw.slice(0, PAGE_SIZE),
+  ) as AdminRealization[];
+  const ordersPlain = toPlain(ordersRaw.slice(0, PAGE_SIZE)) as AdminOrder[];
   const partnersPlain = toPlain(partnersRaw) as AdminPartner[];
   const groupsPlain = toPlain(groupsRaw);
 
@@ -159,6 +168,8 @@ export default async function AdminPage() {
           partners={partnersPlain}
           realizations={realizations}
           groups={groupsPlain}
+          ordersHasMore={ordersHasMore}
+          realizationsHasMore={realizationsHasMore}
         />
       </div>
     </main>
