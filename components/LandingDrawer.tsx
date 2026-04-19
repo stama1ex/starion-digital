@@ -41,8 +41,7 @@ export default function LandingDrawer() {
         <DrawerFooter className="overflow-scroll md:overflow-auto">
           <div className="flex flex-col md:flex-row gap-4 justify-center">
             {categories.map((category) => {
-              const isSoon =
-                category.id === 3 || category.id === 4 || category.id === 5;
+              const isSoon = category.id === 4 || category.id === 5;
               return (
                 <Link
                   href={isSoon ? '#' : `/${category.type}s/catalog`} // Use English type
@@ -53,7 +52,7 @@ export default function LandingDrawer() {
                 >
                   <div
                     className={
-                      'flex flex-col items-center justify-center p-4 rounded-lg shadow-md border min-w-[200px] h-auto ' +
+                      'flex flex-col items-center justify-center p-4 rounded-lg shadow-md border min-w-50 h-auto ' +
                       (isSoon
                         ? 'opacity-50 cursor-not-allowed'
                         : 'hover:shadow-lg hover:bg-popover/50 transition cursor-pointer')
@@ -78,8 +77,8 @@ export default function LandingDrawer() {
                           category.type === 'magnet'
                             ? `/magnets/01.avif`
                             : category.type === 'plate'
-                            ? `/plates/110.avif`
-                            : category.placeholder
+                              ? `/plates/110.avif`
+                              : category.placeholder
                         }
                         alt={category.name}
                         className="w-24 h-24 object-contain mb-2"

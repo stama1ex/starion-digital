@@ -6,6 +6,11 @@ export function useDropboxImage(imagePath: string | null | undefined) {
   const [error, setError] = useState(false);
 
   useEffect(() => {
+    const toLocalPath = (path: string) => {
+      const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
+      return `/${normalized}`;
+    };
+
     async function loadImageUrl() {
       if (!imagePath || !imagePath.trim()) {
         setImgSrc('');
@@ -20,7 +25,7 @@ export function useDropboxImage(imagePath: string | null | undefined) {
 
       // Если это локальный путь
       if (imagePath.startsWith('public/')) {
-        setImgSrc('/' + imagePath.replace(/^public\//, ''));
+        setImgSrc(toLocalPath(imagePath));
         return;
       }
 
@@ -50,7 +55,7 @@ export function useDropboxImage(imagePath: string | null | undefined) {
         }
       } else {
         // Fallback для других путей
-        setImgSrc('/' + imagePath.replace(/^public\//, ''));
+        setImgSrc(toLocalPath(imagePath));
       }
     }
 

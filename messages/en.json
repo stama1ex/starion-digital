@@ -69,10 +69,12 @@
   "Catalog": {
     "meta": {
       "description": "Browse our collection of augmented reality magnets, featuring unique designs from various countries.",
-      "description_plates": "Discover our collection of augmented reality souvenir plates, showcasing unique designs from various countries."
+      "description_plates": "Discover our collection of augmented reality souvenir plates, showcasing unique designs from various countries.",
+      "description_cards": "Explore our augmented reality postcard collection where each design comes alive with AR."
     },
     "magnets_title": "Magnets Catalog",
     "plates_title": "Plates Catalog",
+    "cards_title": "Postcards Catalog",
     "all_others": "All Others",
     "search_placeholder": "Search by number...",
     "fetch_error": "Failed to load {type}",

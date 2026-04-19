@@ -69,7 +69,8 @@
   "Catalog": {
     "meta": {
       "description": "Explorați colecția noastră de magnete cu realitate augmentată, cu designuri unice din diverse țări.",
-      "description_plates": "Descoperiți colecția noastră de farfurii suvenir cu realitate augmentată, prezentând designuri unice din diverse țări."
+      "description_plates": "Descoperiți colecția noastră de farfurii suvenir cu realitate augmentată, prezentând designuri unice din diverse țări.",
+      "description_cards": "Explorați colecția noastră de felicitări cu realitate augmentată, unde fiecare design prinde viață cu AR."
     },
     "material": {
       "marble": "De marmură",
@@ -78,6 +79,7 @@
     },
     "magnets_title": "Catalog Magnete",
     "plates_title": "Catalog Farfurii",
+    "cards_title": "Catalog Felicitări",
     "all_others": "Toate Celelalte",
     "search_placeholder": "Căutare după număr...",
     "fetch_error": "Nu s-a putut încărca {type}",

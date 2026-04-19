@@ -87,7 +87,7 @@ export default function LandingCarousel() {
           ...prev,
           [categoryType]: getRandomImgs(
             categoryType === 'magnet' ? magnetImgs : plateImgs,
-            4
+            4,
           ),
         }));
         await controls.start('enter');
@@ -110,7 +110,7 @@ export default function LandingCarousel() {
           ...prev,
           [categoryType]: getRandomImgs(
             categoryType === 'magnet' ? magnetImgs : plateImgs,
-            4
+            4,
           ),
         }));
         await controls.start('enter');
@@ -131,7 +131,7 @@ export default function LandingCarousel() {
               <div className="p-4 select-none">
                 <Card className="relative flex flex-col items-center justify-center p-0 animate-shadow-flow">
                   <CardContent className="relative z-10 flex flex-col items-center justify-center gap-4 w-full md:h-125 h-75 bg-card rounded-lg overflow-hidden">
-                    {[3, 4, 5].includes(item.id) ? (
+                    {[4, 5].includes(item.id) ? (
                       <span className="text-3xl md:text-5xl font-black text-center text-primary/50 z-5">
                         {item.name}
                       </span>
@@ -141,9 +141,7 @@ export default function LandingCarousel() {
                       </span>
                     )}
 
-                    {[3, 4, 5].includes(item.id) && (
-                      <Soon className="text-xl" />
-                    )}
+                    {[4, 5].includes(item.id) && <Soon className="text-xl" />}
                     {imgs.length >= 4 && (
                       <>
                         <motion.img

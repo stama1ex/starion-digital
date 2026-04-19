@@ -18,10 +18,18 @@ import { ProductType } from '@prisma/client';
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
   'PLATE',
-  // 'POSTCARD',
+  'POSTCARD',
   // 'STATUE',
   // 'BALL',
 ];
+
+const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
+  MAGNET: 'Магниты',
+  PLATE: 'Тарелки',
+  POSTCARD: 'Открытки',
+  STATUE: 'Статуэтки',
+  BALL: 'Шары',
+};
 
 interface ProductGroup {
   id: number;
@@ -51,7 +59,7 @@ export default function PricesManagement() {
     Record<string, number | string>
   >({});
   const [showPresetModal, setShowPresetModal] = useState<ProductType | null>(
-    null
+    null,
   );
   const [showGroupPresetModal, setShowGroupPresetModal] = useState<{
     type: ProductType;
@@ -101,7 +109,7 @@ export default function PricesManagement() {
     try {
       setLoading(true);
       const res = await fetch(
-        `/api/admin/prices?partnerId=${selectedPartnerId}`
+        `/api/admin/prices?partnerId=${selectedPartnerId}`,
       );
       const data = await res.json();
       setPrices(data);
@@ -117,7 +125,7 @@ export default function PricesManagement() {
   const handlePriceChange = (
     type: ProductType,
     groupId: number | null,
-    value: string
+    value: string,
   ) => {
     const key = `${type}-${groupId}`;
     setEditingPrices({ ...editingPrices, [key]: value });
@@ -164,8 +172,8 @@ export default function PricesManagement() {
     if (
       !confirm(
         `Вы уверены, что хотите применить этот пресет цен для типа "${
-          type === 'MAGNET' ? 'Магниты' : type === 'PLATE' ? 'Тарелки' : type
-        }" ко всем партнерам? Это перезапишет все существующие цены для этого типа товара у всех партнеров.`
+          PRODUCT_TYPE_LABELS[type] || type
+        }" ко всем партнерам? Это перезапишет все существующие цены для этого типа товара у всех партнеров.`,
       )
     ) {
       return;
@@ -198,7 +206,7 @@ export default function PricesManagement() {
             });
           }
           return null;
-        })
+        }),
       );
 
       await Promise.all(promises.flat().filter((p) => p !== null));
@@ -217,7 +225,7 @@ export default function PricesManagement() {
   const handlePresetPriceChange = (
     type: ProductType,
     groupId: number | null,
-    value: string
+    value: string,
   ) => {
     const key = `${type}-${groupId}`;
     setPresetPrices({ ...presetPrices, [key]: value });
@@ -231,11 +239,11 @@ export default function PricesManagement() {
   const handleApplyGroupPresetToAll = async (
     type: ProductType,
     groupId: number | null,
-    price: number
+    price: number,
   ) => {
     if (
       !confirm(
-        `Вы уверены, что хотите применить цену ${price} лей для этой группы ко всем партнерам?`
+        `Вы уверены, что хотите применить цену ${price} лей для этой группы ко всем партнерам?`,
       )
     ) {
       return;
@@ -254,7 +262,7 @@ export default function PricesManagement() {
             groupId: groupId,
             price: price,
           }),
-        })
+        }),
       );
 
       await Promise.all(promises);
@@ -312,11 +320,7 @@ export default function PricesManagement() {
             <Card key={type}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-lg">
-                  {type === 'MAGNET'
-                    ? 'Магниты'
-                    : type === 'PLATE'
-                    ? 'Тарелки'
-                    : type}
+                  {PRODUCT_TYPE_LABELS[type] || type}
                 </CardTitle>
                 <Button
                   variant="outline"
@@ -411,11 +415,7 @@ export default function PricesManagement() {
             <CardHeader>
               <CardTitle>
                 Настройка пресета для типа:{' '}
-                {showPresetModal === 'MAGNET'
-                  ? 'Магниты'
-                  : showPresetModal === 'PLATE'
-                  ? 'Тарелки'
-                  : showPresetModal}
+                {PRODUCT_TYPE_LABELS[showPresetModal]}
               </CardTitle>
               <p className="text-sm text-muted-foreground">
                 Задайте цены, которые будут применены ко всем партнерам для
@@ -443,7 +443,7 @@ export default function PricesManagement() {
                             handlePresetPriceChange(
                               showPresetModal,
                               group.id,
-                              e.target.value
+                              e.target.value,
                             )
                           }
                           placeholder="0.00"
@@ -464,7 +464,7 @@ export default function PricesManagement() {
                       handlePresetPriceChange(
                         showPresetModal,
                         null,
-                        e.target.value
+                        e.target.value,
                       )
                     }
                     placeholder="0.00"
@@ -505,11 +505,8 @@ export default function PricesManagement() {
               <CardTitle>Применить цену для всех партнеров</CardTitle>
               <p className="text-sm text-muted-foreground">
                 Группа: {showGroupPresetModal.groupName} ({' '}
-                {showGroupPresetModal.type === 'MAGNET'
-                  ? 'Магниты'
-                  : showGroupPresetModal.type === 'PLATE'
-                  ? 'Тарелки'
-                  : showGroupPresetModal.type}
+                {PRODUCT_TYPE_LABELS[showGroupPresetModal.type] ||
+                  showGroupPresetModal.type}
                 )
               </p>
             </CardHeader>
@@ -522,14 +519,14 @@ export default function PricesManagement() {
                   value={
                     getPrice(
                       showGroupPresetModal.type,
-                      showGroupPresetModal.groupId
+                      showGroupPresetModal.groupId,
                     ) || ''
                   }
                   onChange={(e) =>
                     handlePriceChange(
                       showGroupPresetModal.type,
                       showGroupPresetModal.groupId,
-                      e.target.value
+                      e.target.value,
                     )
                   }
                   placeholder="Введите цену"
@@ -553,13 +550,13 @@ export default function PricesManagement() {
                   onClick={() => {
                     const priceValue = getPrice(
                       showGroupPresetModal.type,
-                      showGroupPresetModal.groupId
+                      showGroupPresetModal.groupId,
                     );
                     if (priceValue && priceValue !== '') {
                       handleApplyGroupPresetToAll(
                         showGroupPresetModal.type,
                         showGroupPresetModal.groupId,
-                        parseFloat(priceValue.toString())
+                        parseFloat(priceValue.toString()),
                       );
                     } else {
                       toast.error('Пожалуйста, введите цену');

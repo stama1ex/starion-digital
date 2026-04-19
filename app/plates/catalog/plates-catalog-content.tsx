@@ -45,7 +45,8 @@ export default function PlatesCatalogContent({
     .map((p) => p.group)
     .filter((g): g is NonNullable<typeof g> => !!g)
     .filter(
-      (group, index, self) => self.findIndex((g) => g.id === group.id) === index
+      (group, index, self) =>
+        self.findIndex((g) => g.id === group.id) === index,
     );
 
   // Находим пример товара
@@ -83,7 +84,7 @@ export default function PlatesCatalogContent({
         />
       )}
 
-      <hr className="my-12" />
+      <hr />
 
       <CatalogTabs
         titleKey="plates_title"
