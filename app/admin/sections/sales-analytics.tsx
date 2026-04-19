@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, calculateMetrics, type DateRange } from '../utils';
 import {
@@ -42,6 +42,17 @@ export default function SalesAnalytics({
 }: SalesAnalyticsProps) {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [chartFromDate, setChartFromDate] = useState(() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 11);
+    return d.toISOString().split('T')[0];
+  });
+  const [chartToDate, setChartToDate] = useState(
+    new Date().toISOString().split('T')[0],
+  );
+  const [chartMode, setChartMode] = useState<'day' | 'week' | 'month' | 'year'>(
+    'month',
+  );
 
   // Фильтрация по партнеру
   const partnerFilteredOrders =
@@ -76,115 +87,178 @@ export default function SalesAnalytics({
   // Маппер себестоимости (в дальнейшем можно получать из БД)
   const metrics = calculateMetrics(filteredOrders, filteredRealizations);
 
-  // === Построение данных графика по дням ===
-  const dateMap = new Map<
-    string,
-    { revenue: number; cost: number; profit: number }
-  >();
+  const chartData = useMemo(() => {
+    const rangeStart = new Date(`${chartFromDate}T00:00:00`);
+    const rangeEnd = new Date(`${chartToDate}T23:59:59`);
 
-  // Собираем ID заказов которые имеют реализацию
-  const orderIdsWithRealization = new Set(
-    filteredRealizations.map((r: any) => r.orderId),
-  );
-
-  // Добавляем обычные заказы (считаются полностью, только те что НЕ в реализации)
-  filteredOrders.forEach((order) => {
-    // Пропускаем заказы которые конвертированы в реализацию
-    if (orderIdsWithRealization.has(order.id)) {
-      return;
+    if (
+      Number.isNaN(rangeStart.getTime()) ||
+      Number.isNaN(rangeEnd.getTime()) ||
+      rangeStart > rangeEnd
+    ) {
+      return [];
     }
 
-    // ✅ УЧИТЫВАЕМ ТОЛЬКО ОПЛАЧЕННЫЕ ЗАКАЗЫ
-    if (order.status !== 'PAID') {
-      return;
+    const startOfPeriod = (date: Date) => {
+      const d = new Date(date);
+      if (chartMode === 'day') {
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      if (chartMode === 'week') {
+        const day = d.getDay();
+        const diff = day === 0 ? -6 : 1 - day;
+        d.setDate(d.getDate() + diff);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      if (chartMode === 'month') {
+        d.setDate(1);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+
+      d.setMonth(0, 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    };
+
+    const shiftPeriod = (date: Date, delta: number) => {
+      const d = new Date(date);
+      if (chartMode === 'day') {
+        d.setDate(d.getDate() + delta);
+        return d;
+      }
+
+      if (chartMode === 'week') {
+        d.setDate(d.getDate() + delta * 7);
+        return d;
+      }
+
+      if (chartMode === 'month') {
+        d.setMonth(d.getMonth() + delta);
+        return d;
+      }
+
+      d.setFullYear(d.getFullYear() + delta);
+      return d;
+    };
+
+    const formatLabel = (date: Date) => {
+      if (chartMode === 'day') {
+        return new Intl.DateTimeFormat('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+        }).format(date);
+      }
+
+      if (chartMode === 'month') {
+        return new Intl.DateTimeFormat('ru-RU', {
+          month: 'short',
+          year: 'numeric',
+        }).format(date);
+      }
+
+      if (chartMode === 'week') {
+        return `Нед ${new Intl.DateTimeFormat('ru-RU', {
+          day: '2-digit',
+          month: '2-digit',
+        }).format(date)}`;
+      }
+
+      return new Intl.DateTimeFormat('ru-RU', { year: 'numeric' }).format(date);
+    };
+
+    const periods: Array<{
+      period: string;
+      revenue: number;
+      cost: number;
+      profit: number;
+    }> = [];
+
+    const orderIdsWithRealization = new Set(
+      partnerFilteredRealizations.map((r: any) => r.orderId),
+    );
+
+    let periodStart = startOfPeriod(rangeStart);
+    let guard = 0;
+
+    while (periodStart <= rangeEnd && guard < 600) {
+      const nextPeriodStart = shiftPeriod(periodStart, 1);
+      const periodEnd = new Date(nextPeriodStart.getTime() - 1);
+
+      let revenue = 0;
+      let cost = 0;
+
+      partnerFilteredOrders.forEach((order) => {
+        const createdAt = new Date(order.createdAt);
+        if (createdAt < periodStart || createdAt > periodEnd) {
+          return;
+        }
+
+        if (orderIdsWithRealization.has(order.id) || order.status !== 'PAID') {
+          return;
+        }
+
+        const orderRevenue = Number(order.totalPrice);
+        const orderCost = order.items.reduce((sum: number, item: any) => {
+          return sum + Number(item.product.costPrice ?? 0) * item.quantity;
+        }, 0);
+
+        revenue += orderRevenue;
+        cost += orderCost;
+      });
+
+      partnerFilteredRealizations.forEach((realization) => {
+        realization.payments.forEach((payment: any) => {
+          const paymentDateRaw = (payment as any).paymentDate || payment.createdAt;
+          const paymentDate = new Date(paymentDateRaw);
+
+          if (paymentDate < periodStart || paymentDate > periodEnd) {
+            return;
+          }
+
+          const paymentAmount = Number(payment.amount);
+          const realizationRatio =
+            Number(realization.totalCost) > 0
+              ? paymentAmount / Number(realization.totalCost)
+              : 0;
+
+          const paymentCost = realization.items.reduce(
+            (sum: number, item: any) => {
+              return (
+                sum + Number(item.costPrice ?? 0) * item.quantity * realizationRatio
+              );
+            },
+            0,
+          );
+
+          revenue += paymentAmount;
+          cost += paymentCost;
+        });
+      });
+
+      periods.push({
+        period: formatLabel(periodStart),
+        revenue: Math.round(revenue),
+        cost: Math.round(cost),
+        profit: Math.round(revenue - cost),
+      });
+
+      periodStart = nextPeriodStart;
+      guard += 1;
     }
 
-    const isoDate = new Date(order.createdAt).toISOString().split('T')[0]; // YYYY-MM-DD
-
-    const existing = dateMap.get(isoDate) || {
-      revenue: 0,
-      cost: 0,
-      profit: 0,
-    };
-
-    const orderRevenue = Number(order.totalPrice);
-    const orderCost = order.items.reduce((sum: number, item: any) => {
-      return sum + Number(item.product.costPrice ?? 0) * item.quantity;
-    }, 0);
-
-    existing.revenue += orderRevenue;
-    existing.cost += orderCost;
-    existing.profit += orderRevenue - orderCost;
-
-    dateMap.set(isoDate, existing);
-  });
-
-  // Добавляем реализации (считаются только по paidAmount, дата платежа)
-  filteredRealizations.forEach((realization) => {
-    // Для каждого платежа по этой реализации
-    realization.payments.forEach((payment: any) => {
-      const paymentDate = new Date(payment.createdAt)
-        .toISOString()
-        .split('T')[0];
-
-      const existing = dateMap.get(paymentDate) || {
-        revenue: 0,
-        cost: 0,
-        profit: 0,
-      };
-
-      const paymentAmount = Number(payment.amount);
-
-      // Считаем себестоимость пропорционально оплаченной сумме
-      const realizationRatio =
-        Number(realization.totalCost) > 0
-          ? paymentAmount / Number(realization.totalCost)
-          : 0;
-
-      const paymentCost = realization.items.reduce((sum: number, item: any) => {
-        return (
-          sum + Number(item.costPrice ?? 0) * item.quantity * realizationRatio
-        );
-      }, 0);
-
-      existing.revenue += paymentAmount;
-      existing.cost += paymentCost;
-      existing.profit += paymentAmount - paymentCost;
-
-      dateMap.set(paymentDate, existing);
-    });
-  });
-
-  // === Сортируем по ISO дате (старые -> новые), потом форматируем ===
-  const sortedEntries = Array.from(dateMap.entries()).sort(
-    ([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime(),
-  );
-
-  const chartData = sortedEntries.map(([date, data]) => {
-    const d = new Date(date);
-    const months = [
-      'янв',
-      'фев',
-      'мар',
-      'апр',
-      'мая',
-      'июн',
-      'июл',
-      'авг',
-      'сен',
-      'окт',
-      'ноя',
-      'дек',
-    ];
-    const formattedDate = `${d.getDate()} ${months[d.getMonth()]}`;
-
-    return {
-      date: formattedDate,
-      revenue: Math.round(data.revenue),
-      cost: Math.round(data.cost),
-      profit: Math.round(data.profit),
-    };
-  });
+    return periods;
+  }, [
+    chartFromDate,
+    chartMode,
+    chartToDate,
+    partnerFilteredOrders,
+    partnerFilteredRealizations,
+  ]);
 
   const periodLabel = customDateRange
     ? `с ${customDateRange.from} по ${customDateRange.to}`
@@ -405,10 +479,76 @@ export default function SalesAnalytics({
             <CardTitle>Динамика продаж</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="mb-4 flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">От:</span>
+                  <input
+                    type="date"
+                    value={chartFromDate}
+                    onChange={(e) => setChartFromDate(e.target.value)}
+                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">До:</span>
+                  <input
+                    type="date"
+                    value={chartToDate}
+                    onChange={(e) => setChartToDate(e.target.value)}
+                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setChartMode('day')}
+                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                    chartMode === 'day'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-foreground'
+                  }`}
+                >
+                  По дням
+                </button>
+                <button
+                  onClick={() => setChartMode('week')}
+                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                    chartMode === 'week'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-foreground'
+                  }`}
+                >
+                  Понедельно
+                </button>
+                <button
+                  onClick={() => setChartMode('month')}
+                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                    chartMode === 'month'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-foreground'
+                  }`}
+                >
+                  Помесячно
+                </button>
+                <button
+                  onClick={() => setChartMode('year')}
+                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                    chartMode === 'year'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-foreground'
+                  }`}
+                >
+                  По годам
+                </button>
+              </div>
+            </div>
+
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip formatter={(value) => `${value} MDL`} />
                 <Legend />
