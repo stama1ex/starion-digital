@@ -66,7 +66,7 @@ const Footer: React.FC<FooterProps> = ({
       links: [
         { id: 1, name: tCategories('magnet.name'), href: '/magnets/catalog' },
         { id: 2, name: tCategories('plate.name'), href: '/plates/catalog' },
-        { id: 3, name: tCategories('card.name'), href: '#' },
+        { id: 3, name: tCategories('card.name'), href: '/cards/catalog' },
         { id: 4, name: tCategories('statue.name'), href: '#' },
         { id: 5, name: tCategories('ball.name'), href: '#' },
       ],
@@ -125,7 +125,7 @@ const Footer: React.FC<FooterProps> = ({
                 <h3 className="mb-4 font-bold">{section.title}</h3>
                 <ul className="text-muted-foreground space-y-3 text-sm text-center md:text-start">
                   {section.links.map((link, linkIdx) => {
-                    const isSoon = link.id && [3, 4, 5].includes(link.id);
+                    const isSoon = link.id && [4, 5].includes(link.id);
                     return (
                       <li
                         key={link.id || linkIdx}

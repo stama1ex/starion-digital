@@ -41,7 +41,7 @@ interface Props {
 const categories = [
   { title: 'magnet', href: '/magnets/catalog' },
   { title: 'plate', href: '/plates/catalog' },
-  { title: 'card', href: '#' },
+  { title: 'card', href: '/cards/catalog' },
   { title: 'statue', href: '#' },
   { title: 'ball', href: '#' },
 ];
@@ -95,7 +95,7 @@ export const Header: React.FC<Props> = ({ className }) => {
     <header
       className={cn(
         'border-b border-border sticky top-0 z-10 backdrop-blur-xl',
-        className
+        className,
       )}
     >
       <Container className="flex items-center justify-between py-4 sm:py-6 gap-4 relative">
@@ -141,7 +141,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                   href="/"
                   className={cn(
                     'font-semibold text-lg',
-                    isActive('/') && 'text-primary font-bold'
+                    isActive('/') && 'text-primary font-bold',
                   )}
                 >
                   {t('home')}
@@ -153,7 +153,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                     <AccordionTrigger
                       className={cn(
                         'font-semibold text-lg',
-                        isAnyCategoryActive && 'text-primary font-bold'
+                        isAnyCategoryActive && 'text-primary font-bold',
                       )}
                     >
                       {t('categories')}
@@ -162,7 +162,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                     <AccordionContent>
                       <ul className="flex flex-col first:border-t">
                         {categories.map((item, idx) => {
-                          const isSoon = idx >= 2;
+                          const isSoon = idx >= 3;
                           return (
                             <li key={item.title}>
                               <Link
@@ -172,7 +172,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                                   isSoon &&
                                     'pointer-events-none opacity-50 cursor-not-allowed',
                                   isActive(item.href) &&
-                                    'text-primary font-bold'
+                                    'text-primary font-bold',
                                 )}
                               >
                                 <div className="font-bold my-1 flex items-center gap-2">
@@ -196,7 +196,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                   href="/contacts"
                   className={cn(
                     'font-semibold text-lg',
-                    isActive('/contacts') && 'text-primary font-bold'
+                    isActive('/contacts') && 'text-primary font-bold',
                   )}
                 >
                   {t('contacts')}
@@ -278,7 +278,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                   className={cn(
                     'bg-transparent! font-bold!',
                     navigationMenuTriggerStyle(),
-                    isActive('/') && 'text-primary!'
+                    isActive('/') && 'text-primary!',
                   )}
                 >
                   <Link href="/">{t('home')}</Link>
@@ -290,7 +290,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuTrigger
                   className={cn(
                     'font-semibold bg-transparent transition-colors duration-200',
-                    isAnyCategoryActive && 'text-primary font-bold'
+                    isAnyCategoryActive && 'text-primary font-bold',
                   )}
                 >
                   {t('categories')}
@@ -299,7 +299,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuContent className="bg-background/70 backdrop-blur-xl border border-border rounded-md shadow-lg">
                   <ul className="grid w-100 gap-2 md:w-125 md:grid-cols-2 lg:w-150 p-2">
                     {categories.map((item, idx) => {
-                      const isSoon = idx >= 2;
+                      const isSoon = idx >= 3;
                       return (
                         <li key={item.title}>
                           <NavigationMenuLink asChild>
@@ -310,7 +310,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                                 isSoon &&
                                   'pointer-events-none opacity-50 cursor-not-allowed',
                                 isActive(item.href) &&
-                                  'bg-accent text-primary font-bold'
+                                  'bg-accent text-primary font-bold',
                               )}
                             >
                               <div className="font-[950] text-primary flex items-center gap-2">
@@ -336,7 +336,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                   className={cn(
                     'bg-transparent! font-bold!',
                     navigationMenuTriggerStyle(),
-                    isActive('/contacts') && 'text-primary!'
+                    isActive('/contacts') && 'text-primary!',
                   )}
                 >
                   <Link href="/contacts">{t('contacts')}</Link>

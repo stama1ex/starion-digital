@@ -59,7 +59,7 @@ const Catalog: React.FC<CatalogProps> = ({
   const getPrice = (p: ProductDTO) => {
     if (!prices) return null;
     const match = prices.find(
-      (x) => x.type === p.type && x.group?.id === p.group?.id
+      (x) => x.type === p.type && x.group?.id === p.group?.id,
     );
     return match?.price ?? null;
   };
@@ -69,7 +69,8 @@ const Catalog: React.FC<CatalogProps> = ({
     .map((p) => p.group)
     .filter((g): g is NonNullable<typeof g> => !!g)
     .filter(
-      (group, index, self) => self.findIndex((g) => g.id === group.id) === index
+      (group, index, self) =>
+        self.findIndex((g) => g.id === group.id) === index,
     )
     .sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
 
@@ -109,7 +110,7 @@ const Catalog: React.FC<CatalogProps> = ({
         {/* Товары по группам */}
         {uniqueGroups.map((group) => {
           const groupProducts = products.filter(
-            (p) => p.group?.id === group.id
+            (p) => p.group?.id === group.id,
           );
           return (
             <div key={group.id}>
@@ -129,10 +130,10 @@ const Catalog: React.FC<CatalogProps> = ({
 
         {/* Товары без группы */}
         {ungroupedProducts.length > 0 && (
-          <div className="my-10">
-            <h2 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-start">
+          <div>
+            {/* <h2 className="text-xl md:text-3xl font-bold mb-4 text-center md:text-start">
               Другие товары
-            </h2>
+            </h2> */}
 
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 px-4 md:px-0">
               {ungroupedProducts.map((product) => (

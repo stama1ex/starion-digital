@@ -16,9 +16,41 @@ import { useCartStore } from '@/store/cart-store';
 import { ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
+import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
 
 interface CartDrawerProps {
   isOutline?: boolean;
+}
+
+function CartItemImage({ image, alt }: { image?: string | null; alt: string }) {
+  const { imgSrc, loading } = useDropboxImage(image);
+
+  if (!image || loading || !imgSrc) {
+    return <div className="h-15 w-15 rounded-md bg-muted animate-pulse" />;
+  }
+
+  if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return (
+      <img
+        src={imgSrc}
+        width={60}
+        height={60}
+        className="rounded-md object-cover h-15 w-15"
+        alt={alt}
+      />
+    );
+  }
+
+  return (
+    <Image
+      src={imgSrc}
+      width={60}
+      height={60}
+      className="rounded-md object-cover"
+      alt={alt}
+    />
+  );
 }
 
 export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
@@ -31,7 +63,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
   const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   const handleSubmit = async (
-    orderType: 'regular' | 'realization' = 'regular'
+    orderType: 'regular' | 'realization' = 'regular',
   ) => {
     if (!items.length || isSubmitting) return;
     setIsSubmitting(true);
@@ -91,24 +123,13 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
             )}
 
             {items.map((item) => {
-              const imgSrc = item.image?.startsWith('http')
-                ? item.image
-                : '/' + item.image?.replace(/^public\//, '');
               return (
                 <div
                   key={item.id}
                   className="flex items-center justify-between gap-3 border rounded-md p-2"
                 >
                   <div className="flex items-center gap-3">
-                    {item.image && (
-                      <Image
-                        src={imgSrc}
-                        width={60}
-                        height={60}
-                        className="rounded-md object-cover"
-                        alt=""
-                      />
-                    )}
+                    <CartItemImage image={item.image} alt={item.number} />
                     <div>
                       <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
                       <div className="text-xs text-muted-foreground">

@@ -292,11 +292,7 @@ export default function ProductsManagement() {
             <SelectItem value="ALL">Все типы</SelectItem>
             {PRODUCT_TYPES.map((type) => (
               <SelectItem key={type} value={type}>
-                {type === 'MAGNET'
-                  ? 'Магнит'
-                  : type === 'PLATE'
-                  ? 'Тарелка'
-                  : type}
+                {PRODUCT_TYPE_LABELS[type] || type}
               </SelectItem>
             ))}
           </SelectContent>
@@ -315,7 +311,7 @@ export default function ProductsManagement() {
             <SelectItem value="NONE">Без группы</SelectItem>
             {groups
               .filter(
-                (group) => filterType === 'ALL' || group.type === filterType
+                (group) => filterType === 'ALL' || group.type === filterType,
               )
               .map((group) => (
                 <SelectItem key={group.id} value={group.id.toString()}>

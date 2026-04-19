@@ -21,7 +21,7 @@ interface OrderCustomPricesDialogProps {
   onSuccess: (updatedOrder?: any) => void;
 }
 
-const PRODUCT_TYPES: ProductType[] = ['MAGNET', 'PLATE'];
+const PRODUCT_TYPES: ProductType[] = ['MAGNET', 'PLATE', 'POSTCARD'];
 
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   MAGNET: 'Магниты',
@@ -82,7 +82,7 @@ export function OrderCustomPricesDialog({
   const handlePriceChange = (
     type: ProductType,
     groupId: number | null,
-    value: string
+    value: string,
   ) => {
     const key = `${type}-${groupId}`;
     setEditingPrices({ ...editingPrices, [key]: value });
@@ -131,7 +131,7 @@ export function OrderCustomPricesDialog({
   // Проверяем, есть ли в заказе товары данного типа и группы
   const hasProductsOfTypeAndGroup = (
     type: ProductType,
-    groupId: number | null
+    groupId: number | null,
   ) => {
     return order?.items?.some((item: any) => {
       const itemGroupId = item.product.groupId ?? null;
@@ -164,7 +164,7 @@ export function OrderCustomPricesDialog({
             // Получаем группы для данного типа товара, которые есть в заказе
             const typeGroups = groups.filter((g) => g.type === type);
             const relevantGroups = typeGroups.filter((g) =>
-              hasProductsOfTypeAndGroup(type, g.id)
+              hasProductsOfTypeAndGroup(type, g.id),
             );
             const hasNoGroupProducts = hasProductsOfTypeAndGroup(type, null);
 

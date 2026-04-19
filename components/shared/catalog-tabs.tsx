@@ -7,6 +7,7 @@ import Catalog from '@/components/shared/catalog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { Title } from './title';
 
 interface ProductGroup {
   id: number;
@@ -36,6 +37,7 @@ interface CatalogTabsProps {
     } | null;
     price: number;
   }[];
+  hideTitle?: boolean;
 }
 
 export default function CatalogTabs({
@@ -43,6 +45,7 @@ export default function CatalogTabs({
   products,
   modelUrls,
   prices,
+  hideTitle = false,
 }: CatalogTabsProps) {
   const locale = useLocale();
   const t = useTranslations('Catalog');
@@ -61,7 +64,8 @@ export default function CatalogTabs({
     .map((p) => p.group)
     .filter((g): g is NonNullable<typeof g> => !!g)
     .filter(
-      (group, index, self) => self.findIndex((g) => g.id === group.id) === index
+      (group, index, self) =>
+        self.findIndex((g) => g.id === group.id) === index,
     )
     .sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
 
@@ -69,14 +73,14 @@ export default function CatalogTabs({
   const ungroupedProducts = products.filter((p) => !p.group);
 
   const [activeGroup, setActiveGroup] = useState<string>(
-    uniqueGroups[0]?.id?.toString() || 'all'
+    uniqueGroups[0]?.id?.toString() || 'all',
   );
 
   // Фильтрация товаров по поисковому запросу
   const filterProducts = (productsList: ProductDTO[]) => {
     if (!searchQuery.trim()) return productsList;
     return productsList.filter((p) =>
-      p.number.toLowerCase().includes(searchQuery.toLowerCase())
+      p.number.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   };
 
@@ -92,6 +96,16 @@ export default function CatalogTabs({
 
   return (
     <>
+      {!hideTitle && (
+        <>
+          <div className="flex justify-center w-full h-full">
+            <Title
+              text={t(titleKey)}
+              className="my-6! text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
+            />
+          </div>
+        </>
+      )}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 px-4 md:px-0">
         <Tabs
           value={activeGroup}
