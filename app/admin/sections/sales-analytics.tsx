@@ -213,7 +213,8 @@ export default function SalesAnalytics({
 
       partnerFilteredRealizations.forEach((realization) => {
         realization.payments.forEach((payment: any) => {
-          const paymentDateRaw = (payment as any).paymentDate || payment.createdAt;
+          const paymentDateRaw =
+            (payment as any).paymentDate || payment.createdAt;
           const paymentDate = new Date(paymentDateRaw);
 
           if (paymentDate < periodStart || paymentDate > periodEnd) {
@@ -229,7 +230,8 @@ export default function SalesAnalytics({
           const paymentCost = realization.items.reduce(
             (sum: number, item: any) => {
               return (
-                sum + Number(item.costPrice ?? 0) * item.quantity * realizationRatio
+                sum +
+                Number(item.costPrice ?? 0) * item.quantity * realizationRatio
               );
             },
             0,

@@ -1,18 +1,9 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 async function checkAdminAuth() {
-  const session = (await cookies()).get('session')?.value;
-  if (!session) return null;
-
-  const partnerId = Number(session);
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.role !== 'ADMIN') return null;
-  return partner;
+  return getPartnerFromSessionCookie('ADMIN');
 }
 
 interface UpdateCredentialsBody {
@@ -38,7 +29,7 @@ export async function POST(req: Request) {
     // Проверяем текущий пароль
     const isPasswordValid = await bcrypt.compare(
       currentPassword,
-      admin.password
+      admin.password,
     );
     if (!isPasswordValid) {
       return new Response('Invalid current password', { status: 401 });

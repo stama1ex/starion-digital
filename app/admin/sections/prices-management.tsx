@@ -78,7 +78,7 @@ export default function PricesManagement() {
       const res = await fetch('/api/admin/partners');
       const data = await res.json();
       // Фильтруем партнеров - исключаем ADMIN
-      const filtered = data.filter((p: any) => p.name !== 'ADMIN');
+      const filtered = data.filter((p: any) => p.role !== 'ADMIN');
       setPartners(filtered);
       if (filtered.length > 0) {
         setSelectedPartnerId(filtered[0].id.toString());

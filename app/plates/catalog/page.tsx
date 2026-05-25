@@ -3,9 +3,9 @@ import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { prisma } from '@/lib/db';
 import { getModelUrl } from '@/lib/models';
-import { cookies } from 'next/headers';
 import PlatesCatalogContent from './plates-catalog-content';
 import { toPlain } from '@/lib/toPlain';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 // Revalidate every 5 minutes
 export const revalidate = 300;
@@ -35,15 +35,16 @@ export default async function PlatesCatalogPage({ params }: any) {
   const products = toPlain(rawProducts);
 
   // --- ценообразование ---
-  const session = (await cookies()).get('session')?.value;
   let prices: {
     type: 'MAGNET' | 'PLATE';
     group: { id: number; slug: string; translations: any } | null;
     price: number;
   }[] = [];
 
-  if (session) {
-    const partnerId = Number(session);
+  const partner = await getPartnerFromSessionCookie();
+
+  if (partner) {
+    const partnerId = partner.id;
     const raw = await prisma.price.findMany({
       where: { partnerId },
       include: { group: true },

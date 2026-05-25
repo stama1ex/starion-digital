@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 interface UpdatePaymentBody {
   amount?: number;
@@ -9,22 +9,13 @@ interface UpdatePaymentBody {
 }
 
 async function checkAdminAuth() {
-  const session = (await cookies()).get('session')?.value;
-  if (!session) return null;
-
-  const partnerId = Number(session);
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.name !== 'ADMIN') return null;
-  return partner;
+  return getPartnerFromSessionCookie('ADMIN');
 }
 
 // Обновить платёж
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const admin = await checkAdminAuth();
@@ -85,8 +76,8 @@ export async function PATCH(
       newTotalPaid >= Number(realization.totalCost)
         ? 'COMPLETED'
         : newTotalPaid > 0
-        ? 'PARTIAL'
-        : 'PENDING';
+          ? 'PARTIAL'
+          : 'PENDING';
 
     await prisma.realization.update({
       where: { id: realization.id },
@@ -127,7 +118,7 @@ export async function PATCH(
 // Удалить платёж
 export async function DELETE(
   req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const admin = await checkAdminAuth();
@@ -167,8 +158,8 @@ export async function DELETE(
       newPaidAmount >= Number(realization.totalCost)
         ? 'COMPLETED'
         : newPaidAmount > 0
-        ? 'PARTIAL'
-        : 'PENDING';
+          ? 'PARTIAL'
+          : 'PENDING';
 
     await prisma.realization.update({
       where: { id: realization.id },

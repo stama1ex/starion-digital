@@ -1,6 +1,12 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import {
+  createSessionCookies,
+  getSessionBindCookieName,
+  getSessionCookieName,
+  getSessionCookieOptions,
+} from '@/lib/auth/session';
 
 export async function POST(req: Request) {
   try {
@@ -24,14 +30,14 @@ export async function POST(req: Request) {
       return new Response('Invalid credentials', { status: 401 });
     }
 
-    // Сохраняем только id в сессии
-    (await cookies()).set('session', String(partner.id), {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 7,
-    });
+    const { sessionToken, sessionBind } = await createSessionCookies(
+      partner.id,
+    );
+    const cookieStore = await cookies();
+    const cookieOptions = getSessionCookieOptions();
+
+    cookieStore.set(getSessionCookieName(), sessionToken, cookieOptions);
+    cookieStore.set(getSessionBindCookieName(), sessionBind, cookieOptions);
 
     return Response.json({ ok: true });
   } catch {

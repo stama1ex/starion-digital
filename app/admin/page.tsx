@@ -1,32 +1,16 @@
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import AdminDashboard from './admin-dashboard';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import { toPlain } from '@/lib/toPlain';
 import { Title } from '@/components/shared/title';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 export default async function AdminPage() {
-  const session = (await cookies()).get('session')?.value;
+  const currentPartner = await getPartnerFromSessionCookie('ADMIN');
 
-  if (!session) redirect('/login');
-
-  const partnerId = Number(session);
-  if (!partnerId || Number.isNaN(partnerId)) {
+  if (!currentPartner) {
     redirect('/login');
-  }
-
-  const currentPartner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  // Доступ только если role = ADMIN
-  if (!currentPartner || currentPartner.role !== 'ADMIN') {
-    return (
-      <div className="min-h-screen p-6 text-center text-destructive font-black">
-        Access Denied – Admin Only
-      </div>
-    );
   }
 
   const [ordersRaw, partnersRaw, realizationsRaw, groupsRaw] =
