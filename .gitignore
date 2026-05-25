@@ -47,3 +47,6 @@ project.txt
 magnet.glb
 plate.glb
 /lib/generated/prisma
+ 
+# ignore local test scripts that may contain sensitive cookies/credentials
+scripts/test-session.js
