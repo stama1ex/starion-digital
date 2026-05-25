@@ -1,11 +1,11 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 export async function GET() {
-  const session = (await cookies()).get('session')?.value;
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  const partner = await getPartnerFromSessionCookie();
+  if (!partner) return new Response('Unauthorized', { status: 401 });
 
-  const partnerId = parseInt(session);
+  const partnerId = partner.id;
 
   const prices = await prisma.price.findMany({
     where: { partnerId },

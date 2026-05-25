@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 interface RealizationPaymentBody {
   realizationId: number;
@@ -10,17 +10,8 @@ interface RealizationPaymentBody {
 
 export async function POST(req: Request) {
   try {
-    const session = (await cookies()).get('session')?.value;
-    if (!session) {
-      return new Response('Unauthorized - Admin only', { status: 401 });
-    }
-
-    const partnerId = Number(session);
-    const admin = await prisma.partner.findUnique({
-      where: { id: partnerId },
-    });
-
-    if (!admin || admin.name !== 'ADMIN') {
+    const admin = await getPartnerFromSessionCookie('ADMIN');
+    if (!admin) {
       return new Response('Unauthorized - Admin only', { status: 401 });
     }
 
@@ -64,8 +55,8 @@ export async function POST(req: Request) {
       newPaidAmount >= Number(realization.totalCost)
         ? 'COMPLETED'
         : newPaidAmount > 0
-        ? 'PARTIAL'
-        : 'PENDING';
+          ? 'PARTIAL'
+          : 'PENDING';
 
     await prisma.realization.update({
       where: { id: realizationId },

@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 export async function POST(req: Request) {
   try {
-    const session = (await cookies()).get('session')?.value;
-    if (!session) {
+    const partner = await getPartnerFromSessionCookie();
+    if (!partner) {
       return new Response('Unauthorized', { status: 401 });
     }
 

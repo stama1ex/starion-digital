@@ -2,9 +2,9 @@
 import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
 import CardsCatalogContent from './cards-catalog-content';
 import { toPlain } from '@/lib/toPlain';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 // Revalidate every 5 minutes
 export const revalidate = 300;
@@ -31,15 +31,16 @@ export default async function CardsCatalogPage({ params }: any) {
 
   const products = toPlain(rawProducts);
 
-  const session = (await cookies()).get('session')?.value;
   let prices: {
     type: string;
     group: { id: number; slug: string; translations: any } | null;
     price: number;
   }[] = [];
 
-  if (session) {
-    const partnerId = Number(session);
+  const partner = await getPartnerFromSessionCookie();
+
+  if (partner) {
+    const partnerId = partner.id;
     const raw = await prisma.price.findMany({
       where: { partnerId },
       include: { group: true },

@@ -1,21 +1,12 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 // Admin auth check helper
 async function checkAdminAuth() {
-  const session = (await cookies()).get('session')?.value;
-  if (!session) return null;
-
-  const partnerId = Number(session);
-  const partner = await prisma.partner.findUnique({
-    where: { id: partnerId },
-  });
-
-  if (!partner || partner.role !== 'ADMIN') return null;
-  return partner;
+  return getPartnerFromSessionCookie('ADMIN');
 }
 
 interface CreateOrderForPartnerBody {
@@ -72,14 +63,14 @@ export async function POST(req: Request) {
       }
 
       const priceEntry = prices.find(
-        (p) => p.type === product.type && p.groupId === product.groupId
+        (p) => p.type === product.type && p.groupId === product.groupId,
       );
 
       if (!priceEntry) {
         throw new Error(
           `Missing price for ${product.type}/${
             product.groupId || 'no-group'
-          } for partner ${partner.name}`
+          } for partner ${partner.name}`,
         );
       }
 
@@ -142,7 +133,7 @@ export async function POST(req: Request) {
         }
 
         return createdOrder;
-      }
+      },
     );
 
     // --- Telegram notification с Excel ---

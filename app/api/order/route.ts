@@ -1,15 +1,15 @@
 import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
-  const session = (await cookies()).get('session')?.value;
-  if (!session) return new Response('Unauthorized', { status: 401 });
+  const partner = await getPartnerFromSessionCookie();
+  if (!partner) return new Response('Unauthorized', { status: 401 });
 
-  const partnerId = Number(session);
+  const partnerId = partner.id;
 
   const orders = await prisma.order.findMany({
     where: { partnerId },
@@ -43,13 +43,12 @@ interface CreateOrderBody {
 
 export async function POST(req: Request) {
   try {
-    const session = (await cookies()).get('session')?.value;
-    if (!session) return new Response('Unauthorized', { status: 401 });
-
-    const partnerId = Number(session);
-    if (!partnerId || Number.isNaN(partnerId)) {
+    const partner = await getPartnerFromSessionCookie();
+    if (!partner) {
       return new Response('Unauthorized', { status: 401 });
     }
+
+    const partnerId = partner.id;
 
     const body = (await req.json()) as CreateOrderBody;
     const items = body.items;
@@ -82,12 +81,12 @@ export async function POST(req: Request) {
       }
 
       const priceEntry = prices.find(
-        (p) => p.type === product.type && p.groupId === product.groupId
+        (p) => p.type === product.type && p.groupId === product.groupId,
       );
 
       if (!priceEntry) {
         throw new Error(
-          `Missing price for ${product.type}/${product.groupId || 'no-group'}`
+          `Missing price for ${product.type}/${product.groupId || 'no-group'}`,
         );
       }
 
@@ -119,7 +118,7 @@ export async function POST(req: Request) {
             partner: true,
             items: { include: { product: true } },
           },
-        })
+        }),
     );
 
     // --- если это реализация, НЕ создаём Realization сразу ---

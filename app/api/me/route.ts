@@ -1,16 +1,8 @@
-import { prisma } from '@/lib/db';
-import { cookies } from 'next/headers';
+import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 export async function GET() {
   try {
-    const session = (await cookies()).get('session')?.value;
-
-    if (!session) return Response.json({ isPartner: false });
-
-    const partner = await prisma.partner.findUnique({
-      where: { id: Number(session) },
-      select: { id: true },
-    });
+    const partner = await getPartnerFromSessionCookie();
 
     return Response.json({ isPartner: !!partner });
   } catch (error) {

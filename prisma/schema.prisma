@@ -18,6 +18,7 @@ model Partner {
   prices       Price[]
   orders       Order[]
   realizations Realization[]
+  sessions     PartnerSession[]
 }
 
 model Product {
@@ -159,6 +160,22 @@ model PartnershipRequest {
   @@index([status])
   @@index([createdAt])
   @@index([ipAddress, createdAt]) // Индекс для проверки лимита заявок
+}
+
+model PartnerSession {
+  id         Int      @id @default(autoincrement())
+  partnerId  Int
+  tokenHash  String   @unique
+  bindHash   String   @unique
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  partner Partner @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  @@index([partnerId])
+  @@index([expiresAt])
 }
 
 enum PartnerRole {
