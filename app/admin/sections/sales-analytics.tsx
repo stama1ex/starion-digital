@@ -475,78 +475,85 @@ export default function SalesAnalytics({
       </Card>
 
       {/* === График === */}
-      {chartData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Динамика продаж</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="mb-4 flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">От:</span>
-                  <input
-                    type="date"
-                    value={chartFromDate}
-                    onChange={(e) => setChartFromDate(e.target.value)}
-                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">До:</span>
-                  <input
-                    type="date"
-                    value={chartToDate}
-                    onChange={(e) => setChartToDate(e.target.value)}
-                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-                  />
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Динамика продаж</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">От:</span>
+                <input
+                  type="date"
+                  value={chartFromDate}
+                  onChange={(e) => setChartFromDate(e.target.value)}
+                  className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                />
               </div>
-
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setChartMode('day')}
-                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                    chartMode === 'day'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-foreground'
-                  }`}
-                >
-                  По дням
-                </button>
-                <button
-                  onClick={() => setChartMode('week')}
-                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                    chartMode === 'week'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-foreground'
-                  }`}
-                >
-                  Понедельно
-                </button>
-                <button
-                  onClick={() => setChartMode('month')}
-                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                    chartMode === 'month'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-foreground'
-                  }`}
-                >
-                  Помесячно
-                </button>
-                <button
-                  onClick={() => setChartMode('year')}
-                  className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                    chartMode === 'year'
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-foreground'
-                  }`}
-                >
-                  По годам
-                </button>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">До:</span>
+                <input
+                  type="date"
+                  value={chartToDate}
+                  onChange={(e) => setChartToDate(e.target.value)}
+                  className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                />
               </div>
             </div>
 
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setChartMode('day')}
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                  chartMode === 'day'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                По дням
+              </button>
+              <button
+                onClick={() => setChartMode('week')}
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                  chartMode === 'week'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                Понедельно
+              </button>
+              <button
+                onClick={() => setChartMode('month')}
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                  chartMode === 'month'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                Помесячно
+              </button>
+              <button
+                onClick={() => setChartMode('year')}
+                className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                  chartMode === 'year'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-foreground'
+                }`}
+              >
+                По годам
+              </button>
+            </div>
+          </div>
+
+          {chartData.length === 0 ? (
+            <div
+              className="flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
+              style={{ height: 300 }}
+            >
+              Нет данных для выбранного периода
+            </div>
+          ) : (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -558,9 +565,9 @@ export default function SalesAnalytics({
                 <Bar dataKey="profit" fill="#10b981" name="Прибыль" />
               </BarChart>
             </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
