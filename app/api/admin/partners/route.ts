@@ -10,7 +10,7 @@ export async function GET() {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -30,7 +30,7 @@ export async function GET() {
     console.error('Error fetching partners:', error);
     return NextResponse.json(
       { error: 'Failed to fetch partners' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (!data.password || data.password.length < 4) {
       return NextResponse.json(
         { error: 'Password must be at least 4 characters' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -80,47 +80,71 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Добавляем дефолтные цены для нового партнёра
-    // Получаем группы продуктов
-    const groups = await prisma.productGroup.findMany({
+    // Добавляем цены для нового партнёра, копируя уже существующий прайс-лист.
+    // Это защищает от ситуации, когда для новых дилеров забывают вручную добавить
+    // отдельные цены, например для открыток.
+    const templatePartner = await prisma.partner.findFirst({
       where: {
-        slug: { in: ['MARBLE', 'WOOD'] },
+        role: 'PARTNER',
+        id: { not: partner.id },
+      },
+      orderBy: { id: 'asc' },
+      include: {
+        prices: true,
       },
     });
 
-    const groupMap = new Map(groups.map((g) => [g.slug, g.id]));
-    const marbleId = groupMap.get('MARBLE');
-    const woodId = groupMap.get('WOOD');
-
-    if (marbleId && woodId) {
+    if (templatePartner?.prices.length) {
       await prisma.price.createMany({
-        data: [
-          {
-            partnerId: partner.id,
-            type: 'MAGNET',
-            groupId: marbleId,
-            price: 20,
-          },
-          {
-            partnerId: partner.id,
-            type: 'MAGNET',
-            groupId: woodId,
-            price: 12,
-          },
-          {
-            partnerId: partner.id,
-            type: 'PLATE',
-            groupId: marbleId,
-            price: 120,
-          },
-          {
-            partnerId: partner.id,
-            type: 'PLATE',
-            groupId: woodId,
-            price: 90,
-          },
-        ],
+        data: templatePartner.prices.map((price) => ({
+          partnerId: partner.id,
+          type: price.type,
+          groupId: price.groupId,
+          price: price.price,
+        })),
       });
+    } else {
+      // Фолбэк для пустой базы: создаём базовые цены, если ещё нет шаблона.
+      const groups = await prisma.productGroup.findMany({
+        where: {
+          slug: { in: ['MARBLE', 'WOOD'] },
+        },
+      });
+
+      const groupMap = new Map(groups.map((g) => [g.slug, g.id]));
+      const marbleId = groupMap.get('MARBLE');
+      const woodId = groupMap.get('WOOD');
+
+      if (marbleId && woodId) {
+        await prisma.price.createMany({
+          data: [
+            {
+              partnerId: partner.id,
+              type: 'MAGNET',
+              groupId: marbleId,
+              price: 20,
+            },
+            {
+              partnerId: partner.id,
+              type: 'MAGNET',
+              groupId: woodId,
+              price: 12,
+            },
+            {
+              partnerId: partner.id,
+              type: 'PLATE',
+              groupId: marbleId,
+              price: 120,
+            },
+            {
+              partnerId: partner.id,
+              type: 'PLATE',
+              groupId: woodId,
+              price: 90,
+            },
+          ],
+        });
+      }
     }
 
     return NextResponse.json(partner);
@@ -129,12 +153,12 @@ export async function POST(request: NextRequest) {
     if (error.code === 'P2002') {
       return NextResponse.json(
         { error: 'Партнер с таким логином уже существует' },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to create partner' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -145,7 +169,7 @@ export async function PUT(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -174,7 +198,7 @@ export async function PUT(request: NextRequest) {
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
         { error: 'Нет данных для обновления' },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -196,12 +220,12 @@ export async function PUT(request: NextRequest) {
     if (error.code === 'P2002') {
       return NextResponse.json(
         { error: 'Партнер с таким логином уже существует' },
-        { status: 400 }
+        { status: 400 },
       );
     }
     return NextResponse.json(
       { error: 'Failed to update partner' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -212,7 +236,7 @@ export async function DELETE(request: NextRequest) {
     if (!(await checkAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -237,7 +261,7 @@ export async function DELETE(request: NextRequest) {
     if (partner.role === 'ADMIN') {
       return NextResponse.json(
         { error: 'Cannot delete admin account' },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -256,7 +280,7 @@ export async function DELETE(request: NextRequest) {
     console.error('Error deleting partner:', error);
     return NextResponse.json(
       { error: 'Failed to delete partner' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
