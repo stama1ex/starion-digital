@@ -29,7 +29,7 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
 
   // Заголовки таблицы
   const headerRow = sheet.addRow([
-    '№',
+    'Наименование',
     'Страна',
     'Кол-во',
     'Цена/шт (MDL)',
