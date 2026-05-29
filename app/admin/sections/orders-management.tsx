@@ -806,7 +806,7 @@ export default function OrdersManagement({
 
       {/* Create Order Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] lg:max-w-[calc(100vw-2rem)] h-[98vh] flex flex-col overflow-hidden p-6">
+        <DialogContent className="max-w-[calc(100vw-1rem)] lg:max-w-[calc(80vw-2rem)] h-[90vh] flex flex-col overflow-hidden p-6">
           <DialogHeader>
             <DialogTitle>Создать новый заказ</DialogTitle>
           </DialogHeader>
