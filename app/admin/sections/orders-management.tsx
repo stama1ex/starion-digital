@@ -1061,7 +1061,7 @@ export default function OrdersManagement({
                     Товары не найдены
                   </p>
                 ) : (
-                  <div className="columns-3 sm:columns-4 gap-2">
+                  <div className="columns-5 xl:columns-6 gap-2">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}

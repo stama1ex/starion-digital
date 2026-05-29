@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     cookieStore.set(getSessionCookieName(), sessionToken, cookieOptions);
     cookieStore.set(getSessionBindCookieName(), sessionBind, cookieOptions);
 
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, role: partner.role });
   } catch {
     return new Response('Invalid request', { status: 400 });
   }
