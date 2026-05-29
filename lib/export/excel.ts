@@ -57,12 +57,7 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   });
 
   // Ширина колонок
-  sheet.columns = [
-    { width: 15 },
-    { width: 12 },
-    { width: 18 },
-    { width: 18 },
-  ];
+  sheet.columns = [{ width: 15 }, { width: 12 }, { width: 18 }, { width: 18 }];
 
   // Группируем товары по типу
   const itemsByType: Record<string, any[]> = {};
