@@ -806,14 +806,14 @@ export default function OrdersManagement({
 
       {/* Create Order Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-1rem)] lg:max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden">
+        <DialogContent className="max-w-[calc(100vw-1rem)] lg:max-w-[calc(100vw-2rem)] h-[98vh] flex flex-col overflow-hidden p-6">
           <DialogHeader>
             <DialogTitle>Создать новый заказ</DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
+          <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] flex-1 min-h-0">
             {/* Left side - Form fields */}
-            <div className="space-y-4 min-w-0">
+            <div className="space-y-4 min-w-0 overflow-y-auto pr-1">
               {/* Partner Selection */}
               <div>
                 <Label htmlFor="partner-search" className="mb-2">
@@ -974,9 +974,9 @@ export default function OrdersManagement({
             </div>
 
             {/* Right side - Filters, Products grid and totals */}
-            <div className="space-y-4 min-w-0">
+            <div className="space-y-4 min-w-0 flex flex-col min-h-0">
               {/* Filters */}
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 shrink-0">
                 {/* Product Search */}
                 <div className="max-w-70 flex-1">
                   <Label htmlFor="product-search" className="mb-1">
@@ -1052,7 +1052,7 @@ export default function OrdersManagement({
                 </div>
               </div>
               {/* Products Grid */}
-              <div className="border rounded-lg p-4 max-h-150 overflow-y-auto">
+              <div className="border rounded-lg p-4 flex-1 min-h-0 overflow-y-auto">
                 <h4 className="font-semibold mb-3">
                   Товары ({filteredProducts.length})
                 </h4>
@@ -1061,7 +1061,7 @@ export default function OrdersManagement({
                     Товары не найдены
                   </p>
                 ) : (
-                  <div className="columns-5 xl:columns-6 gap-2">
+                  <div className="columns-3 xl:columns-4 gap-2">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}
@@ -1094,7 +1094,7 @@ export default function OrdersManagement({
           </div>
 
           {/* Submit Button */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex justify-end gap-2 pt-4 border-t shrink-0">
             <Button
               type="button"
               variant="outline"
