@@ -68,7 +68,8 @@ export async function POST(req: Request) {
       });
 
       const partnerDebt = partnerRealizations.reduce((sum, realization) => {
-        const remaining = Number(realization.totalCost) - Number(realization.paidAmount);
+        const remaining =
+          Number(realization.totalCost) - Number(realization.paidAmount);
         return sum + Math.max(remaining, 0);
       }, 0);
 

@@ -91,7 +91,8 @@ function buildPartnerGroups(realizations: AdminRealization[]) {
     if (realization.status !== 'CANCELLED') {
       current.totalCost += Number(realization.totalCost);
       current.paidAmount += Number(realization.paidAmount);
-      current.debt += Number(realization.totalCost) - Number(realization.paidAmount);
+      current.debt +=
+        Number(realization.totalCost) - Number(realization.paidAmount);
       current.activeCount += 1;
     }
 
@@ -198,8 +199,8 @@ export default function RealizationTracking({
           <div>
             <h2 className="text-2xl font-bold">Реализации по партнёрам</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Платёж распределяется автоматически по задолженности партнёра,
-              без ручной привязки к конкретной реализации.
+              Платёж распределяется автоматически по задолженности партнёра, без
+              ручной привязки к конкретной реализации.
             </p>
           </div>
         </div>
@@ -259,7 +260,8 @@ export default function RealizationTracking({
                           )}
                         </div>
                         <p className="mt-2 truncate text-xs text-muted-foreground">
-                          Последняя активность: {formatDate(group.lastActivityAt)}
+                          Последняя активность:{' '}
+                          {formatDate(group.lastActivityAt)}
                         </p>
                       </div>
 
@@ -268,7 +270,9 @@ export default function RealizationTracking({
                           <p className="text-xs text-muted-foreground">
                             Долг по реализациям
                           </p>
-                          <p className="font-semibold">{formatMoney(group.debt)}</p>
+                          <p className="font-semibold">
+                            {formatMoney(group.debt)}
+                          </p>
                         </div>
 
                         <div className="text-center">
@@ -343,7 +347,8 @@ export default function RealizationTracking({
                                       </span>
                                       <Badge
                                         className={`text-xs ${
-                                          statusClasses[realization.status] ?? ''
+                                          statusClasses[realization.status] ??
+                                          ''
                                         }`}
                                       >
                                         {statusLabels[realization.status] ??
@@ -351,21 +356,30 @@ export default function RealizationTracking({
                                       </Badge>
                                     </div>
                                     <p className="mt-1 text-xs text-muted-foreground">
-                                      {formatDate(realization.createdAt)} • {totalItems} шт
+                                      {formatDate(realization.createdAt)} •{' '}
+                                      {totalItems} шт
                                     </p>
                                   </div>
 
                                   <div className="grid min-w-64 grid-cols-2 gap-3 text-sm">
                                     <div>
-                                      <p className="text-muted-foreground">Всего</p>
+                                      <p className="text-muted-foreground">
+                                        Всего
+                                      </p>
                                       <p className="font-semibold">
-                                        {formatMoney(Number(realization.totalCost))}
+                                        {formatMoney(
+                                          Number(realization.totalCost),
+                                        )}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-muted-foreground">Оплачено</p>
+                                      <p className="text-muted-foreground">
+                                        Оплачено
+                                      </p>
                                       <p className="font-semibold">
-                                        {formatMoney(Number(realization.paidAmount))}
+                                        {formatMoney(
+                                          Number(realization.paidAmount),
+                                        )}
                                       </p>
                                     </div>
                                   </div>

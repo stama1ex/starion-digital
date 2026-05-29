@@ -370,9 +370,7 @@ export default function PricesManagement() {
                           }}
                         >
                           <span className="truncate">{partner.name}</span>
-                          {isSelected && (
-                            <Check className="h-4 w-4 shrink-0" />
-                          )}
+                          {isSelected && <Check className="h-4 w-4 shrink-0" />}
                         </button>
                       );
                     })
