@@ -28,8 +28,9 @@ export default function LoginForm() {
     setLoading(false);
 
     if (res.ok) {
+      const data = await res.json();
       toast.success(t('success'));
-      window.location.replace('/');
+      window.location.replace(data.role === 'ADMIN' ? '/admin' : '/');
       return;
     }
 

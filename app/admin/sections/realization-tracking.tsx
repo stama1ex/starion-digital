@@ -122,6 +122,9 @@ export default function RealizationTracking({
   onRefresh,
 }: RealizationTrackingProps) {
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | 'DEBT' | 'CLOSED'>(
+    'ALL',
+  );
   const [expandedPartnerId, setExpandedPartnerId] = useState<number | null>(
     null,
   );
@@ -138,9 +141,17 @@ export default function RealizationTracking({
     [realizations],
   );
 
-  const visiblePartners = partnerGroups.filter((group) =>
-    group.partnerName.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
-  );
+  const visiblePartners = partnerGroups
+    .filter((group) =>
+      group.partnerName
+        .toLowerCase()
+        .includes(partnerSearchQuery.toLowerCase()),
+    )
+    .filter((group) => {
+      if (statusFilter === 'DEBT') return group.debt > 0;
+      if (statusFilter === 'CLOSED') return group.debt <= 0;
+      return true;
+    });
 
   const formatDate = (value: string | Date) =>
     new Intl.DateTimeFormat('ru-RU', {
@@ -205,12 +216,41 @@ export default function RealizationTracking({
           </div>
         </div>
 
-        <div className="max-w-xs">
-          <Input
-            value={partnerSearchQuery}
-            onChange={(e) => setPartnerSearchQuery(e.target.value)}
-            placeholder="Поиск по партнёру..."
-          />
+        <div className="flex justify-between">
+          <div className="max-w-xs">
+            <Input
+              value={partnerSearchQuery}
+              onChange={(e) => setPartnerSearchQuery(e.target.value)}
+              placeholder="Поиск по партнёру..."
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant={statusFilter === 'ALL' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('ALL')}
+            >
+              Все
+            </Button>
+            <Button
+              type="button"
+              variant={statusFilter === 'DEBT' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('DEBT')}
+            >
+              Есть долг
+            </Button>
+            <Button
+              type="button"
+              variant={statusFilter === 'CLOSED' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter('CLOSED')}
+            >
+              Закрыт
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">
@@ -229,12 +269,12 @@ export default function RealizationTracking({
               return (
                 <Card
                   key={group.partnerId}
-                  className="overflow-hidden py-1 transition-colors hover:bg-secondary/40"
+                  className="overflow-hidden py-1 transition-colors hover:bg-secondary/40 cursor-pointer"
                 >
                   <CardContent>
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between gap-4 text-left"
+                      className="flex w-full items-center justify-between gap-4 text-left cursor-pointer"
                       onClick={() =>
                         setExpandedPartnerId(
                           isExpanded ? null : group.partnerId,
