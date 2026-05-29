@@ -1,18 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Check, ChevronDown, Search } from 'lucide-react';
 import { ProductType } from '@prisma/client';
 
 const PRODUCT_TYPES: ProductType[] = [
@@ -49,6 +43,8 @@ export default function PricesManagement() {
   const [partners, setPartners] = useState<any[]>([]);
   const [groups, setGroups] = useState<ProductGroup[]>([]);
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
+  const [partnerQuery, setPartnerQuery] = useState('');
+  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [prices, setPrices] = useState<Price[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingPrices, setEditingPrices] = useState<
@@ -67,10 +63,25 @@ export default function PricesManagement() {
     groupName: string;
   } | null>(null);
   const [applyingPreset, setApplyingPreset] = useState(false);
+  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     fetchPartners();
     fetchGroups();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        partnerComboboxRef.current &&
+        !partnerComboboxRef.current.contains(event.target as Node)
+      ) {
+        setIsPartnerComboboxOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchPartners = async () => {
@@ -104,6 +115,32 @@ export default function PricesManagement() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPartnerId]);
+
+  useEffect(() => {
+    const selectedPartner = partners.find(
+      (partner) => partner.id.toString() === selectedPartnerId,
+    );
+
+    if (selectedPartner) {
+      setPartnerQuery(selectedPartner.name);
+    }
+  }, [partners, selectedPartnerId]);
+
+  const filteredPartners = useMemo(() => {
+    const query = partnerQuery.trim().toLowerCase();
+
+    if (!query) {
+      return partners;
+    }
+
+    return partners.filter((partner) =>
+      partner.name.toLowerCase().includes(query),
+    );
+  }, [partners, partnerQuery]);
+
+  const selectedPartnerName =
+    partners.find((partner) => partner.id.toString() === selectedPartnerId)
+      ?.name || 'Выберите партнера';
 
   const fetchPrices = useCallback(async () => {
     try {
@@ -284,21 +321,66 @@ export default function PricesManagement() {
           <h2 className="text-2xl font-bold mb-4">
             Управление ценами партнеров
           </h2>
-          <Select
-            value={selectedPartnerId}
-            onValueChange={setSelectedPartnerId}
-          >
-            <SelectTrigger className="w-64">
-              <SelectValue placeholder="Выберите партнера" />
-            </SelectTrigger>
-            <SelectContent>
-              {partners.map((partner) => (
-                <SelectItem key={partner.id} value={partner.id.toString()}>
-                  {partner.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div ref={partnerComboboxRef} className="relative w-full sm:w-80">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between gap-2"
+              onClick={() => {
+                setIsPartnerComboboxOpen((open) => !open);
+                setPartnerQuery(selectedPartnerName);
+              }}
+            >
+              <span className="truncate text-left">{selectedPartnerName}</span>
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+            </Button>
+
+            {isPartnerComboboxOpen && (
+              <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
+                <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Input
+                    value={partnerQuery}
+                    onChange={(e) => setPartnerQuery(e.target.value)}
+                    placeholder="Поиск партнера..."
+                    className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="mt-2 max-h-72 overflow-y-auto">
+                  {filteredPartners.length === 0 ? (
+                    <div className="px-3 py-4 text-sm text-muted-foreground">
+                      Партнер не найден
+                    </div>
+                  ) : (
+                    filteredPartners.map((partner) => {
+                      const isSelected =
+                        partner.id.toString() === selectedPartnerId;
+
+                      return (
+                        <button
+                          key={partner.id}
+                          type="button"
+                          className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                          onClick={() => {
+                            setSelectedPartnerId(partner.id.toString());
+                            setPartnerQuery(partner.name);
+                            setIsPartnerComboboxOpen(false);
+                          }}
+                        >
+                          <span className="truncate">{partner.name}</span>
+                          {isSelected && (
+                            <Check className="h-4 w-4 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         {hasChanges && (
           <Button
