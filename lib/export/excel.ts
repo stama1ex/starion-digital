@@ -5,8 +5,14 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet('Заказ');
 
+  const typeLabels: Record<string, string> = {
+    MAGNET: 'Магниты',
+    PLATE: 'Тарелки',
+    POSTCARD: 'Открытки',
+  };
+
   // Заголовок
-  sheet.mergeCells('A1:E1');
+  sheet.mergeCells('A1:D1');
   const titleCell = sheet.getCell('A1');
   titleCell.value = `Заказ №${order.id} - ${order.partner.name}`;
   titleCell.font = { size: 16, bold: true };
@@ -14,7 +20,7 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   sheet.getRow(1).height = 30;
 
   // Дата
-  sheet.mergeCells('A2:E2');
+  sheet.mergeCells('A2:D2');
   const dateCell = sheet.getCell('A2');
   const date = new Date(order.createdAt);
   const day = String(date.getDate()).padStart(2, '0');
@@ -30,7 +36,6 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   // Заголовки таблицы
   const headerRow = sheet.addRow([
     'Наименование',
-    'Страна',
     'Кол-во',
     'Цена/шт (MDL)',
     'Сумма (MDL)',
@@ -54,7 +59,6 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   // Ширина колонок
   sheet.columns = [
     { width: 15 },
-    { width: 15 },
     { width: 12 },
     { width: 18 },
     { width: 18 },
@@ -63,7 +67,7 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   // Группируем товары по типу
   const itemsByType: Record<string, any[]> = {};
   order.items.forEach((item: any) => {
-    const type = item.product.type === 'MAGNET' ? 'Магниты' : 'Тарелки';
+    const type = typeLabels[item.product.type] || item.product.type;
     if (!itemsByType[type]) {
       itemsByType[type] = [];
     }
@@ -75,14 +79,10 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     return num.toFixed(2).replace('.', ',');
   };
 
-  // Выводим товары по типам
-  const typeSummaries: { type: string; totalQty: number; totalSum: number }[] =
-    [];
-
   Object.entries(itemsByType).forEach(([type, items]) => {
     // Заголовок типа
     const typeHeaderRow = sheet.addRow([type]);
-    sheet.mergeCells(`A${typeHeaderRow.number}:E${typeHeaderRow.number}`);
+    sheet.mergeCells(`A${typeHeaderRow.number}:D${typeHeaderRow.number}`);
     typeHeaderRow.font = { bold: true, size: 12 };
     typeHeaderRow.getCell(1).fill = {
       type: 'pattern',
@@ -105,7 +105,6 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
 
       const row = sheet.addRow([
         item.product.number,
-        item.product.country,
         qty,
         formatNumber(price),
         formatNumber(sum),
@@ -122,30 +121,26 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
 
       row.getCell(1).alignment = { horizontal: 'left' };
       row.getCell(2).alignment = { horizontal: 'center' };
-      row.getCell(3).alignment = { horizontal: 'center' };
+      row.getCell(3).alignment = { horizontal: 'right' };
       row.getCell(4).alignment = { horizontal: 'right' };
-      row.getCell(5).alignment = { horizontal: 'right' };
     });
 
     // Промежуточный итог по типу
     const subtotalRow = sheet.addRow([
-      '',
       '',
       typeQty,
       'Итого:',
       formatNumber(typeSum),
     ]);
     subtotalRow.font = { bold: true };
-    subtotalRow.getCell(3).alignment = { horizontal: 'center' };
+    subtotalRow.getCell(2).alignment = { horizontal: 'center' };
+    subtotalRow.getCell(3).alignment = { horizontal: 'right' };
     subtotalRow.getCell(4).alignment = { horizontal: 'right' };
-    subtotalRow.getCell(5).alignment = { horizontal: 'right' };
-    subtotalRow.getCell(5).fill = {
+    subtotalRow.getCell(4).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: 'FFF0F0F0' },
     };
-
-    typeSummaries.push({ type, totalQty: typeQty, totalSum: typeSum });
 
     // Пустая строка после каждого типа
     sheet.addRow([]);
@@ -155,14 +150,13 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   const totalRow = sheet.addRow([
     '',
     '',
-    '',
     'ВСЕГО:',
     formatNumber(Number(order.totalPrice)),
   ]);
   totalRow.font = { bold: true, size: 14 };
+  totalRow.getCell(3).alignment = { horizontal: 'right' };
   totalRow.getCell(4).alignment = { horizontal: 'right' };
-  totalRow.getCell(5).alignment = { horizontal: 'right' };
-  totalRow.getCell(5).fill = {
+  totalRow.getCell(4).fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FFFFEB3B' },
