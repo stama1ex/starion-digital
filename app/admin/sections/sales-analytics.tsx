@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, calculateMetrics, type DateRange } from '../utils';
 import {
@@ -14,16 +14,9 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
 
 interface SalesAnalyticsProps {
   orders: any[];
@@ -42,6 +35,7 @@ export default function SalesAnalytics({
 }: SalesAnalyticsProps) {
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [chartFromDate, setChartFromDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 11);
@@ -53,6 +47,21 @@ export default function SalesAnalytics({
   const [chartMode, setChartMode] = useState<'day' | 'week' | 'month' | 'year'>(
     'month',
   );
+  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        partnerComboboxRef.current &&
+        !partnerComboboxRef.current.contains(event.target as Node)
+      ) {
+        setIsPartnerComboboxOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Фильтрация по партнеру
   const partnerFilteredOrders =
@@ -83,6 +92,12 @@ export default function SalesAnalytics({
   const filteredPartners = partners.filter((p) =>
     p.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
   );
+
+  const selectedPartnerName =
+    selectedPartnerId === 'ALL'
+      ? 'Все партнеры'
+      : partners.find((partner) => partner.id.toString() === selectedPartnerId)
+          ?.name || 'Все партнеры';
 
   // Маппер себестоимости (в дальнейшем можно получать из БД)
   const metrics = calculateMetrics(filteredOrders, filteredRealizations);
@@ -275,38 +290,21 @@ export default function SalesAnalytics({
     <div className="space-y-6">
       {/* Фильтр по партнеру */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-card p-4 rounded-lg border shadow-sm">
-        <div className="flex-1 w-full sm:w-auto">
-          <label className="text-sm font-medium mb-1 block">
-            Поиск партнера
-          </label>
-          <Input
-            placeholder="Введите имя..."
-            value={partnerSearchQuery}
-            onChange={(e) => setPartnerSearchQuery(e.target.value)}
-            className="max-w-xs"
-          />
-        </div>
-        <div className="flex-1 w-full sm:w-auto">
-          <label className="text-sm font-medium mb-1 block">
-            Выберите партнера
-          </label>
+        <div ref={partnerComboboxRef} className="relative w-full max-w-xs">
+          <label className="text-sm font-medium mb-1 block">Партнер</label>
           <div className="flex gap-2">
-            <Select
-              value={selectedPartnerId}
-              onValueChange={setSelectedPartnerId}
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-between gap-2"
+              onClick={() => {
+                setIsPartnerComboboxOpen((open) => !open);
+                setPartnerSearchQuery(selectedPartnerName === 'Все партнеры' ? '' : selectedPartnerName);
+              }}
             >
-              <SelectTrigger className="w-full sm:w-62.5">
-                <SelectValue placeholder="Все партнеры" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">Все партнеры</SelectItem>
-                {filteredPartners.map((partner) => (
-                  <SelectItem key={partner.id} value={partner.id.toString()}>
-                    {partner.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              <span className="truncate text-left">{selectedPartnerName}</span>
+              <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+            </Button>
             {selectedPartnerId !== 'ALL' && (
               <Button
                 variant="ghost"
@@ -321,6 +319,65 @@ export default function SalesAnalytics({
               </Button>
             )}
           </div>
+
+          {isPartnerComboboxOpen && (
+            <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input
+                  value={partnerSearchQuery}
+                  onChange={(e) => setPartnerSearchQuery(e.target.value)}
+                  placeholder="Поиск партнера..."
+                  className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
+                  autoFocus
+                />
+              </div>
+
+              <div className="mt-2 max-h-72 overflow-y-auto">
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => {
+                    setSelectedPartnerId('ALL');
+                    setPartnerSearchQuery('');
+                    setIsPartnerComboboxOpen(false);
+                  }}
+                >
+                  <span className="truncate">Все партнеры</span>
+                  {selectedPartnerId === 'ALL' && (
+                    <Check className="h-4 w-4 shrink-0" />
+                  )}
+                </button>
+
+                {filteredPartners.length === 0 ? (
+                  <div className="px-3 py-4 text-sm text-muted-foreground">
+                    Партнер не найден
+                  </div>
+                ) : (
+                  filteredPartners.map((partner) => {
+                    const isSelected =
+                      partner.id.toString() === selectedPartnerId;
+
+                    return (
+                      <button
+                        key={partner.id}
+                        type="button"
+                        className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                        onClick={() => {
+                          setSelectedPartnerId(partner.id.toString());
+                          setPartnerSearchQuery(partner.name);
+                          setIsPartnerComboboxOpen(false);
+                        }}
+                      >
+                        <span className="truncate">{partner.name}</span>
+                        {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

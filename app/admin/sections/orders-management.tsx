@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import {
@@ -21,7 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus, Trash2, Download, Pencil, DollarSign } from 'lucide-react';
+import {
+  Plus,
+  Trash2,
+  Download,
+  Pencil,
+  DollarSign,
+  Check,
+  ChevronDown,
+  Search,
+} from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import type { AdminOrder } from '../types';
 import {
@@ -63,6 +72,7 @@ export default function OrdersManagement({
   );
   const [creating, setCreating] = useState(false);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [orderPartnerSearchQuery, setOrderPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -80,6 +90,7 @@ export default function OrdersManagement({
   const [editingPricesOrder, setEditingPricesOrder] =
     useState<AdminOrder | null>(null);
   const [loadedOrdersCount, setLoadedOrdersCount] = useState(20);
+  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setOrders(initialOrders);
@@ -100,6 +111,20 @@ export default function OrdersManagement({
       setQuantities(initialQuantities);
     }
   }, [isCreateDialogOpen, products]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        partnerComboboxRef.current &&
+        !partnerComboboxRef.current.contains(event.target as Node)
+      ) {
+        setIsPartnerComboboxOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleQuantityChange = (productId: number, value: string) => {
     const qty = parseInt(value) || 0;
@@ -349,6 +374,23 @@ export default function OrdersManagement({
   const filteredPartners = partners.filter((partner) =>
     partner.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
   );
+
+  const selectedPartnerName =
+    partners.find((partner) => partner.id.toString() === selectedPartnerId)
+      ?.name || 'Выберите партнёра';
+
+  const handleOpenPartnerCombobox = () => {
+    setIsPartnerComboboxOpen((open) => !open);
+    setPartnerSearchQuery(
+      selectedPartnerName === 'Выберите партнёра' ? '' : selectedPartnerName,
+    );
+  };
+
+  const handleSelectPartner = (partnerId: string, partnerName: string) => {
+    setSelectedPartnerId(partnerId);
+    setPartnerSearchQuery(partnerName);
+    setIsPartnerComboboxOpen(false);
+  };
 
   // Фильтрация товаров
   const getFilteredProducts = () => {
@@ -764,51 +806,81 @@ export default function OrdersManagement({
 
       {/* Create Order Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-[95vw] lg:max-w-7xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[calc(100vw-1rem)] lg:max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Создать новый заказ</DialogTitle>
           </DialogHeader>
 
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
             {/* Left side - Form fields */}
-            <div className="space-y-4 flex-1">
+            <div className="space-y-4 min-w-0">
               {/* Partner Selection */}
               <div>
                 <Label htmlFor="partner-search" className="mb-2">
                   Партнёр
                 </Label>
-                <Input
-                  id="partner-search"
-                  type="text"
-                  placeholder="Поиск по названию партнёра..."
-                  value={partnerSearchQuery}
-                  onChange={(e) => setPartnerSearchQuery(e.target.value)}
-                  className="mb-2"
-                />
-                <Select
-                  value={selectedPartnerId}
-                  onValueChange={setSelectedPartnerId}
-                >
-                  <SelectTrigger id="partner-select">
-                    <SelectValue placeholder="Выберите партнёра" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredPartners.length === 0 ? (
-                      <div className="p-2 text-sm text-muted-foreground text-center">
-                        Партнёры не найдены
+                <div ref={partnerComboboxRef} className="relative">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-between gap-2"
+                    onClick={handleOpenPartnerCombobox}
+                  >
+                    <span className="truncate text-left">
+                      {selectedPartnerName}
+                    </span>
+                    <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+                  </Button>
+
+                  {isPartnerComboboxOpen && (
+                    <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
+                      <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <Input
+                          value={partnerSearchQuery}
+                          onChange={(e) =>
+                            setPartnerSearchQuery(e.target.value)
+                          }
+                          placeholder="Поиск партнёра..."
+                          className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
+                          autoFocus
+                        />
                       </div>
-                    ) : (
-                      filteredPartners.map((partner) => (
-                        <SelectItem
-                          key={partner.id}
-                          value={partner.id.toString()}
-                        >
-                          {partner.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
+
+                      <div className="mt-2 max-h-72 overflow-y-auto">
+                        {filteredPartners.length === 0 ? (
+                          <div className="px-3 py-4 text-sm text-muted-foreground text-center">
+                            Партнёры не найдены
+                          </div>
+                        ) : (
+                          filteredPartners.map((partner) => {
+                            const isSelected =
+                              partner.id.toString() === selectedPartnerId;
+
+                            return (
+                              <button
+                                key={partner.id}
+                                type="button"
+                                className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                onClick={() =>
+                                  handleSelectPartner(
+                                    partner.id.toString(),
+                                    partner.name,
+                                  )
+                                }
+                              >
+                                <span className="truncate">{partner.name}</span>
+                                {isSelected && (
+                                  <Check className="h-4 w-4 shrink-0" />
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Order Type */}
@@ -902,11 +974,11 @@ export default function OrdersManagement({
             </div>
 
             {/* Right side - Filters, Products grid and totals */}
-            <div className="space-y-4 flex-1 lg:min-w-112.5">
+            <div className="space-y-4 min-w-0">
               {/* Filters */}
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 {/* Product Search */}
-                <div>
+                <div className="max-w-70 flex-1">
                   <Label htmlFor="product-search" className="mb-1">
                     Поиск товара
                   </Label>
@@ -919,7 +991,7 @@ export default function OrdersManagement({
                   />
                 </div>
                 {/* Product Type Filter */}
-                <div>
+                <div className="max-w-fit flex-1">
                   <Label htmlFor="type-filter" className="mb-1">
                     Тип товара
                   </Label>
@@ -945,7 +1017,7 @@ export default function OrdersManagement({
                 </div>
 
                 {/* Group Filter */}
-                <div>
+                <div className="max-w-fit flex-1">
                   <Label htmlFor="group-filter" className="mb-1">
                     Группа товаров
                   </Label>

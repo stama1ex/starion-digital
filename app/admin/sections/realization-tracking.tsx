@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
@@ -13,13 +13,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Pencil, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
 import type { AdminRealization } from '../types';
 
 interface RealizationTrackingProps {
   realizations: AdminRealization[];
   onRefresh: () => void;
 }
+
+type PartnerRealizationGroup = {
+  partnerId: number;
+  partnerName: string;
+  realizations: AdminRealization[];
+  totalCost: number;
+  paidAmount: number;
+  debt: number;
+  activeCount: number;
+  completedCount: number;
+  lastActivityAt: string;
+};
 
 const statusClasses: Record<string, string> = {
   PENDING: 'bg-yellow-500',
@@ -35,25 +47,99 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Отменено',
 };
 
+function formatMoney(value: number) {
+  return `${value.toFixed(2)} MDL`;
+}
+
+function buildPartnerGroups(realizations: AdminRealization[]) {
+  const groups = new Map<number, PartnerRealizationGroup>();
+
+  for (const realization of realizations) {
+    const partnerId = realization.partner.id;
+    const current = groups.get(partnerId);
+    const createdAt = new Date(realization.createdAt);
+
+    if (!current) {
+      groups.set(partnerId, {
+        partnerId,
+        partnerName: realization.partner.name,
+        realizations: [realization],
+        totalCost:
+          realization.status === 'CANCELLED'
+            ? 0
+            : Number(realization.totalCost),
+        paidAmount:
+          realization.status === 'CANCELLED'
+            ? 0
+            : Number(realization.paidAmount),
+        debt:
+          realization.status === 'CANCELLED'
+            ? 0
+            : Number(realization.totalCost) - Number(realization.paidAmount),
+        activeCount: realization.status === 'CANCELLED' ? 0 : 1,
+        completedCount: realization.status === 'COMPLETED' ? 1 : 0,
+        lastActivityAt: createdAt.toISOString(),
+      });
+      continue;
+    }
+
+    current.realizations.push(realization);
+    if (createdAt.getTime() > new Date(current.lastActivityAt).getTime()) {
+      current.lastActivityAt = createdAt.toISOString();
+    }
+
+    if (realization.status !== 'CANCELLED') {
+      current.totalCost += Number(realization.totalCost);
+      current.paidAmount += Number(realization.paidAmount);
+      current.debt += Number(realization.totalCost) - Number(realization.paidAmount);
+      current.activeCount += 1;
+    }
+
+    if (realization.status === 'COMPLETED') {
+      current.completedCount += 1;
+    }
+  }
+
+  return Array.from(groups.values())
+    .map((group) => ({
+      ...group,
+      debt: Math.max(group.debt, 0),
+      realizations: group.realizations.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+    }))
+    .sort(
+      (a, b) =>
+        new Date(b.lastActivityAt).getTime() -
+        new Date(a.lastActivityAt).getTime(),
+    );
+}
+
 export default function RealizationTracking({
   realizations,
   onRefresh,
 }: RealizationTrackingProps) {
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedPartnerId, setExpandedPartnerId] = useState<number | null>(
+    null,
+  );
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
-  const [isEditPaymentDialogOpen, setIsEditPaymentDialogOpen] = useState(false);
-  const [currentRealizationId, setCurrentRealizationId] = useState<
-    number | null
-  >(null);
-  const [currentPaymentId, setCurrentPaymentId] = useState<number | null>(null);
+  const [currentPartnerId, setCurrentPartnerId] = useState<number | null>(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split('T')[0],
   );
 
-  const [loadedRealizationsCount, setLoadedRealizationsCount] = useState(20);
+  const partnerGroups = useMemo(
+    () => buildPartnerGroups(realizations),
+    [realizations],
+  );
+
+  const visiblePartners = partnerGroups.filter((group) =>
+    group.partnerName.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
+  );
 
   const formatDate = (value: string | Date) =>
     new Intl.DateTimeFormat('ru-RU', {
@@ -62,35 +148,16 @@ export default function RealizationTracking({
       year: 'numeric',
     }).format(new Date(value));
 
-  const visibleRealizations = realizations.filter((realization) =>
-    realization.partner.name
-      .toLowerCase()
-      .includes(partnerSearchQuery.toLowerCase()),
-  );
-
-  const handleOpenPaymentDialog = (realizationId: number) => {
-    setCurrentRealizationId(realizationId);
+  const handleOpenPaymentDialog = (partnerId: number) => {
+    setCurrentPartnerId(partnerId);
     setPaymentAmount('');
     setPaymentNotes('');
     setPaymentDate(new Date().toISOString().split('T')[0]);
     setIsPaymentDialogOpen(true);
   };
 
-  const handleOpenEditPaymentDialog = (
-    paymentId: number,
-    amount: number,
-    notes: string | null,
-    date: string,
-  ) => {
-    setCurrentPaymentId(paymentId);
-    setPaymentAmount(amount.toString());
-    setPaymentNotes(notes || '');
-    setPaymentDate(new Date(date).toISOString().split('T')[0]);
-    setIsEditPaymentDialogOpen(true);
-  };
-
   const handleAddPayment = async () => {
-    if (!currentRealizationId) return;
+    if (!currentPartnerId) return;
 
     const amount = Number(paymentAmount);
     if (!Number.isFinite(amount) || amount <= 0) {
@@ -103,7 +170,7 @@ export default function RealizationTracking({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          realizationId: currentRealizationId,
+          partnerId: currentPartnerId,
           amount,
           notes: paymentNotes || undefined,
           paymentDate,
@@ -113,74 +180,14 @@ export default function RealizationTracking({
       if (response.ok) {
         setIsPaymentDialogOpen(false);
         onRefresh();
-      } else {
-        const error = await response.text();
-        toast.error(`Ошибка: ${error}`);
+        return;
       }
+
+      const error = await response.text();
+      toast.error(`Ошибка: ${error}`);
     } catch (error) {
-      console.error('Error adding payment:', error);
+      console.error('Error adding partner payment:', error);
       toast.error('Ошибка при добавлении платежа');
-    }
-  };
-
-  const handleUpdatePayment = async () => {
-    if (!currentPaymentId) return;
-
-    const amount = Number(paymentAmount);
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error('Введите корректную сумму');
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `/api/admin/realization-payment/${currentPaymentId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount,
-            notes: paymentNotes || undefined,
-            paymentDate,
-          }),
-        },
-      );
-
-      if (response.ok) {
-        setIsEditPaymentDialogOpen(false);
-        onRefresh();
-      } else {
-        const error = await response.text();
-        toast.error(`Ошибка: ${error}`);
-      }
-    } catch (error) {
-      console.error('Error updating payment:', error);
-      toast.error('Ошибка при обновлении платежа');
-    }
-  };
-
-  const handleDeletePayment = async (paymentId: number) => {
-    if (!confirm('Вы уверены, что хотите удалить этот платёж?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        `/api/admin/realization-payment/${paymentId}`,
-        {
-          method: 'DELETE',
-        },
-      );
-
-      if (response.ok) {
-        onRefresh();
-      } else {
-        const error = await response.text();
-        toast.error(`Ошибка: ${error}`);
-      }
-    } catch (error) {
-      console.error('Error deleting payment:', error);
-      toast.error('Ошибка при удалении платежа');
     }
   };
 
@@ -188,7 +195,13 @@ export default function RealizationTracking({
     <>
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-4">
-          <h2 className="text-2xl font-bold">Товары на реализации</h2>
+          <div>
+            <h2 className="text-2xl font-bold">Реализации по партнёрам</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Платёж распределяется автоматически по задолженности партнёра,
+              без ручной привязки к конкретной реализации.
+            </p>
+          </div>
         </div>
 
         <div className="max-w-xs">
@@ -199,278 +212,224 @@ export default function RealizationTracking({
           />
         </div>
 
-        <div className="space-y-2">
-          {visibleRealizations.length === 0 ? (
+        <div className="space-y-3">
+          {visiblePartners.length === 0 ? (
             <Card>
               <CardContent className="p-6">
-                <p className="text-muted-foreground text-center">
-                  Нет товаров на реализации
+                <p className="text-center text-muted-foreground">
+                  Нет реализаций для отображения
                 </p>
               </CardContent>
             </Card>
           ) : (
-            visibleRealizations
-              .slice(0, loadedRealizationsCount)
-              .map((realization) => {
-                const remaining =
-                  Number(realization.totalCost) -
-                  Number(realization.paidAmount);
-                const isExpanded = expandedId === realization.id;
-                const totalItems = realization.items.reduce(
-                  (sum, item) => sum + item.quantity,
-                  0,
-                );
+            visiblePartners.map((group) => {
+              const isExpanded = expandedPartnerId === group.partnerId;
 
-                return (
-                  <Card
-                    key={realization.id}
-                    className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
-                  >
-                    <CardContent>
-                      <div
-                        className={`flex items-center justify-between gap-4 ${
-                          realization.status !== 'CANCELLED'
-                            ? 'cursor-pointer'
-                            : 'cursor-not-allowed opacity-60'
-                        }`}
-                        onClick={() => {
-                          if (realization.status !== 'CANCELLED') {
-                            setExpandedId(isExpanded ? null : realization.id);
-                          }
-                        }}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">
-                              Реализация #{realization.id}
-                            </span>
-                            <Badge
-                              className={`text-xs ${
-                                statusClasses[realization.status] ?? ''
-                              }`}
-                            >
-                              {statusLabels[realization.status] ??
-                                realization.status}
+              return (
+                <Card
+                  key={group.partnerId}
+                  className="overflow-hidden py-1 transition-colors hover:bg-secondary/40"
+                >
+                  <CardContent>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-4 text-left"
+                      onClick={() =>
+                        setExpandedPartnerId(
+                          isExpanded ? null : group.partnerId,
+                        )
+                      }
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold">
+                            {group.partnerName}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {group.activeCount} реализац.
+                          </Badge>
+                          {group.debt > 0 ? (
+                            <Badge className="bg-red-500 text-xs">
+                              Есть долг
                             </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-2 truncate">
-                            {realization.partner.name} •{' '}
-                            {formatDate(realization.createdAt)}
+                          ) : (
+                            <Badge className="bg-green-600 text-xs">
+                              Баланс закрыт
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="mt-2 truncate text-xs text-muted-foreground">
+                          Последняя активность: {formatDate(group.lastActivityAt)}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 flex-col items-center gap-3 md:flex-row md:gap-6">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">
+                            Долг по реализациям
+                          </p>
+                          <p className="font-semibold">{formatMoney(group.debt)}</p>
+                        </div>
+
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">
+                            Оплачено
+                          </p>
+                          <p className="font-semibold">
+                            {formatMoney(group.paidAmount)}
                           </p>
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center shrink-0">
-                          <div className="text-center">
-                            <p className="text-xs text-muted-foreground">
-                              Товаров
-                            </p>
-                            <p className="font-semibold">{totalItems} шт</p>
-                          </div>
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground">Всего</p>
+                          <p className="font-semibold">
+                            {formatMoney(group.totalCost)}
+                          </p>
+                        </div>
 
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Долг
-                            </p>
-                            <p className="font-semibold">
-                              {remaining.toFixed(2)} MDL
-                            </p>
-                          </div>
+                        <div className="shrink-0">
+                          {isExpanded ? (
+                            <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </div>
                       </div>
+                    </button>
 
-                      {isExpanded && (
-                        <div className="mt-4 space-y-2 border-t pt-3">
-                          <div className="border rounded-lg p-3 space-y-2">
-                            <h4 className="text-sm font-medium">Товары</h4>
-                            <div className="space-y-1">
-                              {realization.items.map((item) => (
-                                <div
-                                  key={item.id}
-                                  className="text-sm flex justify-between"
-                                >
-                                  <span>
-                                    {item.product.number} × {item.quantity}
-                                  </span>
-                                  <span>
-                                    {Number(item.totalPrice).toFixed(2)} MDL
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
+                    {isExpanded && (
+                      <div className="mt-4 space-y-3 border-t pt-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <h4 className="text-sm font-medium">
+                              Реализации партнёра
+                            </h4>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Здесь показана история отгрузок, а общий платёж
+                              учитывается на уровне партнёра.
+                            </p>
                           </div>
 
-                          <div className="border rounded-lg p-3 space-y-2">
-                            <h4 className="text-sm font-medium">Платежи</h4>
-                            {realization.payments.length === 0 ? (
-                              <p className="text-sm text-muted-foreground">
-                                Платежей пока не было
-                              </p>
-                            ) : (
-                              <div className="space-y-1">
-                                {realization.payments.map((payment) => (
-                                  <div
-                                    key={payment.id}
-                                    className="flex justify-between items-center text-sm p-2 bg-secondary rounded"
-                                  >
-                                    <div className="flex-1 min-w-0">
+                          {group.debt > 0 && (
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenPaymentDialog(group.partnerId);
+                              }}
+                            >
+                              <CreditCard className="mr-2 h-4 w-4" />
+                              Добавить платёж
+                            </Button>
+                          )}
+                        </div>
+
+                        <div className="space-y-2">
+                          {group.realizations.map((realization) => {
+                            const totalItems = realization.items.reduce(
+                              (sum, item) => sum + item.quantity,
+                              0,
+                            );
+
+                            return (
+                              <div
+                                key={realization.id}
+                                className="rounded-lg border bg-background/60 p-3"
+                              >
+                                <div className="flex flex-wrap items-start justify-between gap-3">
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-2">
                                       <span className="font-medium">
-                                        {formatDate(
-                                          payment.paymentDate ||
-                                            payment.createdAt,
-                                        )}
+                                        Реализация #{realization.id}
                                       </span>
-                                      <span className="ml-2 font-semibold">
-                                        {Number(payment.amount).toFixed(2)} MDL
-                                      </span>
-                                      {payment.notes && (
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                          {payment.notes}
-                                        </p>
-                                      )}
+                                      <Badge
+                                        className={`text-xs ${
+                                          statusClasses[realization.status] ?? ''
+                                        }`}
+                                      >
+                                        {statusLabels[realization.status] ??
+                                          realization.status}
+                                      </Badge>
                                     </div>
-                                    <div className="flex gap-1 ml-2 shrink-0">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleOpenEditPaymentDialog(
-                                            payment.id,
-                                            Number(payment.amount),
-                                            payment.notes,
-                                            (
-                                              payment.paymentDate ||
-                                              payment.createdAt
-                                            ).toString(),
-                                          );
-                                        }}
-                                        title="Редактировать платёж"
-                                      >
-                                        <Pencil className="h-3 w-3" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-7 w-7 text-destructive"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeletePayment(payment.id);
-                                        }}
-                                        title="Удалить платёж"
-                                      >
-                                        <Trash2 className="h-3 w-3" />
-                                      </Button>
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {formatDate(realization.createdAt)} • {totalItems} шт
+                                    </p>
+                                  </div>
+
+                                  <div className="grid min-w-64 grid-cols-2 gap-3 text-sm">
+                                    <div>
+                                      <p className="text-muted-foreground">Всего</p>
+                                      <p className="font-semibold">
+                                        {formatMoney(Number(realization.totalCost))}
+                                      </p>
+                                    </div>
+                                    <div>
+                                      <p className="text-muted-foreground">Оплачено</p>
+                                      <p className="font-semibold">
+                                        {formatMoney(Number(realization.paidAmount))}
+                                      </p>
                                     </div>
                                   </div>
-                                ))}
+                                </div>
                               </div>
-                            )}
-                          </div>
-
-                          <div className="border rounded-lg p-3">
-                            <div className="grid grid-cols-3 gap-2 text-sm">
-                              <div>
-                                <p className="text-muted-foreground">Всего</p>
-                                <p className="font-bold">
-                                  {Number(realization.totalCost).toFixed(2)} MDL
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">
-                                  Оплачено
-                                </p>
-                                <p className="font-bold">
-                                  {Number(realization.paidAmount).toFixed(2)}{' '}
-                                  MDL
-                                </p>
-                              </div>
-                              <div>
-                                <p className="text-muted-foreground">
-                                  Осталось
-                                </p>
-                                <p
-                                  className={
-                                    remaining !== 0
-                                      ? 'font-bold text-destructive'
-                                      : 'font-bold text-green-600'
-                                  }
-                                >
-                                  {remaining.toFixed(2)} MDL
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {remaining > 0 &&
-                            realization.status !== 'CANCELLED' && (
-                              <Button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenPaymentDialog(realization.id);
-                                }}
-                                className="w-full"
-                              >
-                                Добавить платёж
-                              </Button>
-                            )}
+                            );
+                          })}
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })
           )}
         </div>
-        {visibleRealizations.length > loadedRealizationsCount && (
-          <div className="flex justify-center pt-4">
-            <Button
-              variant="outline"
-              onClick={() => setLoadedRealizationsCount((prev) => prev + 20)}
-            >
-              Загрузить ещё
-            </Button>
-          </div>
-        )}
       </div>
 
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Добавить платёж</DialogTitle>
+            <DialogTitle>Добавить платёж по партнёру</DialogTitle>
           </DialogHeader>
+
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="payment-amount">Сумма (MDL)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="paymentAmount">Сумма</Label>
               <Input
-                id="payment-amount"
+                id="paymentAmount"
                 type="number"
                 step="0.01"
+                min="0"
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="Введите сумму"
+                placeholder="0.00"
               />
             </div>
-            <div>
-              <Label htmlFor="payment-date">Дата платежа</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentDate">Дата платежа</Label>
               <Input
-                id="payment-date"
+                id="paymentDate"
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
               />
             </div>
-            <div>
-              <Label htmlFor="payment-notes">Примечание (необязательно)</Label>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentNotes">Примечание</Label>
               <Input
-                id="payment-notes"
-                type="text"
+                id="paymentNotes"
                 value={paymentNotes}
                 onChange={(e) => setPaymentNotes(e.target.value)}
-                placeholder="Комментарий к платежу"
+                placeholder="Например: частичное погашение долга"
               />
             </div>
-            <div className="flex justify-end gap-2">
+
+            <p className="text-xs text-muted-foreground">
+              Платёж будет автоматически распределён по активным реализациям
+              партнёра, начиная с самых старых.
+            </p>
+
+            <div className="flex justify-end gap-2 pt-2">
               <Button
                 variant="outline"
                 onClick={() => setIsPaymentDialogOpen(false)}
@@ -478,60 +437,6 @@ export default function RealizationTracking({
                 Отмена
               </Button>
               <Button onClick={handleAddPayment}>Добавить</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog
-        open={isEditPaymentDialogOpen}
-        onOpenChange={setIsEditPaymentDialogOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Редактировать платёж</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-payment-amount">Сумма (MDL)</Label>
-              <Input
-                id="edit-payment-amount"
-                type="number"
-                step="0.01"
-                value={paymentAmount}
-                onChange={(e) => setPaymentAmount(e.target.value)}
-                placeholder="Введите сумму"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-payment-date">Дата платежа</Label>
-              <Input
-                id="edit-payment-date"
-                type="date"
-                value={paymentDate}
-                onChange={(e) => setPaymentDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-payment-notes">
-                Примечание (необязательно)
-              </Label>
-              <Input
-                id="edit-payment-notes"
-                type="text"
-                value={paymentNotes}
-                onChange={(e) => setPaymentNotes(e.target.value)}
-                placeholder="Комментарий к платежу"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditPaymentDialogOpen(false)}
-              >
-                Отмена
-              </Button>
-              <Button onClick={handleUpdatePayment}>Сохранить</Button>
             </div>
           </div>
         </DialogContent>
