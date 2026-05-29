@@ -299,7 +299,11 @@ export default function SalesAnalytics({
               className="w-full justify-between gap-2"
               onClick={() => {
                 setIsPartnerComboboxOpen((open) => !open);
-                setPartnerSearchQuery(selectedPartnerName === 'Все партнеры' ? '' : selectedPartnerName);
+                setPartnerSearchQuery(
+                  selectedPartnerName === 'Все партнеры'
+                    ? ''
+                    : selectedPartnerName,
+                );
               }}
             >
               <span className="truncate text-left">{selectedPartnerName}</span>
