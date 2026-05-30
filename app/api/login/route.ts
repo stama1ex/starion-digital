@@ -18,11 +18,6 @@ const ratelimit = new Ratelimit({
 
 export async function POST(req: Request) {
   try {
-    console.log(
-      '[LOGIN] Redis URL exists:',
-      !!process.env.UPSTASH_REDIS_REST_URL,
-    );
-
     const ip = ipAddress(req) ?? 'anonymous';
     const { success } = await ratelimit.limit(ip);
 
