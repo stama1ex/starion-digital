@@ -34,6 +34,11 @@ export default function LoginForm() {
       return;
     }
 
+    if (res.status === 429) {
+      toast.error(t('too_many_attempts'));
+      return;
+    }
+
     toast.error(t('invalid'));
   };
 

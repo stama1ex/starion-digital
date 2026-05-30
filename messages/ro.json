@@ -265,6 +265,7 @@
     "submit": "Autentificare",
     "loading": "Se conectează...",
     "invalid": "Login sau parolă incorectă",
+    "too_many_attempts": "Prea multe încercări. Încercați din nou mai târziu.",
     "success": "Autentificare reușită",
     "no_account": "Nu aveți cont?",
     "apply_partnership": "Trimiteți o cerere"

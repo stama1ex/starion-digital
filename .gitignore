@@ -44,6 +44,7 @@ flatten-project.js
 frontend-only.js
 collect-translate-ui.js
 project.txt
+project-structure.txt
 magnet.glb
 plate.glb
 /lib/generated/prisma
