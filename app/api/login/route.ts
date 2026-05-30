@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/db';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+import { ipAddress } from '@vercel/functions';
 import {
   createSessionCookies,
   getSessionBindCookieName,
@@ -8,8 +11,20 @@ import {
   getSessionCookieOptions,
 } from '@/lib/auth/session';
 
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, '1 m'),
+});
+
 export async function POST(req: Request) {
   try {
+    const ip = ipAddress(req) ?? 'anonymous';
+    const { success } = await ratelimit.limit(ip);
+
+    if (!success) {
+      return new Response('Too many requests', { status: 429 });
+    }
+
     const { login, password } = await req.json();
 
     if (!login || !password) {

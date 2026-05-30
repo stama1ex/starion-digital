@@ -260,6 +260,7 @@
     "submit": "Sign In",
     "loading": "Signing in...",
     "invalid": "Invalid login or password",
+    "too_many_attempts": "Too many attempts. Please try again later.",
     "success": "Logged in successfully",
     "no_account": "No account?",
     "apply_partnership": "Apply for partnership"
