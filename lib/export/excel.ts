@@ -59,6 +59,8 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   // Ширина колонок
   sheet.columns = [{ width: 15 }, { width: 12 }, { width: 18 }, { width: 18 }];
 
+  const moneyFormat = '0.00';
+
   // Группируем товары по типу
   const itemsByType: Record<string, any[]> = {};
   order.items.forEach((item: any) => {
@@ -68,11 +70,6 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     }
     itemsByType[type].push(item);
   });
-
-  // Функция для замены точки на запятую в числах
-  const formatNumber = (num: number): string => {
-    return num.toFixed(2).replace('.', ',');
-  };
 
   Object.entries(itemsByType).forEach(([type, items]) => {
     // Заголовок типа
@@ -98,12 +95,7 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
       typeQty += qty;
       typeSum += sum;
 
-      const row = sheet.addRow([
-        item.product.number,
-        qty,
-        formatNumber(price),
-        formatNumber(sum),
-      ]);
+      const row = sheet.addRow([item.product.number, qty, price, sum]);
 
       row.eachCell((cell) => {
         cell.border = {
@@ -118,19 +110,17 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
       row.getCell(2).alignment = { horizontal: 'center' };
       row.getCell(3).alignment = { horizontal: 'right' };
       row.getCell(4).alignment = { horizontal: 'right' };
+      row.getCell(3).numFmt = moneyFormat;
+      row.getCell(4).numFmt = moneyFormat;
     });
 
     // Промежуточный итог по типу
-    const subtotalRow = sheet.addRow([
-      '',
-      typeQty,
-      'Итого:',
-      formatNumber(typeSum),
-    ]);
+    const subtotalRow = sheet.addRow(['', typeQty, 'Итого:', typeSum]);
     subtotalRow.font = { bold: true };
     subtotalRow.getCell(2).alignment = { horizontal: 'center' };
     subtotalRow.getCell(3).alignment = { horizontal: 'right' };
     subtotalRow.getCell(4).alignment = { horizontal: 'right' };
+    subtotalRow.getCell(4).numFmt = moneyFormat;
     subtotalRow.getCell(4).fill = {
       type: 'pattern',
       pattern: 'solid',
@@ -142,15 +132,11 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   });
 
   // Общий итог
-  const totalRow = sheet.addRow([
-    '',
-    '',
-    'ВСЕГО:',
-    formatNumber(Number(order.totalPrice)),
-  ]);
+  const totalRow = sheet.addRow(['', '', 'ВСЕГО:', Number(order.totalPrice)]);
   totalRow.font = { bold: true, size: 14 };
   totalRow.getCell(3).alignment = { horizontal: 'right' };
   totalRow.getCell(4).alignment = { horizontal: 'right' };
+  totalRow.getCell(4).numFmt = moneyFormat;
   totalRow.getCell(4).fill = {
     type: 'pattern',
     pattern: 'solid',
