@@ -189,6 +189,7 @@ export default function SalesAnalytics({
     const periods: Array<{
       period: string;
       revenue: number;
+      incomingSales: number;
       cost: number;
       profit: number;
     }> = [];
@@ -205,6 +206,7 @@ export default function SalesAnalytics({
       const periodEnd = new Date(nextPeriodStart.getTime() - 1);
 
       let revenue = 0;
+      let incomingSales = 0;
       let cost = 0;
 
       partnerFilteredOrders.forEach((order) => {
@@ -214,6 +216,13 @@ export default function SalesAnalytics({
         }
 
         if (orderIdsWithRealization.has(order.id) || order.status !== 'PAID') {
+          if (
+            !orderIdsWithRealization.has(order.id) &&
+            (order.status === 'CONFIRMED' || order.status === 'PAID')
+          ) {
+            incomingSales += Number(order.totalPrice);
+          }
+
           return;
         }
 
@@ -222,6 +231,7 @@ export default function SalesAnalytics({
           return sum + Number(item.product.costPrice ?? 0) * item.quantity;
         }, 0);
 
+        incomingSales += orderRevenue;
         revenue += orderRevenue;
         cost += orderCost;
       });
@@ -260,6 +270,7 @@ export default function SalesAnalytics({
       periods.push({
         period: formatLabel(periodStart),
         revenue: Math.round(revenue),
+        incomingSales: Math.round(incomingSales),
         cost: Math.round(cost),
         profit: Math.round(revenue - cost),
       });
@@ -624,6 +635,38 @@ export default function SalesAnalytics({
                 <Legend />
                 <Bar dataKey="revenue" fill="#3b82f6" name="Выручка" />
                 <Bar dataKey="profit" fill="#10b981" name="Прибыль" />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Поступления продаж</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {chartData.length === 0 ? (
+            <div
+              className="flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
+              style={{ height: 300 }}
+            >
+              Нет данных для выбранного периода
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="period" />
+                <YAxis />
+                <Tooltip formatter={(value) => `${value} MDL`} />
+                <Legend />
+                <Bar
+                  dataKey="incomingSales"
+                  fill="#f59e0b"
+                  name="Поступления продаж"
+                />
+                <Bar dataKey="revenue" fill="#3b82f6" name="Оплачено" />
               </BarChart>
             </ResponsiveContainer>
           )}
