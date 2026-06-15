@@ -18,6 +18,347 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Check, ChevronDown, Search, X } from 'lucide-react';
 
+type ChartMode = 'day' | 'week' | 'month' | 'year';
+
+type ChartPoint = {
+  period: string;
+  revenue: number;
+  incomingSales: number;
+  cost: number;
+  profit: number;
+};
+
+type ChartSeries = {
+  dataKey: keyof ChartPoint;
+  fill: string;
+  name: string;
+};
+
+type ChartRangeState = {
+  fromDate: string;
+  toDate: string;
+  mode: ChartMode;
+};
+
+type TimeRangeControlsProps = {
+  fromDate: string;
+  toDate: string;
+  mode: ChartMode;
+  onFromDateChange: (value: string) => void;
+  onToDateChange: (value: string) => void;
+  onModeChange: (value: ChartMode) => void;
+};
+
+type AnalyticsChartCardProps = {
+  title: string;
+  chartData: ChartPoint[];
+  controls: TimeRangeControlsProps;
+  series: ChartSeries[];
+};
+
+function TimeRangeControls({
+  fromDate,
+  toDate,
+  mode,
+  onFromDateChange,
+  onToDateChange,
+  onModeChange,
+}: TimeRangeControlsProps) {
+  return (
+    <div className="mb-4 flex flex-col gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">От:</span>
+          <input
+            type="date"
+            value={fromDate}
+            onChange={(e) => onFromDateChange(e.target.value)}
+            className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">До:</span>
+          <input
+            type="date"
+            value={toDate}
+            onChange={(e) => onToDateChange(e.target.value)}
+            className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+          />
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => onModeChange('day')}
+          className={`px-3 py-2 text-sm rounded cursor-pointer ${
+            mode === 'day'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-foreground'
+          }`}
+        >
+          По дням
+        </button>
+        <button
+          onClick={() => onModeChange('week')}
+          className={`px-3 py-2 text-sm rounded cursor-pointer ${
+            mode === 'week'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-foreground'
+          }`}
+        >
+          Понедельно
+        </button>
+        <button
+          onClick={() => onModeChange('month')}
+          className={`px-3 py-2 text-sm rounded cursor-pointer ${
+            mode === 'month'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-foreground'
+          }`}
+        >
+          Помесячно
+        </button>
+        <button
+          onClick={() => onModeChange('year')}
+          className={`px-3 py-2 text-sm rounded cursor-pointer ${
+            mode === 'year'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-foreground'
+          }`}
+        >
+          По годам
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsChartCard({
+  title,
+  chartData,
+  controls,
+  series,
+}: AnalyticsChartCardProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <TimeRangeControls {...controls} />
+
+        {chartData.length === 0 ? (
+          <div
+            className="flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
+            style={{ height: 300 }}
+          >
+            Нет данных для выбранного периода
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="period" />
+              <YAxis />
+              <Tooltip formatter={(value) => `${value} MDL`} />
+              <Legend />
+              {series.map((item) => (
+                <Bar
+                  key={item.name}
+                  dataKey={item.dataKey}
+                  fill={item.fill}
+                  name={item.name}
+                />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function buildChartData(
+  orders: any[],
+  realizations: any[],
+  fromDate: string,
+  toDate: string,
+  mode: ChartMode,
+) {
+  const rangeStart = new Date(`${fromDate}T00:00:00`);
+  const rangeEnd = new Date(`${toDate}T23:59:59`);
+
+  if (
+    Number.isNaN(rangeStart.getTime()) ||
+    Number.isNaN(rangeEnd.getTime()) ||
+    rangeStart > rangeEnd
+  ) {
+    return [] as ChartPoint[];
+  }
+
+  const startOfPeriod = (date: Date) => {
+    const d = new Date(date);
+    if (mode === 'day') {
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    if (mode === 'week') {
+      const day = d.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+      d.setDate(d.getDate() + diff);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    if (mode === 'month') {
+      d.setDate(1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+
+    d.setMonth(0, 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  const shiftPeriod = (date: Date, delta: number) => {
+    const d = new Date(date);
+    if (mode === 'day') {
+      d.setDate(d.getDate() + delta);
+      return d;
+    }
+
+    if (mode === 'week') {
+      d.setDate(d.getDate() + delta * 7);
+      return d;
+    }
+
+    if (mode === 'month') {
+      d.setMonth(d.getMonth() + delta);
+      return d;
+    }
+
+    d.setFullYear(d.getFullYear() + delta);
+    return d;
+  };
+
+  const formatLabel = (date: Date) => {
+    if (mode === 'day') {
+      return new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+      }).format(date);
+    }
+
+    if (mode === 'month') {
+      return new Intl.DateTimeFormat('ru-RU', {
+        month: 'short',
+        year: 'numeric',
+      }).format(date);
+    }
+
+    if (mode === 'week') {
+      return `Нед ${new Intl.DateTimeFormat('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+      }).format(date)}`;
+    }
+
+    return new Intl.DateTimeFormat('ru-RU', { year: 'numeric' }).format(date);
+  };
+
+  const periods: ChartPoint[] = [];
+
+  const orderIdsWithRealization = new Set(
+    realizations.map((r: any) => r.orderId),
+  );
+
+  let periodStart = startOfPeriod(rangeStart);
+  let guard = 0;
+
+  while (periodStart <= rangeEnd && guard < 600) {
+    const nextPeriodStart = shiftPeriod(periodStart, 1);
+    const periodEnd = new Date(nextPeriodStart.getTime() - 1);
+
+    let revenue = 0;
+    let incomingSales = 0;
+    let cost = 0;
+
+    orders.forEach((order) => {
+      const createdAt = new Date(order.createdAt);
+      if (createdAt < periodStart || createdAt > periodEnd) {
+        return;
+      }
+
+      if (orderIdsWithRealization.has(order.id)) {
+        return;
+      }
+
+      if (order.status === 'CONFIRMED' || order.status === 'PAID') {
+        incomingSales += Number(order.totalPrice);
+      }
+
+      if (order.status !== 'PAID') {
+        return;
+      }
+
+      const orderRevenue = Number(order.totalPrice);
+      const orderCost = order.items.reduce((sum: number, item: any) => {
+        return sum + Number(item.product.costPrice ?? 0) * item.quantity;
+      }, 0);
+
+      revenue += orderRevenue;
+      cost += orderCost;
+    });
+
+    realizations.forEach((realization) => {
+      realization.payments.forEach((payment: any) => {
+        const paymentDateRaw =
+          (payment as any).paymentDate || payment.createdAt;
+        const paymentDate = new Date(paymentDateRaw);
+
+        if (paymentDate < periodStart || paymentDate > periodEnd) {
+          return;
+        }
+
+        const paymentAmount = Number(payment.amount);
+        const realizationRatio =
+          Number(realization.totalCost) > 0
+            ? paymentAmount / Number(realization.totalCost)
+            : 0;
+
+        const paymentCost = realization.items.reduce(
+          (sum: number, item: any) => {
+            return (
+              sum +
+              Number(item.costPrice ?? 0) * item.quantity * realizationRatio
+            );
+          },
+          0,
+        );
+
+        incomingSales += paymentAmount;
+        revenue += paymentAmount;
+        cost += paymentCost;
+      });
+    });
+
+    periods.push({
+      period: formatLabel(periodStart),
+      revenue: Math.round(revenue),
+      incomingSales: Math.round(incomingSales),
+      cost: Math.round(cost),
+      profit: Math.round(revenue - cost),
+    });
+
+    periodStart = nextPeriodStart;
+    guard += 1;
+  }
+
+  return periods;
+}
+
 interface SalesAnalyticsProps {
   orders: any[];
   realizations: any[];
@@ -36,16 +377,29 @@ export default function SalesAnalytics({
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
-  const [chartFromDate, setChartFromDate] = useState(() => {
-    const d = new Date();
-    d.setMonth(d.getMonth() - 11);
-    return d.toISOString().split('T')[0];
-  });
-  const [chartToDate, setChartToDate] = useState(
-    new Date().toISOString().split('T')[0],
+  const [salesChartRange, setSalesChartRange] = useState<ChartRangeState>(
+    () => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 11);
+      const fromDate = d.toISOString().split('T')[0];
+      return {
+        fromDate,
+        toDate: new Date().toISOString().split('T')[0],
+        mode: 'month',
+      };
+    },
   );
-  const [chartMode, setChartMode] = useState<'day' | 'week' | 'month' | 'year'>(
-    'month',
+  const [incomingChartRange, setIncomingChartRange] = useState<ChartRangeState>(
+    () => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - 11);
+      const fromDate = d.toISOString().split('T')[0];
+      return {
+        fromDate,
+        toDate: new Date().toISOString().split('T')[0],
+        mode: 'month',
+      };
+    },
   );
   const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
@@ -102,191 +456,41 @@ export default function SalesAnalytics({
   // Маппер себестоимости (в дальнейшем можно получать из БД)
   const metrics = calculateMetrics(filteredOrders, filteredRealizations);
 
-  const chartData = useMemo(() => {
-    const rangeStart = new Date(`${chartFromDate}T00:00:00`);
-    const rangeEnd = new Date(`${chartToDate}T23:59:59`);
+  const salesChartData = useMemo(
+    () =>
+      buildChartData(
+        partnerFilteredOrders,
+        partnerFilteredRealizations,
+        salesChartRange.fromDate,
+        salesChartRange.toDate,
+        salesChartRange.mode,
+      ),
+    [
+      partnerFilteredOrders,
+      partnerFilteredRealizations,
+      salesChartRange.fromDate,
+      salesChartRange.mode,
+      salesChartRange.toDate,
+    ],
+  );
 
-    if (
-      Number.isNaN(rangeStart.getTime()) ||
-      Number.isNaN(rangeEnd.getTime()) ||
-      rangeStart > rangeEnd
-    ) {
-      return [];
-    }
-
-    const startOfPeriod = (date: Date) => {
-      const d = new Date(date);
-      if (chartMode === 'day') {
-        d.setHours(0, 0, 0, 0);
-        return d;
-      }
-
-      if (chartMode === 'week') {
-        const day = d.getDay();
-        const diff = day === 0 ? -6 : 1 - day;
-        d.setDate(d.getDate() + diff);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      }
-
-      if (chartMode === 'month') {
-        d.setDate(1);
-        d.setHours(0, 0, 0, 0);
-        return d;
-      }
-
-      d.setMonth(0, 1);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    };
-
-    const shiftPeriod = (date: Date, delta: number) => {
-      const d = new Date(date);
-      if (chartMode === 'day') {
-        d.setDate(d.getDate() + delta);
-        return d;
-      }
-
-      if (chartMode === 'week') {
-        d.setDate(d.getDate() + delta * 7);
-        return d;
-      }
-
-      if (chartMode === 'month') {
-        d.setMonth(d.getMonth() + delta);
-        return d;
-      }
-
-      d.setFullYear(d.getFullYear() + delta);
-      return d;
-    };
-
-    const formatLabel = (date: Date) => {
-      if (chartMode === 'day') {
-        return new Intl.DateTimeFormat('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-        }).format(date);
-      }
-
-      if (chartMode === 'month') {
-        return new Intl.DateTimeFormat('ru-RU', {
-          month: 'short',
-          year: 'numeric',
-        }).format(date);
-      }
-
-      if (chartMode === 'week') {
-        return `Нед ${new Intl.DateTimeFormat('ru-RU', {
-          day: '2-digit',
-          month: '2-digit',
-        }).format(date)}`;
-      }
-
-      return new Intl.DateTimeFormat('ru-RU', { year: 'numeric' }).format(date);
-    };
-
-    const periods: Array<{
-      period: string;
-      revenue: number;
-      incomingSales: number;
-      cost: number;
-      profit: number;
-    }> = [];
-
-    const orderIdsWithRealization = new Set(
-      partnerFilteredRealizations.map((r: any) => r.orderId),
-    );
-
-    let periodStart = startOfPeriod(rangeStart);
-    let guard = 0;
-
-    while (periodStart <= rangeEnd && guard < 600) {
-      const nextPeriodStart = shiftPeriod(periodStart, 1);
-      const periodEnd = new Date(nextPeriodStart.getTime() - 1);
-
-      let revenue = 0;
-      let incomingSales = 0;
-      let cost = 0;
-
-      partnerFilteredOrders.forEach((order) => {
-        const createdAt = new Date(order.createdAt);
-        if (createdAt < periodStart || createdAt > periodEnd) {
-          return;
-        }
-
-        if (orderIdsWithRealization.has(order.id) || order.status !== 'PAID') {
-          if (
-            !orderIdsWithRealization.has(order.id) &&
-            (order.status === 'CONFIRMED' || order.status === 'PAID')
-          ) {
-            incomingSales += Number(order.totalPrice);
-          }
-
-          return;
-        }
-
-        const orderRevenue = Number(order.totalPrice);
-        const orderCost = order.items.reduce((sum: number, item: any) => {
-          return sum + Number(item.product.costPrice ?? 0) * item.quantity;
-        }, 0);
-
-        incomingSales += orderRevenue;
-        revenue += orderRevenue;
-        cost += orderCost;
-      });
-
-      partnerFilteredRealizations.forEach((realization) => {
-        realization.payments.forEach((payment: any) => {
-          const paymentDateRaw =
-            (payment as any).paymentDate || payment.createdAt;
-          const paymentDate = new Date(paymentDateRaw);
-
-          if (paymentDate < periodStart || paymentDate > periodEnd) {
-            return;
-          }
-
-          const paymentAmount = Number(payment.amount);
-          const realizationRatio =
-            Number(realization.totalCost) > 0
-              ? paymentAmount / Number(realization.totalCost)
-              : 0;
-
-          const paymentCost = realization.items.reduce(
-            (sum: number, item: any) => {
-              return (
-                sum +
-                Number(item.costPrice ?? 0) * item.quantity * realizationRatio
-              );
-            },
-            0,
-          );
-
-          revenue += paymentAmount;
-          cost += paymentCost;
-        });
-      });
-
-      periods.push({
-        period: formatLabel(periodStart),
-        revenue: Math.round(revenue),
-        incomingSales: Math.round(incomingSales),
-        cost: Math.round(cost),
-        profit: Math.round(revenue - cost),
-      });
-
-      periodStart = nextPeriodStart;
-      guard += 1;
-    }
-
-    return periods;
-  }, [
-    chartFromDate,
-    chartMode,
-    chartToDate,
-    partnerFilteredOrders,
-    partnerFilteredRealizations,
-  ]);
+  const incomingChartData = useMemo(
+    () =>
+      buildChartData(
+        partnerFilteredOrders,
+        partnerFilteredRealizations,
+        incomingChartRange.fromDate,
+        incomingChartRange.toDate,
+        incomingChartRange.mode,
+      ),
+    [
+      partnerFilteredOrders,
+      partnerFilteredRealizations,
+      incomingChartRange.fromDate,
+      incomingChartRange.mode,
+      incomingChartRange.toDate,
+    ],
+  );
 
   const periodLabel = customDateRange
     ? `с ${customDateRange.from} по ${customDateRange.to}`
@@ -546,132 +750,45 @@ export default function SalesAnalytics({
         </CardContent>
       </Card>
 
-      {/* === График === */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Динамика продаж</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4 flex flex-col gap-3">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">От:</span>
-                <input
-                  type="date"
-                  value={chartFromDate}
-                  onChange={(e) => setChartFromDate(e.target.value)}
-                  className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">До:</span>
-                <input
-                  type="date"
-                  value={chartToDate}
-                  onChange={(e) => setChartToDate(e.target.value)}
-                  className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-                />
-              </div>
-            </div>
+      <AnalyticsChartCard
+        title="Динамика продаж"
+        chartData={salesChartData}
+        controls={{
+          fromDate: salesChartRange.fromDate,
+          toDate: salesChartRange.toDate,
+          mode: salesChartRange.mode,
+          onFromDateChange: (value) =>
+            setSalesChartRange((prev) => ({ ...prev, fromDate: value })),
+          onToDateChange: (value) =>
+            setSalesChartRange((prev) => ({ ...prev, toDate: value })),
+          onModeChange: (value) =>
+            setSalesChartRange((prev) => ({ ...prev, mode: value })),
+        }}
+        series={[
+          { dataKey: 'revenue', fill: '#3b82f6', name: 'Выручка' },
+          { dataKey: 'profit', fill: '#10b981', name: 'Прибыль' },
+        ]}
+      />
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setChartMode('day')}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  chartMode === 'day'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                По дням
-              </button>
-              <button
-                onClick={() => setChartMode('week')}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  chartMode === 'week'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                Понедельно
-              </button>
-              <button
-                onClick={() => setChartMode('month')}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  chartMode === 'month'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                Помесячно
-              </button>
-              <button
-                onClick={() => setChartMode('year')}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  chartMode === 'year'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                По годам
-              </button>
-            </div>
-          </div>
-
-          {chartData.length === 0 ? (
-            <div
-              className="flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
-              style={{ height: 300 }}
-            >
-              Нет данных для выбранного периода
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis />
-                <Tooltip formatter={(value) => `${value} MDL`} />
-                <Legend />
-                <Bar dataKey="revenue" fill="#3b82f6" name="Выручка" />
-                <Bar dataKey="profit" fill="#10b981" name="Прибыль" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Поступления продаж</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {chartData.length === 0 ? (
-            <div
-              className="flex items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground"
-              style={{ height: 300 }}
-            >
-              Нет данных для выбранного периода
-            </div>
-          ) : (
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="period" />
-                <YAxis />
-                <Tooltip formatter={(value) => `${value} MDL`} />
-                <Legend />
-                <Bar
-                  dataKey="incomingSales"
-                  fill="#f59e0b"
-                  name="Поступления продаж"
-                />
-                <Bar dataKey="revenue" fill="#3b82f6" name="Оплачено" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
+      <AnalyticsChartCard
+        title="Поступления продаж"
+        chartData={incomingChartData}
+        controls={{
+          fromDate: incomingChartRange.fromDate,
+          toDate: incomingChartRange.toDate,
+          mode: incomingChartRange.mode,
+          onFromDateChange: (value) =>
+            setIncomingChartRange((prev) => ({ ...prev, fromDate: value })),
+          onToDateChange: (value) =>
+            setIncomingChartRange((prev) => ({ ...prev, toDate: value })),
+          onModeChange: (value) =>
+            setIncomingChartRange((prev) => ({ ...prev, mode: value })),
+        }}
+        series={[
+          { dataKey: 'incomingSales', fill: '#f59e0b', name: 'Поступления' },
+          { dataKey: 'revenue', fill: '#3b82f6', name: 'Оплачено' },
+        ]}
+      />
     </div>
   );
 }
