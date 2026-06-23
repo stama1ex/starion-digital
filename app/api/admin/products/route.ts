@@ -110,7 +110,12 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const { id } = await request.json();
+    const { searchParams } = new URL(request.url);
+    const id = parseInt(searchParams.get('id') || '0');
+
+    if (!id) {
+      return NextResponse.json({ error: 'ID товара не указан' }, { status: 400 });
+    }
 
     // Проверяем есть ли заказы с этим товаром
     const orderItems = await prisma.orderItem.findMany({
