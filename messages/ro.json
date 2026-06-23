@@ -11,6 +11,7 @@
       "MAGNEȚI",
       "FARFURII",
       "FELICITĂRI",
+      "BRELOCURI",
       "STATUETE",
       "GLOBURI DE STICLĂ"
     ]
@@ -57,6 +58,10 @@
       "name": "Felicitări",
       "description": "Felicitări cu realitate augmentată (AR)."
     },
+    "keychain": {
+      "name": "Brelocuri",
+      "description": "Brelocuri cu realitate augmentată și personalizare expresivă."
+    },
     "statue": {
       "name": "Statuete",
       "description": "Figurine ale diverselor personalități și locuri."
@@ -70,7 +75,8 @@
     "meta": {
       "description": "Explorați colecția noastră de magnete cu realitate augmentată, cu designuri unice din diverse țări.",
       "description_plates": "Descoperiți colecția noastră de farfurii suvenir cu realitate augmentată, prezentând designuri unice din diverse țări.",
-      "description_cards": "Explorați colecția noastră de felicitări cu realitate augmentată, unde fiecare design prinde viață cu AR."
+      "description_cards": "Explorați colecția noastră de felicitări cu realitate augmentată, unde fiecare design prinde viață cu AR.",
+      "description_keychains": "Explorați colecția noastră de brelocuri cu realitate augmentată și personalizare expresivă."
     },
     "material": {
       "marble": "De marmură",
@@ -80,6 +86,7 @@
     "magnets_title": "Catalog Magnete",
     "plates_title": "Catalog Farfurii",
     "cards_title": "Catalog Felicitări",
+    "keychains_title": "Catalog Brelocuri",
     "all_others": "Toate Celelalte",
     "search_placeholder": "Căutare după număr...",
     "fetch_error": "Nu s-a putut încărca {type}",

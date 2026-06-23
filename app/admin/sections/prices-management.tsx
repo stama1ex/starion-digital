@@ -13,6 +13,7 @@ const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
   'PLATE',
   'POSTCARD',
+  'KEYCHAIN',
   // 'STATUE',
   // 'BALL',
 ];
@@ -21,6 +22,7 @@ const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   MAGNET: 'Магниты',
   PLATE: 'Тарелки',
   POSTCARD: 'Открытки',
+  KEYCHAIN: 'Брелоки',
   STATUE: 'Статуэтки',
   BALL: 'Шары',
 };
