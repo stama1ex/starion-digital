@@ -130,7 +130,7 @@ const Footer: React.FC<FooterProps> = ({
                 <h3 className="mb-4 font-bold">{section.title}</h3>
                 <ul className="text-muted-foreground space-y-3 text-sm text-center md:text-start">
                   {section.links.map((link, linkIdx) => {
-                    const isSoon = link.id && [5, 6].includes(link.id);
+                    const isSoon = link.href === '#';
                     return (
                       <li
                         key={link.id || linkIdx}
