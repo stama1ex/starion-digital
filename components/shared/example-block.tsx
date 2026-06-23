@@ -13,9 +13,15 @@ import {
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import VantaFogBackground from '../ui/vanta-background';
-import Scene from '../scene';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
+
+const VantaFogBackground = dynamic(() => import('../ui/vanta-background'), {
+  ssr: false,
+  loading: () => <div className="rounded-lg border bg-muted/20 min-h-50" />,
+});
+
+const Scene = dynamic(() => import('../scene'), { ssr: false });
 import { ExampleBlockSkeleton } from './example-block-skeleton';
 
 interface ExampleBlockProps {

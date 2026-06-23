@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 
+function toLocalPath(path: string) {
+  const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
+  return `/${normalized}`;
+}
+
 export function useDropboxImage(imagePath: string | null | undefined) {
   const [imgSrc, setImgSrc] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const toLocalPath = (path: string) => {
-      const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
-      return `/${normalized}`;
-    };
-
     async function loadImageUrl() {
       if (!imagePath || !imagePath.trim()) {
         setImgSrc('');

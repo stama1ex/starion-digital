@@ -65,14 +65,17 @@ const Catalog: React.FC<CatalogProps> = ({
   };
 
   // Получаем уникальные группы (объекты, не строки)
-  const uniqueGroups = products
-    .map((p) => p.group)
-    .filter((g): g is NonNullable<typeof g> => !!g)
-    .filter(
-      (group, index, self) =>
-        self.findIndex((g) => g.id === group.id) === index,
-    )
-    .sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
+  const uniqueGroups = (() => {
+    const seen = new Set<number>();
+    const result: NonNullable<ProductDTO['group']>[] = [];
+    for (const p of products) {
+      if (p.group && !seen.has(p.group.id)) {
+        seen.add(p.group.id);
+        result.push(p.group);
+      }
+    }
+    return result.sort((a, b) => a.id - b.id);
+  })();
 
   // Товары без группы
   const ungroupedProducts = products.filter((p) => !p.group);

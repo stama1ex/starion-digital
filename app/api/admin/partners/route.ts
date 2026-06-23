@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Login is required' }, { status: 400 });
     }
 
-    if (!data.password || data.password.length < 4) {
+    if (!data.password || data.password.length < 8) {
       return NextResponse.json(
-        { error: 'Password must be at least 4 characters' },
+        { error: 'Password must be at least 8 characters' },
         { status: 400 },
       );
     }
