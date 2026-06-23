@@ -97,11 +97,10 @@ const Catalog: React.FC<CatalogProps> = ({
 
         {!hideTitle && (
           <>
-            <hr className="my-12" />
             <div className="flex justify-center w-full h-full">
               <Title
                 text={t(titleKey)}
-                className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
+                className="my-6! text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
               />
             </div>
           </>

@@ -187,6 +187,7 @@ enum ProductType {
   MAGNET
   PLATE
   POSTCARD
+  KEYCHAIN
   STATUE
   BALL
 }

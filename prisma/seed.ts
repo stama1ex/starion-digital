@@ -373,6 +373,15 @@ async function seedPartners() {
     if (pricesToInsert.length) {
       await prisma.price.createMany({ data: pricesToInsert as any });
     }
+
+    await prisma.price.create({
+      data: {
+        partnerId: partner.id,
+        type: 'KEYCHAIN',
+        groupId: null,
+        price: 25,
+      },
+    });
   }
 
   console.log('Dynamic prices seeded successfully');
@@ -381,7 +390,7 @@ async function seedPartners() {
 
 async function seedDemoOrders(
   partners: Awaited<ReturnType<typeof seedPartners>>,
-  products: any[]
+  products: any[],
 ) {
   console.log('📦 Creating demo orders with random dates...');
 
@@ -461,10 +470,10 @@ async function seedDemoOrders(
           status === 'PAID'
             ? 'COMPLETED'
             : paymentAmount >= totalCost
-            ? 'COMPLETED'
-            : paymentAmount > 0
-            ? 'PARTIAL'
-            : 'PENDING';
+              ? 'COMPLETED'
+              : paymentAmount > 0
+                ? 'PARTIAL'
+                : 'PENDING';
 
         const realization = await prisma.realization.create({
           data: {
@@ -739,6 +748,15 @@ async function seedProductionPartners() {
     if (pricesToInsert.length) {
       await prisma.price.createMany({ data: pricesToInsert as any });
     }
+
+    await prisma.price.create({
+      data: {
+        partnerId: partner.id,
+        type: 'KEYCHAIN',
+        groupId: null,
+        price: 25,
+      },
+    });
   }
 
   console.log('✓ Base prices created for all partners');
@@ -764,7 +782,7 @@ async function main() {
     console.log('\n✅ Production seed completed! Ready for deployment');
     console.log('   ✓ All partners created with base prices');
     console.log(
-      '   💡 To test with demo data, run: SEED_MODE=demo npm run seed'
+      '   💡 To test with demo data, run: SEED_MODE=demo npm run seed',
     );
   }
 }

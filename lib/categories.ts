@@ -21,12 +21,18 @@ export const getCategories = () => {
     },
     {
       id: 4,
+      nameKey: 'keychain',
+      type: 'keychain',
+      placeholder: '/placeholder-keychain.jpg',
+    },
+    {
+      id: 5,
       nameKey: 'statue',
       type: 'statue',
       placeholder: '/placeholder-statue.jpg',
     },
     {
-      id: 5,
+      id: 6,
       nameKey: 'ball',
       type: 'ball',
       placeholder: '/placeholder-ball.jpg',
