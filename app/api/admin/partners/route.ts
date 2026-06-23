@@ -147,6 +147,25 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const hasKeychainPrice = await prisma.price.findFirst({
+      where: {
+        partnerId: partner.id,
+        type: 'KEYCHAIN',
+        groupId: null,
+      },
+    });
+
+    if (!hasKeychainPrice) {
+      await prisma.price.create({
+        data: {
+          partnerId: partner.id,
+          type: 'KEYCHAIN',
+          groupId: null,
+          price: 25,
+        },
+      });
+    }
+
     return NextResponse.json(partner);
   } catch (error: any) {
     console.error('Error creating partner:', error);

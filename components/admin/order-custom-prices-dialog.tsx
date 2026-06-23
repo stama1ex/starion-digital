@@ -21,12 +21,18 @@ interface OrderCustomPricesDialogProps {
   onSuccess: (updatedOrder?: any) => void;
 }
 
-const PRODUCT_TYPES: ProductType[] = ['MAGNET', 'PLATE', 'POSTCARD'];
+const PRODUCT_TYPES: ProductType[] = [
+  'MAGNET',
+  'PLATE',
+  'POSTCARD',
+  'KEYCHAIN',
+];
 
 const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   MAGNET: 'Магниты',
   PLATE: 'Тарелки',
   POSTCARD: 'Открытки',
+  KEYCHAIN: 'Брелоки',
   STATUE: 'Статуэтки',
   BALL: 'Шары',
 };
