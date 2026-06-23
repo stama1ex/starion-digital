@@ -9,6 +9,7 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     MAGNET: 'Магниты',
     PLATE: 'Тарелки',
     POSTCARD: 'Открытки',
+    KEYCHAIN: 'Брелоки',
   };
 
   // Заголовок

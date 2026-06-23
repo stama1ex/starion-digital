@@ -22,6 +22,7 @@ export const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
   'PLATE',
   'POSTCARD',
+  'KEYCHAIN',
   //   'STATUE',
   //   'BALL',
 ];
@@ -30,6 +31,7 @@ export const PRODUCT_TYPE_LABELS: Record<string, string> = {
   MAGNET: 'Магнит',
   PLATE: 'Тарелка',
   POSTCARD: 'Открытка',
+  KEYCHAIN: 'Брелок',
   STATUE: 'Статуэтка',
   BALL: 'Шар',
 };
@@ -38,6 +40,7 @@ export const PRODUCT_TYPE_LABELS_PLURAL: Record<string, string> = {
   MAGNET: 'Магниты',
   PLATE: 'Тарелки',
   POSTCARD: 'Открытки',
+  KEYCHAIN: 'Брелоки',
   STATUE: 'Статуэтки',
   BALL: 'Шары',
 };

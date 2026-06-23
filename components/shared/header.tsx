@@ -42,6 +42,7 @@ const categories = [
   { title: 'magnet', href: '/magnets/catalog' },
   { title: 'plate', href: '/plates/catalog' },
   { title: 'card', href: '/cards/catalog' },
+  { title: 'keychain', href: '/keychains/catalog' },
   { title: 'statue', href: '#' },
   { title: 'ball', href: '#' },
 ];
@@ -162,7 +163,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                     <AccordionContent>
                       <ul className="flex flex-col first:border-t">
                         {categories.map((item, idx) => {
-                          const isSoon = idx >= 3;
+                          const isSoon = idx >= 4;
                           return (
                             <li key={item.title}>
                               <Link
@@ -299,7 +300,7 @@ export const Header: React.FC<Props> = ({ className }) => {
                 <NavigationMenuContent className="bg-background/70 backdrop-blur-xl border border-border rounded-md shadow-lg">
                   <ul className="grid w-100 gap-2 md:w-125 md:grid-cols-2 lg:w-150 p-2">
                     {categories.map((item, idx) => {
-                      const isSoon = idx >= 3;
+                      const isSoon = idx >= 4;
                       return (
                         <li key={item.title}>
                           <NavigationMenuLink asChild>
