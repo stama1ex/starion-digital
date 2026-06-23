@@ -52,6 +52,19 @@ function OrderItemImage({ imagePath }: { imagePath: string | null }) {
   );
 }
 
+const MONTHS: Record<string, string[]> = {
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  ru: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
+  ro: ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'],
+};
+
+function formatDate(date: string, locale: string) {
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = (MONTHS[locale] ?? MONTHS.en)[d.getMonth()];
+  return `${day} ${month} ${d.getFullYear()}`;
+}
+
 export default function OrdersContent() {
   const t = useTranslations('Orders');
   const locale = useLocale();
@@ -85,60 +98,6 @@ export default function OrdersContent() {
       </Container>
     );
 
-  const formatDate = (date: string) => {
-    const d = new Date(date);
-    const months: Record<string, string[]> = {
-      en: [
-        'January',
-        'February',
-        'March',
-        'April',
-        'May',
-        'June',
-        'July',
-        'August',
-        'September',
-        'October',
-        'November',
-        'December',
-      ],
-      ru: [
-        'января',
-        'февраля',
-        'марта',
-        'апреля',
-        'мая',
-        'июня',
-        'июля',
-        'августа',
-        'сентября',
-        'октября',
-        'ноября',
-        'декабря',
-      ],
-      ro: [
-        'ianuarie',
-        'februarie',
-        'martie',
-        'aprilie',
-        'mai',
-        'iunie',
-        'iulie',
-        'august',
-        'septembrie',
-        'octombrie',
-        'noiembrie',
-        'decembrie',
-      ],
-    };
-
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = months[locale]?.[d.getMonth()] || months.en[d.getMonth()];
-    const year = d.getFullYear();
-
-    return `${day} ${month} ${year}`;
-  };
-
   let lastDate = '';
 
   return (
@@ -152,7 +111,7 @@ export default function OrdersContent() {
 
       <div className="flex flex-col gap-8">
         {orders.map((order) => {
-          const dateStr = formatDate(order.createdAt);
+          const dateStr = formatDate(order.createdAt, locale);
           const showDate = dateStr !== lastDate;
           lastDate = dateStr;
 

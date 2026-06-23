@@ -72,17 +72,17 @@ export async function POST(req: Request) {
 
     // --- цены партнёра ---
     const prices = await prisma.price.findMany({ where: { partnerId } });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    const priceMap = new Map(prices.map((p) => [`${p.type}|${p.groupId ?? 'null'}`, p]));
 
     // --- позиции заказа ---
     const dbItems = items.map((i) => {
-      const product = products.find((p) => p.id === i.productId);
+      const product = productMap.get(i.productId);
       if (!product) {
         throw new Error(`Product ${i.productId} not found`);
       }
 
-      const priceEntry = prices.find(
-        (p) => p.type === product.type && p.groupId === product.groupId,
-      );
+      const priceEntry = priceMap.get(`${product.type}|${product.groupId ?? 'null'}`);
 
       if (!priceEntry) {
         throw new Error(

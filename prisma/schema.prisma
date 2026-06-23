@@ -96,6 +96,9 @@ model OrderItem {
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
 }
 
 // Реализация товаров - товары отгруженные с условием «Реализация»
@@ -131,6 +134,9 @@ model RealizationItem {
 
   realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
   product     Product     @relation(fields: [productId], references: [id])
+
+  @@index([realizationId])
+  @@index([productId])
 }
 
 // Платежи по реализации
