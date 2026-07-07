@@ -41,7 +41,7 @@ export default function LandingDrawer() {
         <DrawerFooter className="overflow-scroll md:overflow-auto">
           <div className="flex flex-col md:flex-row gap-4 justify-center">
             {categories.map((category) => {
-              const isSoon = category.id === 4 || category.id === 5;
+              const isSoon = category.id === 5 || category.id === 6;
               return (
                 <Link
                   href={isSoon ? '#' : `/${category.type}s/catalog`} // Use English type
