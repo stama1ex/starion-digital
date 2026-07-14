@@ -96,12 +96,6 @@ export default function OrdersManagement({
     setOrders(initialOrders);
   }, [initialOrders]);
   useEffect(() => {
-    if (partners.length > 0 && !selectedPartnerId) {
-      setSelectedPartnerId(partners[0].id.toString());
-    }
-  }, [partners, selectedPartnerId]);
-
-  useEffect(() => {
     // Initialize quantities when dialog opens
     if (isCreateDialogOpen) {
       const initialQuantities: Record<number, number> = {};
