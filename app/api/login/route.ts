@@ -47,6 +47,7 @@ export async function POST(req: Request) {
 
     const { sessionToken, sessionBind } = await createSessionCookies(
       partner.id,
+      req.headers.get('user-agent'),
     );
     const cookieStore = await cookies();
     const cookieOptions = getSessionCookieOptions();

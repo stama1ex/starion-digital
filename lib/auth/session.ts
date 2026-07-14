@@ -27,7 +27,10 @@ function getCookieOptions(maxAgeSeconds?: number) {
   };
 }
 
-export async function createSessionCookies(partnerId: number) {
+export async function createSessionCookies(
+  partnerId: number,
+  userAgent?: string | null,
+) {
   const sessionToken = randomUUID();
   const sessionBind = randomUUID();
   const expiresAt = new Date(
@@ -35,15 +38,11 @@ export async function createSessionCookies(partnerId: number) {
   );
 
   await prisma.$executeRaw`
-    DELETE FROM "PartnerSession"
-    WHERE "partnerId" = ${partnerId}
-  `;
-
-  await prisma.$executeRaw`
     INSERT INTO "PartnerSession" (
       "partnerId",
       "tokenHash",
       "bindHash",
+      "userAgent",
       "createdAt",
       "lastUsedAt",
       "expiresAt"
@@ -51,6 +50,7 @@ export async function createSessionCookies(partnerId: number) {
       ${partnerId},
       ${hashValue(sessionToken)},
       ${hashValue(sessionBind)},
+      ${userAgent ?? null},
       NOW(),
       NOW(),
       ${expiresAt}
@@ -132,6 +132,43 @@ export async function getPartnerFromSessionCookie(role?: SessionRole) {
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const bindToken = cookieStore.get(SESSION_BIND_COOKIE_NAME)?.value;
   return getPartnerFromSessionToken(token, role, bindToken);
+}
+
+export async function getCurrentSessionTokenHash() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
+  if (!token) {
+    return null;
+  }
+  return hashValue(token);
+}
+
+export type PartnerSessionInfo = {
+  id: number;
+  createdAt: Date;
+  lastUsedAt: Date;
+  expiresAt: Date;
+  tokenHash: string;
+  userAgent: string | null;
+};
+
+export async function listActiveSessions(partnerId: number) {
+  return prisma.$queryRaw<PartnerSessionInfo[]>`
+    SELECT "id", "createdAt", "lastUsedAt", "expiresAt", "tokenHash", "userAgent"
+    FROM "PartnerSession"
+    WHERE "partnerId" = ${partnerId}
+      AND "revokedAt" IS NULL
+      AND "expiresAt" > NOW()
+    ORDER BY "lastUsedAt" DESC
+  `;
+}
+
+export async function revokeSessionById(partnerId: number, sessionId: number) {
+  await prisma.$executeRaw`
+    UPDATE "PartnerSession"
+    SET "revokedAt" = NOW()
+    WHERE "id" = ${sessionId} AND "partnerId" = ${partnerId}
+  `;
 }
 
 export function getSessionCookieName() {

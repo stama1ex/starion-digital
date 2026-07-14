@@ -1,12 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Monitor } from 'lucide-react';
+import { AdminAPI } from '@/lib/admin/api-client';
+
+interface AdminSession {
+  id: number;
+  createdAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
+  os: string;
+  browser: string;
+}
+
+function formatSessionDate(value: string) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
 
 export default function AdminSettings() {
   const [login, setLogin] = useState('');
@@ -17,6 +38,43 @@ export default function AdminSettings() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const [sessions, setSessions] = useState<AdminSession[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
+  const [revokingSessionId, setRevokingSessionId] = useState<number | null>(
+    null,
+  );
+
+  const loadSessions = async () => {
+    try {
+      setLoadingSessions(true);
+      const data = await AdminAPI.getSessions();
+      setSessions(data.sessions);
+    } catch (error) {
+      console.error('Error loading sessions:', error);
+      toast.error('Не удалось загрузить активные сессии');
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSessions();
+  }, []);
+
+  const handleRevokeSession = async (sessionId: number) => {
+    try {
+      setRevokingSessionId(sessionId);
+      await AdminAPI.revokeSession(sessionId);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId));
+      toast.success('Сессия завершена');
+    } catch (error) {
+      console.error('Error revoking session:', error);
+      toast.error('Не удалось завершить сессию');
+    } finally {
+      setRevokingSessionId(null);
+    }
+  };
 
   const handleUpdateCredentials = async () => {
     if (!currentPassword) {
@@ -183,6 +241,64 @@ export default function AdminSettings() {
           >
             {updating ? 'Сохранение...' : 'Сохранить изменения'}
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Активные сессии</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {loadingSessions ? (
+            <p className="text-sm text-muted-foreground">Загрузка...</p>
+          ) : sessions.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Нет активных сессий
+            </p>
+          ) : (
+            sessions.map((session) => (
+              <div
+                key={session.id}
+                className="flex items-center justify-between gap-3 rounded-lg border p-3"
+              >
+                <div className="flex items-start gap-3">
+                  <Monitor className="mt-0.5 shrink-0 text-muted-foreground" size={18} />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {session.os} · {session.browser}
+                      </span>
+                      {session.isCurrent && (
+                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                          Это устройство
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Вход: {formatSessionDate(session.createdAt)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Последняя активность:{' '}
+                      {formatSessionDate(session.lastUsedAt)}
+                    </p>
+                  </div>
+                </div>
+
+                {!session.isCurrent && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRevokeSession(session.id)}
+                    disabled={revokingSessionId === session.id}
+                  >
+                    {revokingSessionId === session.id
+                      ? 'Завершение...'
+                      : 'Завершить'}
+                  </Button>
+                )}
+              </div>
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

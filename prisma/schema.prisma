@@ -173,6 +173,7 @@ model PartnerSession {
   partnerId  Int
   tokenHash  String   @unique
   bindHash   String   @unique
+  userAgent  String?
   createdAt  DateTime @default(now())
   lastUsedAt DateTime @default(now())
   expiresAt  DateTime
