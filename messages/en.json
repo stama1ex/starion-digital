@@ -14,7 +14,9 @@
       "KEYCHAINS",
       "STATUETTES",
       "GLASS BALLS"
-    ]
+    ],
+    "ar_demo_title": "See the Magic for Yourself",
+    "ar_demo_subtitle": "Point your camera at the example below — a simple magnet comes to life in 3D right on your phone screen."
   },
   "ContactsPage": {
     "meta": {
@@ -43,7 +45,8 @@
     "categories": "Souvenirs",
     "contacts": "Contacts",
     "language": "Language",
-    "soon": "Coming Soon"
+    "soon": "Coming Soon",
+    "my_account": "My Account"
   },
   "Categories": {
     "magnet": {
@@ -115,7 +118,7 @@
     "product": "Product",
     "company": "Company",
     "contacts": "Contacts",
-    "copyright": "© 2025 stariondigital.com. All rights reserved."
+    "copyright": "© 2026 stariondigital.com. All rights reserved."
   },
   "ThemeToggle": {
     "toggle": "Toggle Theme",
@@ -245,6 +248,8 @@
     "quantity": "Quantity",
     "qty": "pcs",
     "comment_placeholder": "Order comment (optional)",
+    "address_label": "Delivery address (optional)",
+    "address_placeholder": "City, street, house",
     "send_order": "Send Order",
     "sending": "Sending...",
     "close": "Close",
@@ -255,7 +260,9 @@
     "success": "Order placed successfully",
     "remove": "Remove",
     "total_price": "Total amount",
-    "submit": "Place order"
+    "submit": "Place order",
+    "realization_button": "Consignment request",
+    "realization_info": "Consignment — you receive the goods without prepayment and pay for them as they sell. We'll contact you to agree on the terms."
   },
 
   "Login": {
@@ -283,6 +290,8 @@
     "description": "Fill out the form and we will contact you to discuss cooperation terms",
     "phone_label": "Phone Number",
     "phone_placeholder": "+XXX XXX XXX XX",
+    "address_label": "Address (optional)",
+    "address_placeholder": "City, street, house",
     "login_label": "Desired Login",
     "login_placeholder": "mycompany",
     "password_label": "Desired Password",

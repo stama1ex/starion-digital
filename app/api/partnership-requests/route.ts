@@ -4,7 +4,7 @@ import { sendPartnershipRequestToTelegram } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, login, password, message } = await request.json();
+    const { phone, address, login, password, message } = await request.json();
 
     // Получаем IP адрес пользователя
     const ipAddress =
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     const partnershipRequest = await prisma.partnershipRequest.create({
       data: {
         phone,
+        address: address || null,
         login,
         password,
         message: message || null,
@@ -92,6 +93,7 @@ export async function POST(request: NextRequest) {
       await sendPartnershipRequestToTelegram({
         id: partnershipRequest.id,
         phone: partnershipRequest.phone,
+        address: partnershipRequest.address,
         login: partnershipRequest.login,
         message: partnershipRequest.message,
       });

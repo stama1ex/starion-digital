@@ -13,7 +13,6 @@ import PartnersManagement from './sections/partners-management';
 import PricesManagement from './sections/prices-management';
 import ProductsManagement from './sections/products-management';
 import { GroupsManagement } from './sections/groups-management';
-import AdminSettings from './sections/admin-settings';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
 import { ProductGroup } from '@prisma/client';
@@ -354,7 +353,7 @@ export default function AdminDashboard({
         {/* Редактировать */}
         <TabsContent value="edit" className="space-y-4">
           <Tabs defaultValue="partners" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 md:grid-cols-5 gap-1">
+            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 gap-1">
               <TabsTrigger
                 value="partners"
                 className="text-xs sm:text-sm relative"
@@ -378,9 +377,6 @@ export default function AdminDashboard({
               <TabsTrigger value="groups" className="text-xs sm:text-sm">
                 Группы
               </TabsTrigger>
-              <TabsTrigger value="settings" className="text-xs sm:text-sm">
-                Админ-данные
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="partners">
@@ -400,10 +396,6 @@ export default function AdminDashboard({
 
             <TabsContent value="groups">
               <GroupsManagement />
-            </TabsContent>
-
-            <TabsContent value="settings">
-              <AdminSettings />
             </TabsContent>
           </Tabs>
         </TabsContent>

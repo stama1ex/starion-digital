@@ -14,6 +14,7 @@ interface CreateOrderForPartnerBody {
   items: { productId: number; qty: number }[];
   orderType?: 'regular' | 'realization';
   notes?: string;
+  address?: string;
   createdAt?: string;
 }
 
@@ -55,7 +56,14 @@ export async function POST(req: Request) {
     }
 
     const body = (await req.json()) as CreateOrderForPartnerBody;
-    const { partnerId, items, orderType = 'regular', notes, createdAt } = body;
+    const {
+      partnerId,
+      items,
+      orderType = 'regular',
+      notes,
+      address,
+      createdAt,
+    } = body;
     const createdAtDate = buildCreatedAt(createdAt);
 
     // Validate input
@@ -128,6 +136,7 @@ export async function POST(req: Request) {
             status: 'CONFIRMED',
             isRealization: orderType === 'realization',
             notes: notes || null,
+            address: address || null,
             createdAt: createdAtDate,
             items: { create: dbItems },
           },

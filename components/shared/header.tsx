@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Globe, Menu } from 'lucide-react';
+import { Globe, Menu, User } from 'lucide-react';
 import * as React from 'react';
 import { ThemeToggleButton } from './theme-toggle-button';
 import ReactCountryFlag from 'react-country-flag';
@@ -241,11 +241,19 @@ export const Header: React.FC<Props> = ({ className }) => {
 
                 {/* PARTNER ACTIONS MOBILE */}
                 {isPartner && (
-                  <Link href="/my-orders">
-                    <Button variant="outline" className="w-full mt-2">
-                      {tOrders('title')}
-                    </Button>
-                  </Link>
+                  <>
+                    <Link href="/my-orders">
+                      <Button variant="outline" className="w-full mt-2">
+                        {tOrders('title')}
+                      </Button>
+                    </Link>
+                    <Link href="/my-account">
+                      <Button variant="outline" className="w-full gap-2">
+                        <User size={16} />
+                        {t('my_account')}
+                      </Button>
+                    </Link>
+                  </>
                 )}
 
                 {isPartner ? (
@@ -383,6 +391,11 @@ export const Header: React.FC<Props> = ({ className }) => {
               <CartDrawer />
               <Link href="/my-orders">
                 <Button variant="outline">{tOrders('title')}</Button>
+              </Link>
+              <Link href="/my-account">
+                <Button variant="outline" size="icon" aria-label={t('my_account')}>
+                  <User size={18} />
+                </Button>
               </Link>
             </>
           )}

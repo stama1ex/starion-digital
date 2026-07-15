@@ -14,7 +14,9 @@
       "BRELOCURI",
       "STATUETE",
       "GLOBURI DE STICLĂ"
-    ]
+    ],
+    "ar_demo_title": "Vezi magia cu proprii ochi",
+    "ar_demo_subtitle": "Îndreaptă camera spre exemplul de mai jos — un magnet obișnuit prinde viață în 3D chiar pe ecranul telefonului tău."
   },
   "ContactsPage": {
     "meta": {
@@ -43,7 +45,8 @@
     "categories": "Suveniruri",
     "contacts": "Contacte",
     "language": "Limbă",
-    "soon": "În curând"
+    "soon": "În curând",
+    "my_account": "Contul meu"
   },
   "Categories": {
     "magnet": {
@@ -120,7 +123,7 @@
     "product": "Produs",
     "company": "Companie",
     "contacts": "Contacte",
-    "copyright": "© 2025 stariondigital.com. Toate drepturile rezervate."
+    "copyright": "© 2026 stariondigital.com. Toate drepturile rezervate."
   },
   "ThemeToggle": {
     "toggle": "Schimbă Tema",
@@ -250,6 +253,8 @@
     "quantity": "Cantitate",
     "qty": "buc.",
     "comment_placeholder": "Comentariu comandă (opțional)",
+    "address_label": "Adresă de livrare (opțional)",
+    "address_placeholder": "Oraș, stradă, casă",
     "send_order": "Trimite comanda",
     "sending": "Se trimite...",
     "close": "Închide",
@@ -260,7 +265,9 @@
     "success": "Comanda a fost plasată cu succes",
     "remove": "Șterge",
     "total_price": "Suma totală",
-    "submit": "Trimite comanda"
+    "submit": "Trimite comanda",
+    "realization_button": "Cerere de consignație",
+    "realization_info": "Consignație — primiți marfa fără plată în avans și o achitați pe măsură ce se vinde. Vă vom contacta pentru a stabili condițiile."
   },
 
   "Login": {
@@ -288,6 +295,8 @@
     "description": "Completați formularul și vă vom contacta pentru a discuta condițiile de cooperare",
     "phone_label": "Număr de telefon",
     "phone_placeholder": "+XXX XXX XXX XX",
+    "address_label": "Adresă (opțional)",
+    "address_placeholder": "Oraș, stradă, casă",
     "login_label": "Login dorit",
     "login_placeholder": "mycompany",
     "password_label": "Parolă dorită",

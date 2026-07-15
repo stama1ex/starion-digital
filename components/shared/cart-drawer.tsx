@@ -10,13 +10,17 @@ import {
   DrawerClose,
 } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import Image from 'next/image';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { InfoTooltip } from '@/components/ui/info-tooltip';
+import { usePartner } from '@/app/providers/partner-provider';
 
 interface CartDrawerProps {
   isOutline?: boolean;
@@ -56,8 +60,18 @@ function CartItemImage({ image, alt }: { image?: string | null; alt: string }) {
 export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
   const t = useTranslations('Cart');
   const { items, removeItem, clear } = useCartStore();
+  const { address: partnerAddress, isVip } = usePartner();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [comment, setComment] = useState('');
+  const [address, setAddress] = useState('');
+  const addressInitialized = useRef(false);
+
+  useEffect(() => {
+    if (!addressInitialized.current && partnerAddress) {
+      setAddress(partnerAddress);
+      addressInitialized.current = true;
+    }
+  }, [partnerAddress]);
 
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -75,6 +89,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
           qty: i.quantity,
         })),
         comment,
+        address: address.trim() || undefined,
         orderType, // 'regular' или 'realization'
       };
 
@@ -155,6 +170,19 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
           </div>
 
           <div className="px-4 mt-3">
+            <Label htmlFor="cart-address" className="mb-1">
+              {t('address_label')}
+            </Label>
+            <Input
+              id="cart-address"
+              type="text"
+              placeholder={t('address_placeholder')}
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+            />
+          </div>
+
+          <div className="px-4 mt-3">
             <textarea
               className="w-full text-sm border rounded-md p-2 bg-background"
               placeholder={t('comment_placeholder')}
@@ -183,13 +211,21 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
                 {isSubmitting ? t('sending') : 'Оформить заказ'}
               </Button>
 
-              <Button
-                variant="secondary"
-                disabled={!items.length || isSubmitting}
-                onClick={() => handleSubmit('realization')}
-              >
-                Запрос на реализацию
-              </Button>
+              {isVip && (
+                <div className="relative inline-flex">
+                  <Button
+                    variant="secondary"
+                    disabled={!items.length || isSubmitting}
+                    onClick={() => handleSubmit('realization')}
+                  >
+                    {t('realization_button')}
+                  </Button>
+                  <InfoTooltip
+                    text={t('realization_info')}
+                    className="absolute -top-2 -right-2"
+                  />
+                </div>
+              )}
 
               <DrawerClose asChild>
                 <Button variant="outline">{t('close')}</Button>

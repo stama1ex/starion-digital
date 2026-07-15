@@ -15,7 +15,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Edit2, Plus, Eye, EyeOff } from 'lucide-react';
+import {
+  Trash2,
+  Edit2,
+  Plus,
+  Eye,
+  EyeOff,
+  Phone,
+  MapPin,
+  Star,
+} from 'lucide-react';
 import {
   usePartners,
   useCurrentUser,
@@ -43,6 +52,9 @@ export default function PartnersManagement({
     name: '',
     login: '',
     password: '',
+    phone: '',
+    address: '',
+    isVip: false,
   });
 
   const handleSave = async () => {
@@ -67,7 +79,14 @@ export default function PartnersManagement({
         await AdminAPI.createPartner(body);
       }
 
-      setFormData({ name: '', login: '', password: '' });
+      setFormData({
+        name: '',
+        login: '',
+        password: '',
+        phone: '',
+        address: '',
+        isVip: false,
+      });
       setEditingId(null);
       setIsDialogOpen(false);
       await refetch();
@@ -83,6 +102,9 @@ export default function PartnersManagement({
       name: partner.name,
       login: partner.login,
       password: '',
+      phone: partner.phone || '',
+      address: partner.address || '',
+      isVip: !!partner.isVip,
     });
     setEditingId(partner.id);
     setIsDialogOpen(true);
@@ -107,7 +129,14 @@ export default function PartnersManagement({
   };
 
   const handleOpenNew = () => {
-    setFormData({ name: '', login: '', password: '' });
+    setFormData({
+      name: '',
+      login: '',
+      password: '',
+      phone: '',
+      address: '',
+      isVip: false,
+    });
     setEditingId(null);
     setIsDialogOpen(true);
   };
@@ -162,14 +191,45 @@ export default function PartnersManagement({
           {filteredPartners.map((partner) => (
             <Card key={partner.id} className="py-1">
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Имя</p>
-                    <p className="font-medium">{partner.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium">{partner.name}</p>
+                      {partner.isVip && (
+                        <Badge className="gap-1 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
+                          <Star size={10} className="fill-current" />
+                          VIP
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Логин</p>
                     <p className="font-mono text-sm">{partner.login}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Контакты</p>
+                    {partner.phone || partner.address ? (
+                      <div className="space-y-0.5">
+                        {partner.phone && (
+                          <p className="text-sm flex items-center gap-1">
+                            <Phone size={12} className="text-muted-foreground shrink-0" />
+                            <span className="truncate">{partner.phone}</span>
+                          </p>
+                        )}
+                        {partner.address && (
+                          <p className="text-sm flex items-center gap-1">
+                            <MapPin size={12} className="text-muted-foreground shrink-0" />
+                            <span className="truncate">{partner.address}</span>
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Не указаны
+                      </p>
+                    )}
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Пароль</p>
@@ -261,6 +321,42 @@ export default function PartnersManagement({
                 </button>
               </div>
             </div>
+            <div>
+              <label className="text-sm font-medium">
+                Телефон (необязательно)
+              </label>
+              <Input
+                type="tel"
+                value={formData.phone || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
+                placeholder="+373 XX XXX XXX"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium">
+                Адрес (необязательно)
+              </label>
+              <Input
+                value={formData.address || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                placeholder="Город, улица, дом"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isVip}
+                onChange={(e) =>
+                  setFormData({ ...formData, isVip: e.target.checked })
+                }
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              VIP-партнёр (доступен запрос на реализацию)
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>

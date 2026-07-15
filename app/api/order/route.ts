@@ -38,6 +38,7 @@ export async function GET() {
 interface CreateOrderBody {
   items: { productId: number; qty: number }[];
   comment?: string;
+  address?: string;
   orderType?: 'regular' | 'realization';
 }
 
@@ -53,8 +54,15 @@ export async function POST(req: Request) {
     const body = (await req.json()) as CreateOrderBody;
     const items = body.items;
     const comment = body.comment;
+    const address = body.address;
     const orderType: 'regular' | 'realization' =
       body.orderType === 'realization' ? 'realization' : 'regular';
+
+    if (orderType === 'realization' && !partner.isVip) {
+      return new Response('Realization requests are available for VIP partners only', {
+        status: 403,
+      });
+    }
 
     if (!Array.isArray(items) || items.length === 0) {
       return new Response('Empty order', { status: 400 });
@@ -112,6 +120,7 @@ export async function POST(req: Request) {
             partnerId,
             totalPrice: total,
             isRealization: orderType === 'realization', // Устанавливаем флаг
+            address: address || null,
             items: { create: dbItems },
           },
           include: {
@@ -141,6 +150,7 @@ export async function POST(req: Request) {
     const captionText =
       `📌 Новый заказ №${order.id}\n\n` +
       `👤 Покупатель: ${order.partner.name}\n` +
+      (address ? `📍 Адрес: ${address}\n` : '') +
       (comment ? `💬 Комментарий: ${comment}\n` : '') +
       `[${typeLabel}]\n\n` +
       `🛒 Состав заказа:\n${itemsText}\n\n` +

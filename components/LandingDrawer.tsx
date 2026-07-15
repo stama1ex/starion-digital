@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { getCategories } from '@/lib/categories';
 import { Soon } from './shared/soon';
-import { Box, Globe, KeyRound, WalletCards } from 'lucide-react';
+import { Box, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export default function LandingDrawer() {
@@ -65,11 +65,7 @@ export default function LandingDrawer() {
                       }
                     }}
                   >
-                    {category.type === 'card' ? (
-                      <WalletCards className="w-24 h-24 mb-2 text-primary" />
-                    ) : category.type === 'keychain' ? (
-                      <KeyRound className="w-24 h-24 mb-2 text-primary" />
-                    ) : category.type === 'statue' ? (
+                    {category.type === 'statue' ? (
                       <Box className="w-24 h-24 mb-2 text-primary" />
                     ) : category.type === 'ball' ? (
                       <Globe className="w-24 h-24 mb-2 text-primary" />
@@ -80,7 +76,11 @@ export default function LandingDrawer() {
                             ? `/magnets/01.avif`
                             : category.type === 'plate'
                               ? `/plates/110.avif`
-                              : category.placeholder
+                              : category.type === 'card'
+                                ? `/postcards/postcard.webp`
+                                : category.type === 'keychain'
+                                  ? `/keychains/keychain.webp`
+                                  : category.placeholder
                         }
                         alt={category.name}
                         className="w-24 h-24 object-contain mb-2"

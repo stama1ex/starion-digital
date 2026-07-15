@@ -91,9 +91,4 @@ export const AdminAPI = {
 
   // Current user
   getCurrentUser: () => fetchData<any>('/api/me'),
-
-  // Sessions
-  getSessions: () => fetchData<{ sessions: any[] }>('/api/admin/sessions'),
-  revokeSession: (sessionId: number) =>
-    deleteData(`/api/admin/sessions?id=${sessionId}`),
 };

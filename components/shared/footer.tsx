@@ -36,7 +36,7 @@ const defaultLogo = {
 const defaultSocialLinks = [
   {
     icon: <FaInstagram className="size-5" />,
-    href: 'https://www.instagram.com/magnetar_souvenir?igsh=MW5ka2QzMzJtOHMybw==',
+    href: 'https://www.instagram.com/starion_digital',
     label: 'Instagram',
   },
   {
