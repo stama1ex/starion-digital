@@ -19,6 +19,9 @@ export async function GET() {
         id: true,
         name: true,
         login: true,
+        phone: true,
+        address: true,
+        isVip: true,
         role: true,
         createdAt: true,
         prices: true,
@@ -69,101 +72,62 @@ export async function POST(request: NextRequest) {
         name: data.name,
         login: data.login,
         password: hashed,
+        phone: data.phone?.trim() || null,
+        address: data.address?.trim() || null,
+        isVip: !!data.isVip,
         role: data.role ?? 'PARTNER',
       },
       select: {
         id: true,
         name: true,
         login: true,
+        phone: true,
+        address: true,
+        isVip: true,
         role: true,
         createdAt: true,
       },
     });
 
-    // Добавляем цены для нового партнёра, копируя уже существующий прайс-лист.
-    // Это защищает от ситуации, когда для новых дилеров забывают вручную добавить
-    // отдельные цены, например для открыток.
-    const templatePartner = await prisma.partner.findFirst({
-      where: {
-        role: 'PARTNER',
-        id: { not: partner.id },
-      },
-      orderBy: { id: 'asc' },
-      include: {
-        prices: true,
-      },
-    });
+    // Добавляем цены для нового партнёра из шаблона "цены по умолчанию",
+    // который админ настраивает на странице управления ценами. Это защищает
+    // от ситуации, когда для новых дилеров забывают вручную добавить цены и
+    // они не могут оформить заказ из-за отсутствующих цен.
+    const defaultPrices = await prisma.defaultPrice.findMany();
 
-    if (templatePartner?.prices.length) {
+    if (defaultPrices.length) {
       await prisma.price.createMany({
-        data: templatePartner.prices.map((price) => ({
+        data: defaultPrices.map((dp) => ({
           partnerId: partner.id,
-          type: price.type,
-          groupId: price.groupId,
-          price: price.price,
+          type: dp.type,
+          groupId: dp.groupId,
+          price: dp.price,
         })),
       });
     } else {
-      // Фолбэк для пустой базы: создаём базовые цены, если ещё нет шаблона.
-      const groups = await prisma.productGroup.findMany({
+      // Цены по умолчанию ещё не настроены — копируем прайс-лист у другого
+      // партнёра, чтобы у нового партнёра были хоть какие-то цены.
+      const templatePartner = await prisma.partner.findFirst({
         where: {
-          slug: { in: ['MARBLE', 'WOOD'] },
+          role: 'PARTNER',
+          id: { not: partner.id },
+        },
+        orderBy: { id: 'asc' },
+        include: {
+          prices: true,
         },
       });
 
-      const groupMap = new Map(groups.map((g) => [g.slug, g.id]));
-      const marbleId = groupMap.get('MARBLE');
-      const woodId = groupMap.get('WOOD');
-
-      if (marbleId && woodId) {
+      if (templatePartner?.prices.length) {
         await prisma.price.createMany({
-          data: [
-            {
-              partnerId: partner.id,
-              type: 'MAGNET',
-              groupId: marbleId,
-              price: 20,
-            },
-            {
-              partnerId: partner.id,
-              type: 'MAGNET',
-              groupId: woodId,
-              price: 12,
-            },
-            {
-              partnerId: partner.id,
-              type: 'PLATE',
-              groupId: marbleId,
-              price: 120,
-            },
-            {
-              partnerId: partner.id,
-              type: 'PLATE',
-              groupId: woodId,
-              price: 90,
-            },
-          ],
+          data: templatePartner.prices.map((price) => ({
+            partnerId: partner.id,
+            type: price.type,
+            groupId: price.groupId,
+            price: price.price,
+          })),
         });
       }
-    }
-
-    const hasKeychainPrice = await prisma.price.findFirst({
-      where: {
-        partnerId: partner.id,
-        type: 'KEYCHAIN',
-        groupId: null,
-      },
-    });
-
-    if (!hasKeychainPrice) {
-      await prisma.price.create({
-        data: {
-          partnerId: partner.id,
-          type: 'KEYCHAIN',
-          groupId: null,
-          price: 25,
-        },
-      });
     }
 
     return NextResponse.json(partner);
@@ -204,6 +168,18 @@ export async function PUT(request: NextRequest) {
       updateData.login = data.login;
     }
 
+    if (data.phone !== undefined) {
+      updateData.phone = data.phone?.trim() || null;
+    }
+
+    if (data.address !== undefined) {
+      updateData.address = data.address?.trim() || null;
+    }
+
+    if (data.isVip !== undefined) {
+      updateData.isVip = !!data.isVip;
+    }
+
     // Обновлять пароль только если он явно передан
     if (data.password && data.password.length > 0) {
       updateData.password = await bcrypt.hash(data.password, 10);
@@ -228,6 +204,9 @@ export async function PUT(request: NextRequest) {
         id: true,
         name: true,
         login: true,
+        phone: true,
+        address: true,
+        isVip: true,
         role: true,
         createdAt: true,
       },

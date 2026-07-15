@@ -60,6 +60,7 @@ export async function sendToTelegram(order: {
 export async function sendPartnershipRequestToTelegram(request: {
   id: number;
   phone: string;
+  address?: string | null;
   login: string;
   message?: string | null;
 }) {
@@ -80,6 +81,9 @@ export async function sendPartnershipRequestToTelegram(request: {
   const text =
     `🤝 <b>Новая заявка на партнерство №${escape(request.id)}</b>\n\n` +
     `📱 Телефон: <b>${escape(request.phone)}</b>\n` +
+    (request.address
+      ? `📍 Адрес: <b>${escape(request.address)}</b>\n`
+      : '') +
     `👤 Логин: <b>${escape(request.login)}</b>\n` +
     (request.message
       ? `💬 Сообщение: <i>${escape(request.message)}</i>\n`

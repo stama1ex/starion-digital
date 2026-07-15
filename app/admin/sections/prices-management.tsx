@@ -65,6 +65,13 @@ export default function PricesManagement() {
     groupName: string;
   } | null>(null);
   const [applyingPreset, setApplyingPreset] = useState(false);
+  const [isDefaultPricesModalOpen, setIsDefaultPricesModalOpen] =
+    useState(false);
+  const [defaultPrices, setDefaultPrices] = useState<
+    Record<string, number | string>
+  >({});
+  const [loadingDefaultPrices, setLoadingDefaultPrices] = useState(false);
+  const [savingDefaultPrices, setSavingDefaultPrices] = useState(false);
   const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -93,9 +100,6 @@ export default function PricesManagement() {
       // Фильтруем партнеров - исключаем ADMIN
       const filtered = data.filter((p: any) => p.role !== 'ADMIN');
       setPartners(filtered);
-      if (filtered.length > 0) {
-        setSelectedPartnerId(filtered[0].id.toString());
-      }
     } catch (error) {
       console.error('Error fetching partners:', error);
     }
@@ -172,6 +176,10 @@ export default function PricesManagement() {
   };
 
   const handleSaveAllPrices = async () => {
+    if (!selectedPartnerId) {
+      toast.error('Выберите партнера');
+      return;
+    }
     try {
       setLoading(true);
       const promises = Object.entries(editingPrices).map(([key, value]) => {
@@ -316,6 +324,73 @@ export default function PricesManagement() {
     }
   };
 
+  const fetchDefaultPrices = async () => {
+    try {
+      setLoadingDefaultPrices(true);
+      const res = await fetch('/api/admin/default-prices');
+      const data: Price[] = await res.json();
+      const mapped: Record<string, number | string> = {};
+      data.forEach((dp) => {
+        mapped[`${dp.type}-${dp.groupId}`] = dp.price;
+      });
+      setDefaultPrices(mapped);
+    } catch (error) {
+      console.error('Error fetching default prices:', error);
+      toast.error('Не удалось загрузить цены по умолчанию');
+    } finally {
+      setLoadingDefaultPrices(false);
+    }
+  };
+
+  const handleOpenDefaultPricesModal = () => {
+    setIsDefaultPricesModalOpen(true);
+    fetchDefaultPrices();
+  };
+
+  const handleDefaultPriceChange = (
+    type: ProductType,
+    groupId: number | null,
+    value: string,
+  ) => {
+    const key = `${type}-${groupId}`;
+    setDefaultPrices({ ...defaultPrices, [key]: value });
+  };
+
+  const getDefaultPrice = (type: ProductType, groupId: number | null) => {
+    const key = `${type}-${groupId}`;
+    return defaultPrices[key] ?? '';
+  };
+
+  const handleSaveDefaultPrices = async () => {
+    try {
+      setSavingDefaultPrices(true);
+      const promises = Object.entries(defaultPrices)
+        .filter(([, value]) => value !== '' && value !== undefined)
+        .map(([key, value]) => {
+          const [type, groupIdStr] = key.split('-');
+          const groupId = groupIdStr === 'null' ? null : parseInt(groupIdStr);
+          return fetch('/api/admin/default-prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: type as ProductType,
+              groupId,
+              price: parseFloat(value.toString()),
+            }),
+          });
+        });
+
+      await Promise.all(promises);
+      toast.success('Цены по умолчанию сохранены');
+      setIsDefaultPricesModalOpen(false);
+    } catch (error) {
+      console.error('Error saving default prices:', error);
+      toast.error('Ошибка при сохранении цен по умолчанию');
+    } finally {
+      setSavingDefaultPrices(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -330,7 +405,7 @@ export default function PricesManagement() {
               className="w-full justify-between gap-2"
               onClick={() => {
                 setIsPartnerComboboxOpen((open) => !open);
-                setPartnerQuery(selectedPartnerName);
+                setPartnerQuery(selectedPartnerId ? selectedPartnerName : '');
               }}
             >
               <span className="truncate text-left">{selectedPartnerName}</span>
@@ -382,16 +457,25 @@ export default function PricesManagement() {
             )}
           </div>
         </div>
-        {hasChanges && (
+        <div className="flex gap-2 items-center w-full sm:w-auto">
           <Button
-            onClick={handleSaveAllPrices}
-            disabled={loading}
-            size="lg"
+            variant="outline"
+            onClick={handleOpenDefaultPricesModal}
             className="w-full sm:w-auto"
           >
-            {loading ? 'Сохранение...' : 'Сохранить все изменения'}
+            ⚙️ Цены по умолчанию для новых партнёров
           </Button>
-        )}
+          {hasChanges && (
+            <Button
+              onClick={handleSaveAllPrices}
+              disabled={loading}
+              size="lg"
+              className="w-full sm:w-auto"
+            >
+              {loading ? 'Сохранение...' : 'Сохранить все изменения'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -450,6 +534,7 @@ export default function PricesManagement() {
                               handlePriceChange(type, group.id, e.target.value)
                             }
                             placeholder="0.00"
+                            disabled={!selectedPartnerId}
                           />
                         </div>
                       ))}
@@ -481,6 +566,7 @@ export default function PricesManagement() {
                         handlePriceChange(type, null, e.target.value)
                       }
                       placeholder="0.00"
+                      disabled={!selectedPartnerId}
                     />
                   </div>
                 </div>
@@ -647,6 +733,104 @@ export default function PricesManagement() {
                   disabled={applyingPreset}
                 >
                   {applyingPreset ? 'Применение...' : 'Применить ко всем'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Модальное окно цен по умолчанию для новых партнёров */}
+      {isDefaultPricesModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-4xl max-h-[85vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle>Цены по умолчанию для новых партнёров</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Эти цены будут автоматически проставлены новому партнёру при
+                его создании (в том числе при одобрении заявки на
+                партнёрство), чтобы он сразу мог оформлять заказы.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {loadingDefaultPrices ? (
+                <div>Загрузка...</div>
+              ) : (
+                <div className="space-y-4">
+                  {PRODUCT_TYPES.map((type) => (
+                    <Card key={type}>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          {PRODUCT_TYPE_LABELS[type] || type}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {Array.isArray(groups) &&
+                            groups
+                              .filter((g) => g.type === type)
+                              .map((group) => (
+                                <div
+                                  key={`default-${type}-${group.id}`}
+                                  className="space-y-2"
+                                >
+                                  <label className="text-sm font-medium truncate block">
+                                    {(group.translations as any)?.ru ||
+                                      group.slug}
+                                  </label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={getDefaultPrice(type, group.id)}
+                                    onChange={(e) =>
+                                      handleDefaultPriceChange(
+                                        type,
+                                        group.id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              ))}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              Без группы
+                            </label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={getDefaultPrice(type, null)}
+                              onChange={(e) =>
+                                handleDefaultPriceChange(
+                                  type,
+                                  null,
+                                  e.target.value,
+                                )
+                              }
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-4 border-t">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsDefaultPricesModalOpen(false)}
+                  disabled={savingDefaultPrices}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onClick={handleSaveDefaultPrices}
+                  disabled={savingDefaultPrices || loadingDefaultPrices}
+                >
+                  {savingDefaultPrices ? 'Сохранение...' : 'Сохранить'}
                 </Button>
               </div>
             </CardContent>

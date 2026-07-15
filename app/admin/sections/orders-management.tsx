@@ -30,6 +30,8 @@ import {
   Check,
   ChevronDown,
   Search,
+  Phone,
+  MapPin,
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import type { AdminOrder } from '../types';
@@ -76,6 +78,7 @@ export default function OrdersManagement({
   const [orderPartnerSearchQuery, setOrderPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
+  const [orderAddress, setOrderAddress] = useState('');
   const [orderDate, setOrderDate] = useState<string>(
     new Date().toISOString().split('T')[0],
   );
@@ -208,6 +211,7 @@ export default function OrdersManagement({
       orderType,
       items,
       notes: orderNotes.trim() || undefined,
+      address: orderAddress.trim() || undefined,
       createdAt: orderDate ? new Date(orderDate).toISOString() : undefined,
     };
 
@@ -236,6 +240,7 @@ export default function OrdersManagement({
       setPartnerSearchQuery('');
       setProductSearchQuery('');
       setOrderNotes('');
+      setOrderAddress('');
       setOrderDate(new Date().toISOString().split('T')[0]);
       setSelectedGroupId('all');
       setQuantities({});
@@ -384,7 +389,14 @@ export default function OrdersManagement({
     setSelectedPartnerId(partnerId);
     setPartnerSearchQuery(partnerName);
     setIsPartnerComboboxOpen(false);
+
+    const partner = partners.find((p) => p.id.toString() === partnerId);
+    setOrderAddress(partner?.address || '');
   };
+
+  const selectedPartner = partners.find(
+    (p) => p.id.toString() === selectedPartnerId,
+  );
 
   // Фильтрация товаров
   const getFilteredProducts = () => {
@@ -626,6 +638,29 @@ export default function OrdersManagement({
 
                   {isExpanded && (
                     <div className="mt-4 space-y-3 border-t pt-3">
+                      {/* Partner contact info */}
+                      {(order.partner.phone ||
+                        order.address ||
+                        order.partner.address) && (
+                        <div className="bg-secondary p-3 rounded space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">
+                            Контакты партнёра:
+                          </p>
+                          {order.partner.phone && (
+                            <p className="text-sm flex items-center gap-2">
+                              <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              {order.partner.phone}
+                            </p>
+                          )}
+                          {(order.address || order.partner.address) && (
+                            <p className="text-sm flex items-center gap-2">
+                              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                              {order.address || order.partner.address}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       {/* Order Notes */}
                       <div className="bg-secondary p-3 rounded">
                         <div className="flex justify-between items-start gap-2">
@@ -875,6 +910,12 @@ export default function OrdersManagement({
                     </div>
                   )}
                 </div>
+                {selectedPartner?.phone && (
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    {selectedPartner.phone}
+                  </p>
+                )}
               </div>
 
               {/* Order Type */}
@@ -909,6 +950,20 @@ export default function OrdersManagement({
                   placeholder="Введите примечание к заказу..."
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
+                />
+              </div>
+
+              {/* Address */}
+              <div>
+                <Label htmlFor="order-address" className="mb-1">
+                  Адрес доставки (необязательно)
+                </Label>
+                <Input
+                  id="order-address"
+                  type="text"
+                  placeholder="Адрес доставки или самовывоза..."
+                  value={orderAddress}
+                  onChange={(e) => setOrderAddress(e.target.value)}
                 />
               </div>
 
@@ -1095,6 +1150,7 @@ export default function OrdersManagement({
               onClick={() => {
                 setIsCreateDialogOpen(false);
                 setOrderNotes('');
+                setOrderAddress('');
                 setOrderDate(new Date().toISOString().split('T')[0]);
                 setSelectedGroupId('all');
                 setSelectedTypeFilter('ALL');

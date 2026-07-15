@@ -31,6 +31,22 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   dateCell.alignment = { horizontal: 'center' };
   sheet.getRow(2).height = 20;
 
+  // Контакты партнёра (если указаны)
+  const contactPhone = order.partner.phone;
+  const contactAddress = order.address || order.partner.address;
+
+  if (contactPhone) {
+    const phoneRow = sheet.addRow([`Телефон: ${contactPhone}`]);
+    sheet.mergeCells(`A${phoneRow.number}:D${phoneRow.number}`);
+    phoneRow.getCell(1).alignment = { horizontal: 'center' };
+  }
+
+  if (contactAddress) {
+    const addressRow = sheet.addRow([`Адрес: ${contactAddress}`]);
+    sheet.mergeCells(`A${addressRow.number}:D${addressRow.number}`);
+    addressRow.getCell(1).alignment = { horizontal: 'center' };
+  }
+
   // Пустая строка
   sheet.addRow([]);
 

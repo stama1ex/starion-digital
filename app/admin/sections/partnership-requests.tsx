@@ -12,6 +12,7 @@ import {
   Phone,
   User,
   Lock,
+  MapPin,
   MessageSquare,
   Trash2,
 } from 'lucide-react';
@@ -21,6 +22,7 @@ type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 interface PartnershipRequest {
   id: number;
   phone: string;
+  address: string | null;
   login: string;
   password: string;
   message: string | null;
@@ -223,6 +225,18 @@ export function PartnershipRequests({
                     </div>
                   </div>
                 </div>
+
+                {req.address && (
+                  <div className="flex gap-2 pt-2 border-t">
+                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-xs text-muted-foreground">
+                        Адрес:
+                      </span>
+                      <p className="text-sm mt-1">{req.address}</p>
+                    </div>
+                  </div>
+                )}
 
                 {req.message && (
                   <div className="flex gap-2 pt-2 border-t">

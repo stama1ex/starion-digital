@@ -12,6 +12,9 @@ model Partner {
   name      String
   login     String   @unique
   password  String
+  phone     String?
+  address   String?
+  isVip     Boolean  @default(false) // Доступ к запросу на реализацию
   role      PartnerRole @default(PARTNER)
   createdAt DateTime @default(now())
 
@@ -46,11 +49,24 @@ model ProductGroup {
   type         ProductType // К какому типу товара относится группа
   createdAt    DateTime @default(now())
 
-  products Product[]
-  prices   Price[]
+  products      Product[]
+  prices        Price[]
+  defaultPrices DefaultPrice[]
 
   @@index([type])
   @@index([slug, type])
+}
+
+// Цены по умолчанию, применяемые новым партнёрам при создании
+model DefaultPrice {
+  id      Int      @id @default(autoincrement())
+  type    ProductType
+  groupId Int?     // Необязательная связь с группой (может быть цена на тип без группы)
+  price   Decimal  @db.Decimal(10,2)
+
+  group ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([type, groupId])
 }
 
 model Price {
@@ -73,6 +89,7 @@ model Order {
   status        OrderStatus @default(NEW)
   isRealization Boolean    @default(false) // Флаг заказа на реализацию
   notes         String?    @db.Text // Примечание к заказу
+  address       String?    @db.Text // Адрес доставки/самовывоза для заказа
   customPrices  Json?      // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}
   createdAt     DateTime   @default(now())
 
@@ -155,6 +172,7 @@ model RealizationPayment {
 model PartnershipRequest {
   id        Int      @id @default(autoincrement())
   phone     String
+  address   String?
   login     String
   password  String
   message   String?  @db.Text

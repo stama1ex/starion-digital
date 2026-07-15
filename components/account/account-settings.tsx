@@ -7,9 +7,8 @@ import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Monitor } from 'lucide-react';
-import { AdminAPI } from '@/lib/admin/api-client';
 
-interface AdminSession {
+interface AccountSession {
   id: number;
   createdAt: string;
   lastUsedAt: string;
@@ -29,43 +28,75 @@ function formatSessionDate(value: string) {
   }).format(new Date(value));
 }
 
-export default function AdminSettings() {
+export default function AccountSettings() {
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [unauthorized, setUnauthorized] = useState(false);
+  const [currentLogin, setCurrentLogin] = useState('');
+
   const [login, setLogin] = useState('');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [updating, setUpdating] = useState(false);
+  const [updatingCredentials, setUpdatingCredentials] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [sessions, setSessions] = useState<AdminSession[]>([]);
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [savingContact, setSavingContact] = useState(false);
+
+  const [sessions, setSessions] = useState<AccountSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [revokingSessionId, setRevokingSessionId] = useState<number | null>(
     null,
   );
 
-  const loadSessions = async () => {
-    try {
-      setLoadingSessions(true);
-      const data = await AdminAPI.getSessions();
-      setSessions(data.sessions);
-    } catch (error) {
-      console.error('Error loading sessions:', error);
-      toast.error('Не удалось загрузить активные сессии');
-    } finally {
-      setLoadingSessions(false);
-    }
-  };
-
   useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const res = await fetch('/api/account');
+        if (res.status === 401) {
+          setUnauthorized(true);
+          return;
+        }
+        const data = await res.json();
+        setCurrentLogin(data.login ?? '');
+        setPhone(data.phone ?? '');
+        setAddress(data.address ?? '');
+      } catch (error) {
+        console.error('Error loading account:', error);
+        toast.error('Не удалось загрузить данные аккаунта');
+      } finally {
+        setLoadingProfile(false);
+      }
+    };
+
+    const loadSessions = async () => {
+      try {
+        const res = await fetch('/api/account/sessions');
+        if (!res.ok) return;
+        const data = await res.json();
+        setSessions(data.sessions);
+      } catch (error) {
+        console.error('Error loading sessions:', error);
+        toast.error('Не удалось загрузить активные сессии');
+      } finally {
+        setLoadingSessions(false);
+      }
+    };
+
+    loadProfile();
     loadSessions();
   }, []);
 
   const handleRevokeSession = async (sessionId: number) => {
     try {
       setRevokingSessionId(sessionId);
-      await AdminAPI.revokeSession(sessionId);
+      const res = await fetch(`/api/account/sessions?id=${sessionId}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error(await res.text());
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
       toast.success('Сессия завершена');
     } catch (error) {
@@ -73,6 +104,25 @@ export default function AdminSettings() {
       toast.error('Не удалось завершить сессию');
     } finally {
       setRevokingSessionId(null);
+    }
+  };
+
+  const handleSaveContact = async () => {
+    try {
+      setSavingContact(true);
+      const res = await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, address }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      toast.success('Контактные данные обновлены');
+    } catch (error) {
+      console.error('Error saving contact info:', error);
+      toast.error('Не удалось сохранить контактные данные');
+    } finally {
+      setSavingContact(false);
     }
   };
 
@@ -93,9 +143,9 @@ export default function AdminSettings() {
     }
 
     try {
-      setUpdating(true);
-      const res = await fetch('/api/admin/update-credentials', {
-        method: 'POST',
+      setUpdatingCredentials(true);
+      const res = await fetch('/api/account', {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword,
@@ -106,6 +156,7 @@ export default function AdminSettings() {
 
       if (res.ok) {
         toast.success('Данные успешно обновлены');
+        if (login) setCurrentLogin(login);
         setLogin('');
         setCurrentPassword('');
         setNewPassword('');
@@ -125,13 +176,65 @@ export default function AdminSettings() {
       console.error('Error updating credentials:', error);
       toast.error('Ошибка при обновлении данных');
     } finally {
-      setUpdating(false);
+      setUpdatingCredentials(false);
     }
   };
 
+  if (unauthorized) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Войдите в аккаунт, чтобы просмотреть настройки.
+      </p>
+    );
+  }
+
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Настройки администратора</h2>
+      <h2 className="text-2xl font-bold">Мой аккаунт</h2>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Контактные данные</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!loadingProfile && (
+            <p className="text-sm text-muted-foreground">
+              Логин: <span className="font-mono">{currentLogin}</span>
+            </p>
+          )}
+          <div>
+            <Label htmlFor="account-phone" className="mb-2">
+              Телефон
+            </Label>
+            <Input
+              id="account-phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+373 XX XXX XXX"
+            />
+          </div>
+          <div>
+            <Label htmlFor="account-address" className="mb-2">
+              Адрес
+            </Label>
+            <Input
+              id="account-address"
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Город, улица, дом"
+            />
+          </div>
+          <Button
+            onClick={handleSaveContact}
+            disabled={savingContact || loadingProfile}
+            className="w-full sm:w-auto"
+          >
+            {savingContact ? 'Сохранение...' : 'Сохранить контакты'}
+          </Button>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -236,10 +339,10 @@ export default function AdminSettings() {
 
           <Button
             onClick={handleUpdateCredentials}
-            disabled={updating || !currentPassword}
+            disabled={updatingCredentials || !currentPassword}
             className="w-full sm:w-auto"
           >
-            {updating ? 'Сохранение...' : 'Сохранить изменения'}
+            {updatingCredentials ? 'Сохранение...' : 'Сохранить изменения'}
           </Button>
         </CardContent>
       </Card>
@@ -262,7 +365,10 @@ export default function AdminSettings() {
                 className="flex items-center justify-between gap-3 rounded-lg border p-3"
               >
                 <div className="flex items-start gap-3">
-                  <Monitor className="mt-0.5 shrink-0 text-muted-foreground" size={18} />
+                  <Monitor
+                    className="mt-0.5 shrink-0 text-muted-foreground"
+                    size={18}
+                  />
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium">

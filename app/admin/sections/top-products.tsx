@@ -1,9 +1,18 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { filterByDateRange, type DateRange } from '../utils';
 import type { AdminOrder, AdminRealization } from '../types';
+import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS_PLURAL } from '@/lib/admin';
 import {
   BarChart,
   Bar,
@@ -28,6 +37,8 @@ export default function TopProducts({
   dateRange,
   customDateRange,
 }: TopProductsProps) {
+  const [selectedType, setSelectedType] = useState<string | null>(null);
+
   const filteredOrders = filterByDateRange(
     orders,
     dateRange,
@@ -43,6 +54,7 @@ export default function TopProducts({
   type ProductStat = {
     id: number;
     number: string;
+    type: string;
     totalSales: number;
     quantity: number;
     profit: number;
@@ -75,6 +87,7 @@ export default function TopProducts({
         ({
           id: productId,
           number: productNumber,
+          type: item.product.type,
           totalSales: 0,
           quantity: 0,
           profit: 0,
@@ -108,6 +121,7 @@ export default function TopProducts({
         ({
           id: productId,
           number: productNumber,
+          type: item.product.type,
           totalSales: 0,
           quantity: 0,
           profit: 0,
@@ -128,11 +142,23 @@ export default function TopProducts({
 
   const stats = Array.from(productStats.values());
 
-  const topByProfit = [...stats]
-    .sort((a, b) => b.profit - a.profit)
-    .slice(0, 10);
+  // Группируем по типу товара, внутри группы сортируем по прибыли
+  const typeOrder = [...PRODUCT_TYPES, 'STATUE', 'BALL'];
+  const statsByType = typeOrder
+    .map((type) => ({
+      type,
+      label: PRODUCT_TYPE_LABELS_PLURAL[type] || type,
+      products: stats
+        .filter((p) => p.type === type)
+        .sort((a, b) => b.profit - a.profit),
+    }))
+    .filter((group) => group.products.length > 0);
 
-  const chartData = topByProfit.map((product) => ({
+  const activeGroup =
+    statsByType.find((group) => group.type === selectedType) ??
+    statsByType[0];
+
+  const chartData = (activeGroup?.products ?? []).map((product) => ({
     name: `Товар ${product.number}`,
     profit: Math.round(product.profit),
     revenue: Math.round(product.totalSales),
@@ -141,19 +167,36 @@ export default function TopProducts({
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>ТОП-10 Товаров по Прибыли</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4">
+          <CardTitle>Товары по прибыли</CardTitle>
+          {statsByType.length > 0 && (
+            <Select
+              value={activeGroup?.type}
+              onValueChange={setSelectedType}
+            >
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Тип товара" />
+              </SelectTrigger>
+              <SelectContent>
+                {statsByType.map((group) => (
+                  <SelectItem key={group.type} value={group.type}>
+                    {group.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {topByProfit.length === 0 ? (
-              <p className="text-muted-foreground">
-                Нет данных за выбранный период
-              </p>
-            ) : (
-              topByProfit.map((product, idx) => (
+          {!activeGroup ? (
+            <p className="text-muted-foreground">
+              Нет данных за выбранный период
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {activeGroup.products.map((product, idx) => (
                 <div
-                  key={`product-${product.id}-${idx}`}
+                  key={`product-${product.id}`}
                   className="flex justify-between items-center pb-2 border-b last:border-b-0"
                 >
                   <div>
@@ -161,7 +204,7 @@ export default function TopProducts({
                       {idx + 1}. Товар {product.number}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Кол-во: {product.quantity} шт
+                      Кол-во: {Math.round(product.quantity)} шт
                     </p>
                   </div>
                   <div className="text-right">
@@ -173,16 +216,18 @@ export default function TopProducts({
                     </p>
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {chartData.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>График прибыли по товарам</CardTitle>
+            <CardTitle>
+              График прибыли: {activeGroup?.label}
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>

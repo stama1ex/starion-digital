@@ -23,6 +23,7 @@ export default async function AdminPage() {
           status: true,
           isRealization: true,
           notes: true,
+          address: true,
           customPrices: true,
           createdAt: true,
           partner: {
@@ -33,6 +34,8 @@ export default async function AdminPage() {
               createdAt: true,
               login: true,
               password: true,
+              phone: true,
+              address: true,
             },
           },
           items: {
@@ -65,6 +68,9 @@ export default async function AdminPage() {
           id: true,
           name: true,
           login: true,
+          phone: true,
+          address: true,
+          isVip: true,
           role: true,
           createdAt: true,
         },

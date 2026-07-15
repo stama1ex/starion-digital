@@ -72,14 +72,30 @@ export async function PUT(request: NextRequest) {
       const hashedPassword = await bcrypt.hash(partnershipRequest.password, 10);
 
       // Создаем партнера
-      await prisma.partner.create({
+      const newPartner = await prisma.partner.create({
         data: {
           name: partnershipRequest.login,
           login: partnershipRequest.login,
           password: hashedPassword,
+          phone: partnershipRequest.phone,
+          address: partnershipRequest.address,
           role: 'PARTNER',
         },
       });
+
+      // Применяем цены по умолчанию, чтобы партнёр сразу мог оформлять заказы
+      const defaultPrices = await prisma.defaultPrice.findMany();
+
+      if (defaultPrices.length) {
+        await prisma.price.createMany({
+          data: defaultPrices.map((dp) => ({
+            partnerId: newPartner.id,
+            type: dp.type,
+            groupId: dp.groupId,
+            price: dp.price,
+          })),
+        });
+      }
 
       // Обновляем статус заявки
       await prisma.partnershipRequest.update({

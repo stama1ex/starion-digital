@@ -7,19 +7,15 @@ import {
 } from '@/lib/auth/session';
 import { parseUserAgent } from '@/lib/auth/user-agent';
 
-async function checkAdminAuth() {
-  return getPartnerFromSessionCookie('ADMIN');
-}
-
 export async function GET() {
   try {
-    const admin = await checkAdminAuth();
-    if (!admin) {
-      return new Response('Unauthorized - Admin only', { status: 401 });
+    const partner = await getPartnerFromSessionCookie();
+    if (!partner) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
     const [sessions, currentTokenHash] = await Promise.all([
-      listActiveSessions(admin.id),
+      listActiveSessions(partner.id),
       getCurrentSessionTokenHash(),
     ]);
 
@@ -42,9 +38,9 @@ export async function GET() {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const admin = await checkAdminAuth();
-    if (!admin) {
-      return new Response('Unauthorized - Admin only', { status: 401 });
+    const partner = await getPartnerFromSessionCookie();
+    if (!partner) {
+      return new Response('Unauthorized', { status: 401 });
     }
 
     const sessionId = Number(req.nextUrl.searchParams.get('id'));
@@ -53,7 +49,7 @@ export async function DELETE(req: NextRequest) {
     }
 
     const currentTokenHash = await getCurrentSessionTokenHash();
-    const sessions = await listActiveSessions(admin.id);
+    const sessions = await listActiveSessions(partner.id);
     const target = sessions.find((session) => session.id === sessionId);
 
     if (!target) {
@@ -66,7 +62,7 @@ export async function DELETE(req: NextRequest) {
       });
     }
 
-    await revokeSessionById(admin.id, sessionId);
+    await revokeSessionById(partner.id, sessionId);
 
     return Response.json({ ok: true });
   } catch (error) {

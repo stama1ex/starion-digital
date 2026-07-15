@@ -85,6 +85,7 @@ export default function DebtTracking({
   type Balance = {
     id: number;
     name: string;
+    phone: string | null;
     ordersTotal: number;
     realizationTotal: number;
     realizationPaid: number;
@@ -93,7 +94,11 @@ export default function DebtTracking({
 
   const balances = new Map<number, Balance>();
 
-  const ensureBalance = (partnerId: number, name: string) => {
+  const ensureBalance = (
+    partnerId: number,
+    name: string,
+    phone?: string | null,
+  ) => {
     const existing = balances.get(partnerId);
     if (existing) {
       return existing;
@@ -102,6 +107,7 @@ export default function DebtTracking({
     const next: Balance = {
       id: partnerId,
       name,
+      phone: phone ?? null,
       ordersTotal: 0,
       realizationTotal: 0,
       realizationPaid: 0,
@@ -113,7 +119,7 @@ export default function DebtTracking({
   };
 
   partners.forEach((partner) => {
-    ensureBalance(partner.id, partner.name);
+    ensureBalance(partner.id, partner.name, partner.phone);
   });
 
   const orderIdsWithRealization = new Set(
@@ -320,6 +326,11 @@ export default function DebtTracking({
               balancesList.map((b) => (
                 <div key={b.id} className="border-b last:border-b-0">
                   <p className="font-medium">{b.name}</p>
+                  {b.phone && (
+                    <p className="text-xs text-muted-foreground">
+                      {b.phone}
+                    </p>
+                  )}
                   <div className="grid grid-cols-2 gap-2 text-sm mt-2">
                     <div>
                       <p className="text-muted-foreground">Обычные заказы:</p>

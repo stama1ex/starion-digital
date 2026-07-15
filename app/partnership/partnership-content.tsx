@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Container } from '@/components/shared/container';
-import { Mail, Phone, Lock, User, ArrowLeft } from 'lucide-react';
+import { Mail, Phone, Lock, User, MapPin, ArrowLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -15,6 +15,7 @@ export default function PartnershipContent() {
   const t = useTranslations('Partnership');
   const [formData, setFormData] = useState({
     phone: '',
+    address: '',
     login: '',
     password: '',
     message: '',
@@ -111,6 +112,22 @@ export default function PartnershipContent() {
                   setFormData({ ...formData, phone: e.target.value })
                 }
                 placeholder={t('phone_placeholder')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="address" className="flex items-center gap-2 mb-2">
+                <MapPin className="w-4 h-4" />
+                {t('address_label')}
+              </Label>
+              <Input
+                id="address"
+                type="text"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({ ...formData, address: e.target.value })
+                }
+                placeholder={t('address_placeholder')}
               />
             </div>
 

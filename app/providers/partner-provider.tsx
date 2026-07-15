@@ -5,16 +5,22 @@ import { createContext, useContext, useEffect, useState } from 'react';
 interface PartnerCtx {
   isPartner: boolean;
   loading: boolean;
+  address: string | null;
+  isVip: boolean;
 }
 
 const PartnerContext = createContext<PartnerCtx>({
   isPartner: false,
   loading: true,
+  address: null,
+  isVip: false,
 });
 
 export function PartnerProvider({ children }: { children: React.ReactNode }) {
   const [isPartner, setIsPartner] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [address, setAddress] = useState<string | null>(null);
+  const [isVip, setIsVip] = useState(false);
 
   useEffect(() => {
     async function checkAuth() {
@@ -22,6 +28,8 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         const res = await fetch('/api/me');
         const data = await res.json();
         setIsPartner(data.isPartner);
+        setAddress(data.address ?? null);
+        setIsVip(!!data.isVip);
       } finally {
         setLoading(false);
       }
@@ -30,7 +38,7 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <PartnerContext.Provider value={{ isPartner, loading }}>
+    <PartnerContext.Provider value={{ isPartner, loading, address, isVip }}>
       {children}
     </PartnerContext.Provider>
   );
