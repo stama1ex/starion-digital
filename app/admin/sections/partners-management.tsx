@@ -23,6 +23,8 @@ import {
   EyeOff,
   Phone,
   MapPin,
+  Mail,
+  CalendarDays,
   Star,
 } from 'lucide-react';
 import {
@@ -49,6 +51,7 @@ export default function PartnersManagement({
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingPartner, setEditingPartner] = useState<any | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -60,9 +63,14 @@ export default function PartnersManagement({
   });
 
   const handleSave = async () => {
+    if (!formData.name.trim()) {
+      toast.error('Заполните имя');
+      return;
+    }
+
     if (!editingId) {
-      if (!formData.name.trim() || !formData.login.trim()) {
-        toast.error('Заполните имя и логин');
+      if (!formData.login.trim()) {
+        toast.error('Заполните логин');
         return;
       }
 
@@ -73,12 +81,17 @@ export default function PartnersManagement({
     }
 
     try {
-      const body = editingId ? { ...formData, id: editingId } : formData;
-
       if (editingId) {
-        await AdminAPI.updatePartner(body);
+        // Логин/пароль/телефон/адрес/email — личные данные партнёра, их
+        // редактирует только он сам в личном кабинете. Админ здесь меняет
+        // только отображаемое имя и VIP-статус (см. api/admin/partners)
+        await AdminAPI.updatePartner({
+          id: editingId,
+          name: formData.name,
+          isVip: formData.isVip,
+        });
       } else {
-        await AdminAPI.createPartner(body);
+        await AdminAPI.createPartner(formData);
       }
 
       setFormData({
@@ -90,6 +103,7 @@ export default function PartnersManagement({
         isVip: false,
       });
       setEditingId(null);
+      setEditingPartner(null);
       setIsDialogOpen(false);
       await refetch();
       toast.success(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
@@ -102,12 +116,13 @@ export default function PartnersManagement({
   const handleEdit = (partner: any) => {
     setFormData({
       name: partner.name,
-      login: partner.login,
+      login: '',
       password: '',
-      phone: partner.phone || '',
-      address: partner.address || '',
+      phone: '',
+      address: '',
       isVip: !!partner.isVip,
     });
+    setEditingPartner(partner);
     setEditingId(partner.id);
     setIsDialogOpen(true);
   };
@@ -145,6 +160,7 @@ export default function PartnersManagement({
       isVip: false,
     });
     setEditingId(null);
+    setEditingPartner(null);
     setIsDialogOpen(true);
   };
 
@@ -283,10 +299,65 @@ export default function PartnersManagement({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Редактировать партнера' : 'Добавить партнера'}
+              {editingId ? 'Партнёр' : 'Добавить партнера'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {editingId && editingPartner && (
+              <div className="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Логин</span>
+                  <span className="font-mono">{editingPartner.login}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Phone size={13} />
+                    Телефон
+                  </span>
+                  <span>{editingPartner.phone || '—'}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <MapPin size={13} />
+                    Адрес
+                  </span>
+                  <span className="text-right">
+                    {editingPartner.address || '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <Mail size={13} />
+                    Email
+                  </span>
+                  <span className="text-right">
+                    {editingPartner.email
+                      ? `${editingPartner.email}${
+                          editingPartner.emailVerified
+                            ? ''
+                            : ' (не подтверждён)'
+                        }`
+                      : '—'}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                    <CalendarDays size={13} />
+                    Регистрация
+                  </span>
+                  <span>
+                    {new Date(editingPartner.createdAt).toLocaleDateString(
+                      'ru-RU',
+                    )}
+                  </span>
+                </div>
+                <p className="border-t pt-2 text-xs text-muted-foreground">
+                  Логин, пароль, телефон, адрес и email партнёр меняет
+                  самостоятельно в личном кабинете
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="text-sm font-medium">Имя</label>
               <Input
@@ -297,62 +368,68 @@ export default function PartnersManagement({
                 placeholder="Название компании"
               />
             </div>
-            <div>
-              <label className="text-sm font-medium">Логин</label>
-              <Input
-                value={formData.login || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, login: e.target.value })
-                }
-                placeholder="username"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Пароль</label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  placeholder="password"
-                  className="pr-10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium">
-                Телефон (необязательно)
-              </label>
-              <Input
-                type="tel"
-                value={formData.phone || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-                placeholder="+373 XX XXX XXX"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">
-                Адрес (необязательно)
-              </label>
-              <Input
-                value={formData.address || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-                placeholder="Город, улица, дом"
-              />
-            </div>
+
+            {!editingId && (
+              <>
+                <div>
+                  <label className="text-sm font-medium">Логин</label>
+                  <Input
+                    value={formData.login || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, login: e.target.value })
+                    }
+                    placeholder="username"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Пароль</label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password || ''}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      placeholder="password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium">
+                    Телефон (необязательно)
+                  </label>
+                  <Input
+                    type="tel"
+                    value={formData.phone || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    placeholder="+373 XX XXX XXX"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">
+                    Адрес (необязательно)
+                  </label>
+                  <Input
+                    value={formData.address || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, address: e.target.value })
+                    }
+                    placeholder="Город, улица, дом"
+                  />
+                </div>
+              </>
+            )}
+
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
               <input
                 type="checkbox"

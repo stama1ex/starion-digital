@@ -177,7 +177,7 @@ export default function AdminDashboard({
             value="edit"
             className="text-xs sm:text-sm py-2 relative"
           >
-            <span className="hidden sm:inline">⚙️ </span>Настройки
+            <span className="hidden sm:inline">⚙️ </span>Управление
             {pendingRequestsCount > 0 && (
               <Badge
                 variant="destructive"
