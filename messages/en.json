@@ -46,7 +46,8 @@
     "contacts": "Contacts",
     "language": "Language",
     "soon": "Coming Soon",
-    "my_account": "My Account"
+    "my_account": "My Account",
+    "email_recommended": "We recommend linking an email in account settings"
   },
   "Categories": {
     "magnet": {
@@ -267,9 +268,9 @@
 
   "Login": {
     "title": "Partner Login",
-    "login": "Login",
+    "login": "Login or Email",
     "password": "Password",
-    "login_placeholder": "Company name",
+    "login_placeholder": "Company name or email",
     "password_placeholder": "Password",
     "submit": "Sign In",
     "loading": "Signing in...",
@@ -277,19 +278,66 @@
     "too_many_attempts": "Too many attempts. Please try again later.",
     "success": "Logged in successfully",
     "no_account": "No account?",
-    "apply_partnership": "Apply for partnership"
+    "apply_partnership": "Apply for partnership",
+    "code_sent": "Verification code sent to your email",
+    "code_description": "We sent a verification code to the email linked to your account. Enter it to complete sign-in.",
+    "invalid_code": "Invalid verification code",
+    "forgot_password": "Forgot password?"
   },
   "PartnerUI": {
     "logout_success": "You have successfully logged out",
     "no_access": "Access restricted to partners",
     "login": "Log in",
-    "logout": "Log out"
+    "logout": "Log out",
+    "admin_panel": "Admin Panel"
+  },
+  "CodeVerificationDialog": {
+    "title": "Email verification",
+    "code_placeholder": "Code from email",
+    "confirm": "Confirm",
+    "confirming": "Checking...",
+    "sending": "Sending...",
+    "resend": "Resend code",
+    "resend_countdown": "Resend in {seconds}s",
+    "invalid_code": "Invalid verification code"
+  },
+  "ForgotPassword": {
+    "title": "Password recovery",
+    "identifier_description": "Enter the login or email linked to your account. If the account exists, we'll send a verification code to the linked email.",
+    "identifier_placeholder": "Login or email",
+    "send_code": "Send code",
+    "sending": "Sending...",
+    "code_sent": "If the account exists, a code was sent to its email",
+    "code_description": "Enter the code sent to the email linked to your account.",
+    "code_placeholder": "Code from email",
+    "confirm": "Confirm",
+    "confirming": "Checking...",
+    "resend": "Resend code",
+    "resend_countdown": "Resend in {seconds}s",
+    "password_description": "Choose a new password for your account.",
+    "new_password": "New password",
+    "new_password_placeholder": "At least 6 characters",
+    "confirm_password": "Confirm password",
+    "confirm_password_placeholder": "Repeat the new password",
+    "saving": "Saving...",
+    "save_password": "Save password",
+    "done_title": "Password changed",
+    "done_description": "You can now sign in with your new password. All previous sessions have been signed out.",
+    "close": "Close",
+    "invalid_code": "Invalid verification code",
+    "send_error": "Failed to send code",
+    "reset_error": "Failed to reset password",
+    "password_too_short": "Password must be at least 6 characters",
+    "password_mismatch": "Passwords do not match",
+    "reset_success": "Password changed successfully"
   },
   "Partnership": {
     "title": "Partnership Application",
     "description": "Fill out the form and we will contact you to discuss cooperation terms",
     "phone_label": "Phone Number",
     "phone_placeholder": "+XXX XXX XXX XX",
+    "email_label": "Email",
+    "email_placeholder": "you@example.com",
     "address_label": "Address (optional)",
     "address_placeholder": "City, street, house",
     "login_label": "Desired Login",
@@ -307,6 +355,9 @@
     "success_message": "Your application has been successfully submitted. We will review it soon and contact you.",
     "back_to_home": "Return to Home",
     "error_submit": "Error submitting application",
-    "error_network": "Error sending. Please try again later."
+    "error_network": "Error sending. Please try again later.",
+    "email_not_verified": "Please verify your email with the code",
+    "code_sent": "Verification code sent to your email",
+    "code_description": "We sent a verification code to {email}. Enter it to submit your application."
   }
 }

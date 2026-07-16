@@ -10,6 +10,7 @@ import { getLocale, getMessages, getTranslations } from 'next-intl/server';
 import { CookieBanner } from '@/components/ui/cookie-banner';
 import { Toaster } from '@/components/ui/sonner';
 import { PartnerProvider } from './providers/partner-provider';
+import { ConfirmProvider } from './providers/confirm-provider';
 import NextTopLoader from 'nextjs-toploader';
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] });
@@ -60,8 +61,10 @@ export default async function RootLayout({
             disableTransitionOnChange
           >
             <PartnerProvider>
-              <Header />
-              {children}
+              <ConfirmProvider>
+                <Header />
+                {children}
+              </ConfirmProvider>
             </PartnerProvider>
             <Toaster />
             <Footer />

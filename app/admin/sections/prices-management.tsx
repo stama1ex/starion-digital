@@ -6,8 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
 import { ProductType } from '@prisma/client';
+import { usePartners, useGroups } from '@/lib/admin';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
@@ -27,13 +29,6 @@ const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   BALL: 'Шары',
 };
 
-interface ProductGroup {
-  id: number;
-  slug: string;
-  translations: any;
-  type: ProductType;
-}
-
 interface Price {
   id: number;
   type: ProductType;
@@ -42,13 +37,15 @@ interface Price {
 }
 
 export default function PricesManagement() {
-  const [partners, setPartners] = useState<any[]>([]);
-  const [groups, setGroups] = useState<ProductGroup[]>([]);
+  const { partners } = usePartners(true);
+  const { groups } = useGroups();
+  const confirm = useConfirm();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [partnerQuery, setPartnerQuery] = useState('');
   const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [prices, setPrices] = useState<Price[]>([]);
   const [loading, setLoading] = useState(false);
+  const [savingPrices, setSavingPrices] = useState(false);
   const [editingPrices, setEditingPrices] = useState<
     Record<string, number | string>
   >({});
@@ -75,11 +72,6 @@ export default function PricesManagement() {
   const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    fetchPartners();
-    fetchGroups();
-  }, []);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         partnerComboboxRef.current &&
@@ -92,28 +84,6 @@ export default function PricesManagement() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  const fetchPartners = async () => {
-    try {
-      const res = await fetch('/api/admin/partners');
-      const data = await res.json();
-      // Фильтруем партнеров - исключаем ADMIN
-      const filtered = data.filter((p: any) => p.role !== 'ADMIN');
-      setPartners(filtered);
-    } catch (error) {
-      console.error('Error fetching partners:', error);
-    }
-  };
-
-  const fetchGroups = async () => {
-    try {
-      const res = await fetch('/api/admin/groups');
-      const data = await res.json();
-      setGroups(data);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
-    }
-  };
 
   useEffect(() => {
     if (selectedPartnerId) {
@@ -148,22 +118,27 @@ export default function PricesManagement() {
     partners.find((partner) => partner.id.toString() === selectedPartnerId)
       ?.name || 'Выберите партнера';
 
-  const fetchPrices = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `/api/admin/prices?partnerId=${selectedPartnerId}`,
-      );
-      const data = await res.json();
-      setPrices(data);
-      setEditingPrices({});
-      setHasChanges(false);
-    } catch (error) {
-      console.error('Error fetching prices:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedPartnerId]);
+  // silent — фоновое обновление (после сохранения/пресета), не блокирует
+  // сетку экраном "Загрузка..." — только initial-загрузка партнёра это делает
+  const fetchPrices = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      try {
+        if (!opts?.silent) setLoading(true);
+        const res = await fetch(
+          `/api/admin/prices?partnerId=${selectedPartnerId}`,
+        );
+        const data = await res.json();
+        setPrices(data);
+        setEditingPrices({});
+        setHasChanges(false);
+      } catch (error) {
+        console.error('Error fetching prices:', error);
+      } finally {
+        if (!opts?.silent) setLoading(false);
+      }
+    },
+    [selectedPartnerId],
+  );
 
   const handlePriceChange = (
     type: ProductType,
@@ -180,33 +155,70 @@ export default function PricesManagement() {
       toast.error('Выберите партнера');
       return;
     }
-    try {
-      setLoading(true);
-      const promises = Object.entries(editingPrices).map(([key, value]) => {
-        const [type, groupIdStr] = key.split('-');
-        const groupId = groupIdStr === 'null' ? null : parseInt(groupIdStr);
-        return fetch('/api/admin/prices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            partnerId: parseInt(selectedPartnerId),
-            type: type as ProductType,
-            groupId: groupId,
-            price: parseFloat(value.toString()),
-          }),
-        });
-      });
 
-      const results = await Promise.all(promises);
-      if (results.some((r) => !r.ok)) {
-        toast.error('Не удалось сохранить часть цен');
+    const entries = Object.entries(editingPrices);
+    if (entries.length === 0) return;
+
+    try {
+      setSavingPrices(true);
+
+      const results = await Promise.allSettled(
+        entries.map(async ([key, value]) => {
+          const [type, groupIdStr] = key.split('-');
+          const groupId = groupIdStr === 'null' ? null : parseInt(groupIdStr);
+          const res = await fetch('/api/admin/prices', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              partnerId: parseInt(selectedPartnerId),
+              type: type as ProductType,
+              groupId,
+              price: parseFloat(value.toString()),
+            }),
+          });
+          if (!res.ok) throw new Error('Failed to save price');
+          return (await res.json()) as Price;
+        }),
+      );
+
+      const saved = results
+        .filter(
+          (r): r is PromiseFulfilledResult<Price> => r.status === 'fulfilled',
+        )
+        .map((r) => r.value);
+      const failedCount = results.length - saved.length;
+
+      // Мержим сохранённые цены локально — без похода за всем списком заново
+      if (saved.length > 0) {
+        setPrices((prev) => {
+          const next = [...prev];
+          for (const p of saved) {
+            const idx = next.findIndex(
+              (x) => x.type === p.type && x.groupId === p.groupId,
+            );
+            if (idx >= 0) next[idx] = p;
+            else next.push(p);
+          }
+          return next;
+        });
+        setEditingPrices((prev) => {
+          const rest = { ...prev };
+          for (const p of saved) delete rest[`${p.type}-${p.groupId}`];
+          return rest;
+        });
       }
-      await fetchPrices();
+
+      if (failedCount > 0) {
+        toast.error(`Не удалось сохранить ${failedCount} из ${results.length} цен`);
+      } else {
+        setHasChanges(false);
+        toast.success('Все изменения сохранены');
+      }
     } catch (error) {
       console.error('Error saving prices:', error);
       toast.error('Ошибка при сохранении цен');
     } finally {
-      setLoading(false);
+      setSavingPrices(false);
     }
   };
 
@@ -220,15 +232,14 @@ export default function PricesManagement() {
   };
 
   const handleApplyPresetToAll = async (type: ProductType) => {
-    if (
-      !confirm(
-        `Вы уверены, что хотите применить этот пресет цен для типа "${
-          PRODUCT_TYPE_LABELS[type] || type
-        }" ко всем партнерам? Это перезапишет все существующие цены для этого типа товара у всех партнеров.`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      description: `Вы уверены, что хотите применить этот пресет цен для типа "${
+        PRODUCT_TYPE_LABELS[type] || type
+      }" ко всем партнерам? Это перезапишет все существующие цены для этого типа товара у всех партнеров.`,
+      confirmText: 'Применить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     try {
       setApplyingPreset(true);
@@ -270,7 +281,7 @@ export default function PricesManagement() {
       }
       setShowPresetModal(null);
       setPresetPrices({});
-      await fetchPrices(); // Обновляем данные для текущего партнера
+      await fetchPrices({ silent: true }); // Обновляем данные для текущего партнера
     } catch (error) {
       console.error('Error applying preset:', error);
       toast.error('Ошибка при применении пресета');
@@ -298,13 +309,12 @@ export default function PricesManagement() {
     groupId: number | null,
     price: number,
   ) => {
-    if (
-      !confirm(
-        `Вы уверены, что хотите применить цену ${price} лей для этой группы ко всем партнерам?`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      description: `Вы уверены, что хотите применить цену ${price} лей для этой группы ко всем партнерам?`,
+      confirmText: 'Применить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     try {
       setApplyingPreset(true);
@@ -329,7 +339,7 @@ export default function PricesManagement() {
         toast.success('Цена успешно применена ко всем партнерам!');
       }
       setShowGroupPresetModal(null);
-      await fetchPrices();
+      await fetchPrices({ silent: true });
     } catch (error) {
       console.error('Error applying group preset:', error);
       toast.error('Ошибка при применении цены');
@@ -486,11 +496,18 @@ export default function PricesManagement() {
           {hasChanges && (
             <Button
               onClick={handleSaveAllPrices}
-              disabled={loading}
+              disabled={savingPrices}
               size="lg"
               className="w-full sm:w-auto"
             >
-              {loading ? 'Сохранение...' : 'Сохранить все изменения'}
+              {savingPrices ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                'Сохранить все изменения'
+              )}
             </Button>
           )}
         </div>
@@ -673,9 +690,14 @@ export default function PricesManagement() {
                   onClick={() => handleApplyPresetToAll(showPresetModal)}
                   disabled={applyingPreset}
                 >
-                  {applyingPreset
-                    ? 'Применение...'
-                    : 'Применить ко всем партнерам'}
+                  {applyingPreset ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Применение...
+                    </>
+                  ) : (
+                    'Применить ко всем партнерам'
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -750,7 +772,14 @@ export default function PricesManagement() {
                   }}
                   disabled={applyingPreset}
                 >
-                  {applyingPreset ? 'Применение...' : 'Применить ко всем'}
+                  {applyingPreset ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Применение...
+                    </>
+                  ) : (
+                    'Применить ко всем'
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -848,7 +877,14 @@ export default function PricesManagement() {
                   onClick={handleSaveDefaultPrices}
                   disabled={savingDefaultPrices || loadingDefaultPrices}
                 >
-                  {savingDefaultPrices ? 'Сохранение...' : 'Сохранить'}
+                  {savingDefaultPrices ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : (
+                    'Сохранить'
+                  )}
                 </Button>
               </div>
             </CardContent>

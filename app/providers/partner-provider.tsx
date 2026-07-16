@@ -7,6 +7,8 @@ interface PartnerCtx {
   loading: boolean;
   address: string | null;
   isVip: boolean;
+  isAdmin: boolean;
+  hasEmail: boolean;
 }
 
 const PartnerContext = createContext<PartnerCtx>({
@@ -14,6 +16,8 @@ const PartnerContext = createContext<PartnerCtx>({
   loading: true,
   address: null,
   isVip: false,
+  isAdmin: false,
+  hasEmail: true,
 });
 
 export function PartnerProvider({ children }: { children: React.ReactNode }) {
@@ -21,6 +25,8 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [address, setAddress] = useState<string | null>(null);
   const [isVip, setIsVip] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasEmail, setHasEmail] = useState(true);
 
   useEffect(() => {
     async function checkAuth() {
@@ -30,6 +36,8 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         setIsPartner(data.isPartner);
         setAddress(data.address ?? null);
         setIsVip(!!data.isVip);
+        setIsAdmin(data.role === 'ADMIN');
+        setHasEmail(!!data.hasEmail);
       } finally {
         setLoading(false);
       }
@@ -38,7 +46,9 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <PartnerContext.Provider value={{ isPartner, loading, address, isVip }}>
+    <PartnerContext.Provider
+      value={{ isPartner, loading, address, isVip, isAdmin, hasEmail }}
+    >
       {children}
     </PartnerContext.Provider>
   );

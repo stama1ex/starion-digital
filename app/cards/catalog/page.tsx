@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import CardsCatalogContent from './cards-catalog-content';
 import { toPlain } from '@/lib/toPlain';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
+import { resolveProductImages } from '@/lib/resolveProductImages';
 
 // Revalidate every 5 minutes
 export const revalidate = 300;
@@ -29,7 +30,11 @@ export default async function CardsCatalogPage({ params }: any) {
     include: { group: true },
   });
 
-  const products = toPlain(rawProducts);
+  const plainProducts = toPlain(rawProducts);
+
+  // Резолвим Dropbox-картинки одним батчем на сервере, чтобы каталог не
+  // дёргал /api/dropbox/temp-link на каждую карточку отдельно с клиента
+  const products = await resolveProductImages(plainProducts);
 
   let prices: {
     type: string;

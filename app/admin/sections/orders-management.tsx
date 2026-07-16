@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Select,
@@ -48,6 +49,7 @@ import {
   PRODUCT_TYPE_LABELS_PLURAL,
 } from '@/lib/admin';
 import { ProductGroup } from '@prisma/client';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 interface OrdersManagementProps {
   orders: AdminOrder[];
@@ -67,6 +69,7 @@ export default function OrdersManagement({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const { partners } = usePartners(true);
   const { products } = useProducts();
+  const confirm = useConfirm();
   // const { groups } = useGroups(); // Now passed as prop
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
   const [orderType, setOrderType] = useState<'regular' | 'realization'>(
@@ -282,13 +285,13 @@ export default function OrdersManagement({
   };
 
   const handleDeleteOrder = async (orderId: number) => {
-    if (
-      !confirm(
+    const ok = await confirm({
+      description:
         'Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.',
-      )
-    ) {
-      return;
-    }
+      confirmText: 'Удалить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     try {
       await AdminAPI.deleteOrder(orderId);
@@ -1164,7 +1167,14 @@ export default function OrdersManagement({
               onClick={handleCreateOrder}
               disabled={creating || !selectedPartnerId || totalItems === 0}
             >
-              {creating ? 'Создание...' : 'Создать заказ'}
+              {creating ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Создание...
+                </>
+              ) : (
+                'Создать заказ'
+              )}
             </Button>
           </div>
         </DialogContent>
@@ -1200,7 +1210,14 @@ export default function OrdersManagement({
                 Отмена
               </Button>
               <Button onClick={handleUpdateNotes} disabled={updatingNotes}>
-                {updatingNotes ? 'Сохранение...' : 'Сохранить'}
+                {updatingNotes ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Сохранение...
+                  </>
+                ) : (
+                  'Сохранить'
+                )}
               </Button>
             </div>
           </div>

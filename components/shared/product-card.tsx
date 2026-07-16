@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import Tilt from 'react-parallax-tilt';
 import Image from 'next/image';
-import { useState, useMemo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { useCartStore } from '@/store/cart-store';
 import { usePartner } from '@/app/providers/partner-provider';
 import { Button } from '../ui/button';
@@ -36,11 +36,10 @@ interface ProductDTO {
 
 interface Props {
   product: ProductDTO;
-  modelUrls: Record<string, string>;
   getPrice: (p: ProductDTO) => number | null;
 }
 
-export function ProductCard({ product, getPrice }: Props) {
+function ProductCardImpl({ product, getPrice }: Props) {
   const [open, setOpen] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
@@ -223,3 +222,6 @@ export function ProductCard({ product, getPrice }: Props) {
     </Dialog>
   );
 }
+
+export const ProductCard = memo(ProductCardImpl);
+ProductCard.displayName = 'ProductCard';

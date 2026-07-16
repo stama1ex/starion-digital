@@ -8,15 +8,17 @@ generator client {
 }
 
 model Partner {
-  id        Int      @id @default(autoincrement())
-  name      String
-  login     String   @unique
-  password  String
-  phone     String?
-  address   String?
-  isVip     Boolean  @default(false) // Доступ к запросу на реализацию
-  role      PartnerRole @default(PARTNER)
-  createdAt DateTime @default(now())
+  id            Int         @id @default(autoincrement())
+  name          String
+  login         String      @unique
+  password      String
+  phone         String?
+  email         String?     @unique
+  emailVerified Boolean     @default(false) // Подтверждён кодом на email
+  address       String?
+  isVip         Boolean     @default(false) // Доступ к запросу на реализацию
+  role          PartnerRole @default(PARTNER)
+  createdAt     DateTime    @default(now())
 
   prices       Price[]
   orders       Order[]
@@ -25,17 +27,17 @@ model Partner {
 }
 
 model Product {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   type      ProductType
-  number    String   @unique
+  number    String      @unique
   country   String
   image     String
-  groupId   Int?     // Необязательная связь с группой
-  costPrice Decimal  @db.Decimal(10,2) @default(0) // Себестоимость
-  isHidden  Boolean  @default(false) // Скрыт с публичного сайта, но остаётся в админке
+  groupId   Int? // Необязательная связь с группой
+  costPrice Decimal     @default(0) @db.Decimal(10, 2) // Себестоимость
+  isHidden  Boolean     @default(false) // Скрыт с публичного сайта, но остаётся в админке
 
-  group    ProductGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  items     OrderItem[]
+  group            ProductGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
   realizationItems RealizationItem[]
 
   @@index([type])
@@ -44,11 +46,11 @@ model Product {
 
 // Группы товаров - гибкая система группировки
 model ProductGroup {
-  id           Int      @id @default(autoincrement())
-  slug         String   // WOOD, MARBLE, GLASS, etc.
-  translations Json     // {"en": "Wood", "ro": "Lemn", "ru": "Дерево"}
+  id           Int         @id @default(autoincrement())
+  slug         String // WOOD, MARBLE, GLASS, etc.
+  translations Json // {"en": "Wood", "ro": "Lemn", "ru": "Дерево"}
   type         ProductType // К какому типу товара относится группа
-  createdAt    DateTime @default(now())
+  createdAt    DateTime    @default(now())
 
   products      Product[]
   prices        Price[]
@@ -60,10 +62,10 @@ model ProductGroup {
 
 // Цены по умолчанию, применяемые новым партнёрам при создании
 model DefaultPrice {
-  id      Int      @id @default(autoincrement())
+  id      Int         @id @default(autoincrement())
   type    ProductType
-  groupId Int?     // Необязательная связь с группой (может быть цена на тип без группы)
-  price   Decimal  @db.Decimal(10,2)
+  groupId Int? // Необязательная связь с группой (может быть цена на тип без группы)
+  price   Decimal     @db.Decimal(10, 2)
 
   group ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
@@ -71,31 +73,31 @@ model DefaultPrice {
 }
 
 model Price {
-  id        Int      @id @default(autoincrement())
+  id        Int         @id @default(autoincrement())
   partnerId Int
   type      ProductType
-  groupId   Int?     // Необязательная связь с группой (может быть цена на тип без группы)
-  price     Decimal  @db.Decimal(10,2)
+  groupId   Int? // Необязательная связь с группой (может быть цена на тип без группы)
+  price     Decimal     @db.Decimal(10, 2)
 
-  partner   Partner       @relation(fields: [partnerId], references: [id])
-  group     ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  partner Partner       @relation(fields: [partnerId], references: [id])
+  group   ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([partnerId, type, groupId]) // У одного партнёра только одна цена на каждую комбинацию
 }
 
 model Order {
-  id            Int        @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   partnerId     Int
-  totalPrice    Decimal    @db.Decimal(12,2)
+  totalPrice    Decimal     @db.Decimal(12, 2)
   status        OrderStatus @default(NEW)
-  isRealization Boolean    @default(false) // Флаг заказа на реализацию
-  notes         String?    @db.Text // Примечание к заказу
-  address       String?    @db.Text // Адрес доставки/самовывоза для заказа
-  customPrices  Json?      // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}
-  createdAt     DateTime   @default(now())
+  isRealization Boolean     @default(false) // Флаг заказа на реализацию
+  notes         String?     @db.Text // Примечание к заказу
+  address       String?     @db.Text // Адрес доставки/самовывоза для заказа
+  customPrices  Json? // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}
+  createdAt     DateTime    @default(now())
 
-  partner    Partner     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  items      OrderItem[]
+  partner     Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  items       OrderItem[]
   realization Realization?
 
   @@index([partnerId])
@@ -105,12 +107,12 @@ model Order {
 }
 
 model OrderItem {
-  id           Int      @id @default(autoincrement())
+  id           Int     @id @default(autoincrement())
   orderId      Int
   productId    Int
   quantity     Int
-  pricePerItem Decimal  @db.Decimal(10,2)
-  sum          Decimal  @db.Decimal(12,2)
+  pricePerItem Decimal @db.Decimal(10, 2)
+  sum          Decimal @db.Decimal(12, 2)
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -121,17 +123,17 @@ model OrderItem {
 
 // Реализация товаров - товары отгруженные с условием «Реализация»
 model Realization {
-  id           Int      @id @default(autoincrement())
-  orderId      Int      @unique
-  partnerId    Int
-  totalCost    Decimal  @db.Decimal(12,2) // Общая стоимость товаров
-  paidAmount   Decimal  @db.Decimal(12,2) @default(0) // Сколько дилер уже заплатил
-  status       RealizationStatus @default(PENDING) // PENDING, PARTIAL, COMPLETED, CANCELLED
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         Int               @id @default(autoincrement())
+  orderId    Int               @unique
+  partnerId  Int
+  totalCost  Decimal           @db.Decimal(12, 2) // Общая стоимость товаров
+  paidAmount Decimal           @default(0) @db.Decimal(12, 2) // Сколько дилер уже заплатил
+  status     RealizationStatus @default(PENDING) // PENDING, PARTIAL, COMPLETED, CANCELLED
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 
-  order    Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  partner  Partner            @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  order    Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  partner  Partner              @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   items    RealizationItem[]
   payments RealizationPayment[]
 
@@ -142,13 +144,13 @@ model Realization {
 
 // Товары в реализации
 model RealizationItem {
-  id              Int      @id @default(autoincrement())
-  realizationId   Int
-  productId       Int
-  quantity        Int
-  unitPrice       Decimal  @db.Decimal(10,2) // Цена продажи за единицу
-  costPrice       Decimal  @db.Decimal(10,2) // Себестоимость
-  totalPrice      Decimal  @db.Decimal(12,2) // quantity * unitPrice
+  id            Int     @id @default(autoincrement())
+  realizationId Int
+  productId     Int
+  quantity      Int
+  unitPrice     Decimal @db.Decimal(10, 2) // Цена продажи за единицу
+  costPrice     Decimal @db.Decimal(10, 2) // Себестоимость
+  totalPrice    Decimal @db.Decimal(12, 2) // quantity * unitPrice
 
   realization Realization @relation(fields: [realizationId], references: [id], onDelete: Cascade)
   product     Product     @relation(fields: [productId], references: [id])
@@ -161,7 +163,7 @@ model RealizationItem {
 model RealizationPayment {
   id            Int      @id @default(autoincrement())
   realizationId Int
-  amount        Decimal  @db.Decimal(12,2)
+  amount        Decimal  @db.Decimal(12, 2)
   notes         String?  @db.Text // Примечание к платежу
   paymentDate   DateTime @default(now()) // Дата внесения платежа
   createdAt     DateTime @default(now())
@@ -171,30 +173,43 @@ model RealizationPayment {
 
 // Заявки на партнерство
 model PartnershipRequest {
-  id        Int      @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   phone     String
+  email     String?
   address   String?
   login     String
   password  String
-  message   String?  @db.Text
-  ipAddress String?  // IP адрес для защиты от спама
+  message   String?       @db.Text
+  ipAddress String? // IP адрес для защиты от спама
   status    RequestStatus @default(PENDING)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   @@index([status])
   @@index([createdAt])
   @@index([ipAddress, createdAt]) // Индекс для проверки лимита заявок
 }
 
+// Одноразовые коды подтверждения email (отправляются через Nodemailer)
+model EmailVerificationCode {
+  id        Int      @id @default(autoincrement())
+  email     String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model PartnerSession {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   partnerId  Int
-  tokenHash  String   @unique
-  bindHash   String   @unique
+  tokenHash  String    @unique
+  bindHash   String    @unique
   userAgent  String?
-  createdAt  DateTime @default(now())
-  lastUsedAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
   expiresAt  DateTime
   revokedAt  DateTime?
 
@@ -219,21 +234,21 @@ enum ProductType {
 }
 
 enum OrderStatus {
-  NEW        // Новый заказ, ожидает подтверждения
-  CONFIRMED  // Подтверждён админом
-  PAID       // Оплачен (учитывается в доходе)
-  CANCELLED  // Отменён
+  NEW // Новый заказ, ожидает подтверждения
+  CONFIRMED // Подтверждён админом
+  PAID // Оплачен (учитывается в доходе)
+  CANCELLED // Отменён
 }
 
 enum RealizationStatus {
-  PENDING    // Ожидает платежа
-  PARTIAL    // Частичный платёж получен
-  COMPLETED  // Полностью оплачена
-  CANCELLED  // Отменена
+  PENDING // Ожидает платежа
+  PARTIAL // Частичный платёж получен
+  COMPLETED // Полностью оплачена
+  CANCELLED // Отменена
 }
 
 enum RequestStatus {
-  PENDING    // Ожидает рассмотрения
-  APPROVED   // Одобрена (партнер создан)
-  REJECTED   // Отклонена
+  PENDING // Ожидает рассмотрения
+  APPROVED // Одобрена (партнер создан)
+  REJECTED // Отклонена
 }

@@ -33,6 +33,7 @@ import {
 } from '@/lib/admin';
 import { NoImageIcon } from '@/components/shared/no-image-icon';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 function ProductImagePreview({ imagePath }: { imagePath: string }) {
   const { imgSrc, loading } = useDropboxImage(imagePath);
@@ -75,8 +76,9 @@ function ProductImagePreview({ imagePath }: { imagePath: string }) {
 }
 
 export default function ProductsManagement() {
-  const { products, loading, refetch: refetchProducts } = useProducts();
+  const { products, loading, mutate: mutateProducts } = useProducts();
   const { groups } = useGroups();
+  const confirm = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('ALL');
   const [filterGroup, setFilterGroup] = useState<string>('ALL');
@@ -152,24 +154,48 @@ export default function ProductsManagement() {
   };
 
   const handleSave = async () => {
+    const groupId =
+      formData.groupId && formData.groupId !== 'NONE'
+        ? parseInt(formData.groupId)
+        : null;
+
+    const body = {
+      ...(editingId && { id: editingId }),
+      number: formData.number,
+      type: formData.type,
+      country: formData.country,
+      groupId,
+      costPrice: parseFloat(formData.costPrice),
+      imageUrl: formData.image,
+      isHidden: formData.isHidden,
+    };
+
     try {
-      const groupId =
-        formData.groupId && formData.groupId !== 'NONE'
-          ? parseInt(formData.groupId)
-          : null;
-
-      const body = {
-        ...(editingId && { id: editingId }),
-        number: formData.number,
-        type: formData.type,
-        country: formData.country,
-        groupId,
-        costPrice: parseFloat(formData.costPrice),
-        imageUrl: formData.image,
-        isHidden: formData.isHidden,
-      };
-
       if (editingId) {
+        // Оптимистично обновляем список сразу — group подтягиваем из уже
+        // загруженных groups (PUT не возвращает связь group), точные
+        // данные подтянутся при revalidate ниже
+        const newGroup = groupId
+          ? (groups.find((g: any) => g.id === groupId) ?? null)
+          : null;
+        mutateProducts(
+          products.map((p: any) =>
+            p.id === editingId
+              ? {
+                  ...p,
+                  number: formData.number,
+                  type: formData.type,
+                  country: formData.country,
+                  groupId,
+                  group: newGroup,
+                  costPrice: body.costPrice,
+                  image: formData.image,
+                  isHidden: formData.isHidden,
+                }
+              : p,
+          ),
+          { revalidate: false },
+        );
         await AdminAPI.updateProduct(body);
       } else {
         await AdminAPI.createProduct(body);
@@ -177,9 +203,10 @@ export default function ProductsManagement() {
 
       resetForm();
       setIsDialogOpen(false);
-      await refetchProducts();
+      await mutateProducts();
       toast.success('Товар сохранён');
     } catch (error) {
+      await mutateProducts();
       const message = await handleApiError(error);
       toast.error('Ошибка при сохранении товара: ' + message);
     }
@@ -200,6 +227,14 @@ export default function ProductsManagement() {
   };
 
   const handleToggleHidden = async (product: any) => {
+    const nextIsHidden = !product.isHidden;
+    mutateProducts(
+      products.map((p: any) =>
+        p.id === product.id ? { ...p, isHidden: nextIsHidden } : p,
+      ),
+      { revalidate: false },
+    );
+
     try {
       await AdminAPI.updateProduct({
         id: product.id,
@@ -209,26 +244,36 @@ export default function ProductsManagement() {
         groupId: product.groupId,
         costPrice: parseFloat(product.costPrice),
         imageUrl: product.image,
-        isHidden: !product.isHidden,
+        isHidden: nextIsHidden,
       });
-      await refetchProducts();
       toast.success(
-        product.isHidden ? 'Товар снова виден на сайте' : 'Товар скрыт с сайта',
+        nextIsHidden ? 'Товар скрыт с сайта' : 'Товар снова виден на сайте',
       );
     } catch (error) {
+      await mutateProducts();
       const message = await handleApiError(error);
       toast.error('Ошибка при изменении видимости: ' + message);
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Вы уверены? Это удалит товар из системы.')) return;
+    const ok = await confirm({
+      description: 'Вы уверены? Это удалит товар из системы.',
+      confirmText: 'Удалить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+
+    mutateProducts(
+      products.filter((p: any) => p.id !== id),
+      { revalidate: false },
+    );
 
     try {
       await AdminAPI.deleteProduct(id);
-      await refetchProducts();
       toast.success('Товар удалён');
     } catch (error) {
+      await mutateProducts();
       const message = await handleApiError(error);
       toast.error('Ошибка при удалении товара: ' + message);
     }

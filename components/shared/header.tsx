@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Globe, Menu, User } from 'lucide-react';
+import { Globe, Menu, ShieldCheck, User } from 'lucide-react';
 import * as React from 'react';
 import { ThemeToggleButton } from './theme-toggle-button';
 import ReactCountryFlag from 'react-country-flag';
@@ -63,7 +63,7 @@ export const Header: React.FC<Props> = ({ className }) => {
   const tPartner = useTranslations('PartnerUI');
 
   const setLocale = useLocaleStore((state) => state.setLocale);
-  const { isPartner } = usePartner();
+  const { isPartner, isAdmin, hasEmail } = usePartner();
 
   React.useEffect(() => setMounted(true), []);
   if (!mounted) return <HeaderSkeleton />;
@@ -242,15 +242,33 @@ export const Header: React.FC<Props> = ({ className }) => {
                 {/* PARTNER ACTIONS MOBILE */}
                 {isPartner && (
                   <>
-                    <Link href="/my-orders">
-                      <Button variant="outline" className="w-full mt-2">
-                        {tOrders('title')}
-                      </Button>
-                    </Link>
+                    {isAdmin ? (
+                      <Link href="/admin">
+                        <Button className="w-full mt-2 gap-2 bg-primary text-primary-foreground shadow-md hover:opacity-90">
+                          <ShieldCheck size={16} />
+                          {tPartner('admin_panel')}
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href="/my-orders">
+                        <Button variant="outline" className="w-full mt-2">
+                          {tOrders('title')}
+                        </Button>
+                      </Link>
+                    )}
                     <Link href="/my-account">
-                      <Button variant="outline" className="w-full gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2 relative"
+                      >
                         <User size={16} />
                         {t('my_account')}
+                        {!hasEmail && (
+                          <span
+                            className="absolute right-3 top-1/2 -translate-y-1/2 size-2 rounded-full bg-amber-500"
+                            title={t('email_recommended')}
+                          />
+                        )}
                       </Button>
                     </Link>
                   </>
@@ -388,14 +406,35 @@ export const Header: React.FC<Props> = ({ className }) => {
           {/* PARTNER ACTIONS DESKTOP */}
           {isPartner && (
             <>
-              <CartDrawer />
-              <Link href="/my-orders">
-                <Button variant="outline">{tOrders('title')}</Button>
-              </Link>
-              <Link href="/my-account">
-                <Button variant="outline" size="icon" aria-label={t('my_account')}>
+              {isAdmin ? (
+                <Link href="/admin">
+                  <Button className="gap-2 bg-primary text-primary-foreground shadow-md hover:opacity-90">
+                    <ShieldCheck size={18} />
+                    {tPartner('admin_panel')}
+                  </Button>
+                </Link>
+              ) : (
+                <>
+                  <CartDrawer />
+                  <Link href="/my-orders">
+                    <Button variant="outline">{tOrders('title')}</Button>
+                  </Link>
+                </>
+              )}
+              <Link href="/my-account" className="relative">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  aria-label={t('my_account')}
+                >
                   <User size={18} />
                 </Button>
+                {!hasEmail && (
+                  <span
+                    className="absolute -right-0.5 -top-0.5 size-2.5 rounded-full bg-amber-500 ring-2 ring-background"
+                    title={t('email_recommended')}
+                  />
+                )}
               </Link>
             </>
           )}
@@ -412,7 +451,7 @@ export const Header: React.FC<Props> = ({ className }) => {
           )}
         </div>
         {/* MOBILE CART BUTTON (absolute) */}
-        {isPartner && !isActive('/') && !isActive('/admin') && (
+        {isPartner && !isAdmin && !isActive('/') && !isActive('/admin') && (
           <div className="md:hidden absolute right-4 -bottom-12 z-20">
             {' '}
             <CartDrawer isOutline={false} />

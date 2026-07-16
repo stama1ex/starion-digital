@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductType } from '@prisma/client';
+import { Loader2 } from 'lucide-react';
 
 interface OrderCustomPricesDialogProps {
   open: boolean;
@@ -115,7 +117,7 @@ export function OrderCustomPricesDialog({
 
       const data = await response.json();
 
-      alert('Цены успешно обновлены');
+      toast.success('Цены успешно обновлены');
       setHasChanges(false);
       onSuccess(data?.order);
       onOpenChange(false);
@@ -123,7 +125,7 @@ export function OrderCustomPricesDialog({
       console.error('Error saving custom prices:', error);
       const message =
         error instanceof Error ? error.message : 'Неизвестная ошибка';
-      alert(`Ошибка при сохранении цен: ${message}`);
+      toast.error(`Ошибка при сохранении цен: ${message}`);
     } finally {
       setSaving(false);
     }
@@ -250,7 +252,14 @@ export function OrderCustomPricesDialog({
               Отмена
             </Button>
             <Button onClick={handleSave} disabled={saving || !hasChanges}>
-              {saving ? 'Сохранение...' : 'Сохранить цены'}
+              {saving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                'Сохранить цены'
+              )}
             </Button>
           </div>
         </div>

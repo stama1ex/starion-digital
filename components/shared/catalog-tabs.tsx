@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import Catalog from '@/components/shared/catalog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,30 +59,66 @@ export default function CatalogTabs({
     ru: 'Все остальные',
   };
 
-  // Получаем уникальные группы
-  const uniqueGroups = products
-    .map((p) => p.group)
-    .filter((g): g is NonNullable<typeof g> => !!g)
-    .filter(
-      (group, index, self) =>
-        self.findIndex((g) => g.id === group.id) === index,
-    )
-    .sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
+  // Уникальные группы + товары по группам одним проходом
+  const { uniqueGroups, groupedProducts, ungroupedProducts } = useMemo(() => {
+    const seen = new Set<number>();
+    const groups: ProductGroup[] = [];
+    const byGroup = new Map<number, ProductDTO[]>();
+    const ungrouped: ProductDTO[] = [];
 
-  // Товары без группы
-  const ungroupedProducts = products.filter((p) => !p.group);
+    for (const p of products) {
+      if (p.group) {
+        if (!seen.has(p.group.id)) {
+          seen.add(p.group.id);
+          groups.push(p.group);
+        }
+        const list = byGroup.get(p.group.id);
+        if (list) {
+          list.push(p);
+        } else {
+          byGroup.set(p.group.id, [p]);
+        }
+      } else {
+        ungrouped.push(p);
+      }
+    }
+
+    groups.sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
+
+    return { uniqueGroups: groups, groupedProducts: byGroup, ungroupedProducts: ungrouped };
+  }, [products]);
 
   const [activeGroup, setActiveGroup] = useState<string>(
     uniqueGroups[0]?.id?.toString() || 'all',
   );
 
-  // Фильтрация товаров по поисковому запросу
+  // Фильтрация товаров по поисковому запросу — мемоизировано, чтобы при
+  // переключении вкладки без изменения query/products не пересчитывать
+  // и не создавать новые ссылки на массивы для неактивных вкладок
   const filterProducts = (productsList: ProductDTO[]) => {
     if (!searchQuery.trim()) return productsList;
     return productsList.filter((p) =>
       p.number.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   };
+
+  const filteredByGroup = useMemo(() => {
+    const result = new Map<number, ProductDTO[]>();
+    for (const group of uniqueGroups) {
+      result.set(
+        group.id,
+        filterProducts(groupedProducts.get(group.id) ?? []),
+      );
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uniqueGroups, groupedProducts, searchQuery]);
+
+  const filteredUngrouped = useMemo(
+    () => filterProducts(ungroupedProducts),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [ungroupedProducts, searchQuery],
+  );
 
   // Функция для получения перевода группы
   const getGroupName = (group: ProductGroup) => {
@@ -143,8 +179,7 @@ export default function CatalogTabs({
       </div>
 
       {uniqueGroups.map((group) => {
-        const groupProducts = products.filter((p) => p.group?.id === group.id);
-        const filteredProducts = filterProducts(groupProducts);
+        const filteredProducts = filteredByGroup.get(group.id) ?? [];
         return (
           <div
             key={group.id}
@@ -165,7 +200,7 @@ export default function CatalogTabs({
         <div className={activeGroup === 'all' ? 'block' : 'hidden'}>
           <Catalog
             titleKey={titleKey}
-            products={filterProducts(ungroupedProducts)}
+            products={filteredUngrouped}
             modelUrls={modelUrls}
             prices={prices}
             hideTitle
