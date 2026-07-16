@@ -37,23 +37,23 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
+    const groupId = data.groupId ?? null;
 
-    const price = await prisma.defaultPrice.upsert({
-      where: {
-        type_groupId: {
-          type: data.type,
-          groupId: data.groupId ?? null,
-        },
-      },
-      update: {
-        price: data.price,
-      },
-      create: {
-        type: data.type,
-        groupId: data.groupId ?? null,
-        price: data.price,
-      },
+    // Prisma не принимает null в качестве части составного уникального ключа
+    // (type_groupId), поэтому для товаров без группы ищем обычным фильтром
+    // и обновляем/создаём по id вместо upsert по составному ключу.
+    const existing = await prisma.defaultPrice.findFirst({
+      where: { type: data.type, groupId },
     });
+
+    const price = existing
+      ? await prisma.defaultPrice.update({
+          where: { id: existing.id },
+          data: { price: data.price },
+        })
+      : await prisma.defaultPrice.create({
+          data: { type: data.type, groupId, price: data.price },
+        });
 
     return NextResponse.json(price);
   } catch (error) {

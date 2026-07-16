@@ -61,15 +61,18 @@ export async function uploadToDropbox(
   return path;
 }
 
-export async function getTemporaryLink(path: string): Promise<string> {
-  const accessToken = await getAccessToken();
+export async function getTemporaryLink(
+  path: string,
+  accessToken?: string
+): Promise<string> {
+  const token = accessToken ?? (await getAccessToken());
 
   const res = await fetch(
     'https://api.dropboxapi.com/2/files/get_temporary_link',
     {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ path }),

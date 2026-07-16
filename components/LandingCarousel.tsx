@@ -1,7 +1,7 @@
 // components/LandingCarousel.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -35,13 +35,20 @@ export default function LandingCarousel() {
   }));
   const [magnetImgs, setMagnetImgs] = useState<string[]>([]);
   const [plateImgs, setPlateImgs] = useState<string[]>([]);
+  const [cardImgs, setCardImgs] = useState<string[]>([]);
   const [currentImgs, setCurrentImgs] = useState<{ [key: string]: string[] }>({
     magnet: [],
     plate: [],
+    card: [],
   });
   const controls = useAnimation();
   const [api, setApi] = useState<CarouselApi | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  // controls — один общий AnimationControls на все слайды карусели,
+  // поэтому нельзя запускать exit/enter параллельно из двух мест
+  // (смена слайда + таймер) — иначе они перебивают друг друга и
+  // картинки резко меняются посреди анимации.
+  const isCyclingRef = useRef(false);
 
   const getImageSrc = (imagePath: string) => {
     if (imagePath.startsWith('http')) {
@@ -49,6 +56,35 @@ export default function LandingCarousel() {
     }
     return '/' + imagePath.replace(/^public\//, '');
   };
+
+  const imgsByType = useCallback(
+    (type: string): string[] => {
+      if (type === 'magnet') return magnetImgs;
+      if (type === 'plate') return plateImgs;
+      if (type === 'card') return cardImgs;
+      return [];
+    },
+    [magnetImgs, plateImgs, cardImgs],
+  );
+
+  const cycleImages = useCallback(
+    async (categoryType: string) => {
+      if (!['magnet', 'plate', 'card'].includes(categoryType)) return;
+      if (isCyclingRef.current) return;
+      isCyclingRef.current = true;
+      try {
+        await controls.start('exit');
+        setCurrentImgs((prev) => ({
+          ...prev,
+          [categoryType]: getRandomImgs(imgsByType(categoryType), 4),
+        }));
+        await controls.start('enter');
+      } finally {
+        isCyclingRef.current = false;
+      }
+    },
+    [controls, imgsByType],
+  );
 
   useEffect(() => {
     fetch('/magnets.json')
@@ -75,51 +111,82 @@ export default function LandingCarousel() {
       .catch((err) => console.error('Error loading plates:', err));
   }, []);
 
+  // Открытки резолвятся через Dropbox и приходят по одной (NDJSON),
+  // поэтому показываем анимацию, как только накопится первые 4,
+  // не дожидаясь, пока догрузятся остальные.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/postcards/images');
+        if (!res.ok || !res.body) throw new Error('Failed to fetch postcards');
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        const imgs: string[] = [];
+        let buffer = '';
+        let revealed = false;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          let newlineIndex;
+          while ((newlineIndex = buffer.indexOf('\n')) >= 0) {
+            const line = buffer.slice(0, newlineIndex);
+            buffer = buffer.slice(newlineIndex + 1);
+            if (!line.trim()) continue;
+
+            try {
+              imgs.push(JSON.parse(line));
+            } catch {
+              continue;
+            }
+
+            if (cancelled) return;
+            setCardImgs([...imgs]);
+            if (!revealed && imgs.length >= 4) {
+              revealed = true;
+              setCurrentImgs((prev) => ({
+                ...prev,
+                card: getRandomImgs(imgs, 4),
+              }));
+            }
+          }
+        }
+      } catch (err) {
+        if (!cancelled) console.error('Error loading postcards:', err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!api) return;
-    const handleSelect = async () => {
+    const handleSelect = () => {
       const current = api.selectedScrollSnap();
       setCurrentSlide(current);
-      const categoryType = categories[current].type;
-      if (categoryType === 'magnet' || categoryType === 'plate') {
-        await controls.start('exit');
-        setCurrentImgs((prev) => ({
-          ...prev,
-          [categoryType]: getRandomImgs(
-            categoryType === 'magnet' ? magnetImgs : plateImgs,
-            4,
-          ),
-        }));
-        await controls.start('enter');
-      }
+      void cycleImages(categories[current].type);
     };
 
     api.on('select', handleSelect);
     return () => {
       api.off('select', handleSelect);
     };
-  }, [api, magnetImgs, plateImgs, controls, categories]);
+  }, [api, cycleImages, categories]);
 
   useEffect(() => {
     if (!api) return;
-    const updateImages = async () => {
-      const categoryType = categories[currentSlide].type;
-      if (categoryType === 'magnet' || categoryType === 'plate') {
-        await controls.start('exit');
-        setCurrentImgs((prev) => ({
-          ...prev,
-          [categoryType]: getRandomImgs(
-            categoryType === 'magnet' ? magnetImgs : plateImgs,
-            4,
-          ),
-        }));
-        await controls.start('enter');
-      }
-    };
-
-    const interval = setInterval(updateImages, 5000);
+    const interval = setInterval(() => {
+      void cycleImages(categories[currentSlide].type);
+    }, 5000);
     return () => clearInterval(interval);
-  }, [currentSlide, magnetImgs, plateImgs, controls, categories, api]);
+  }, [currentSlide, cycleImages, categories, api]);
 
   return (
     <Carousel setApi={setApi} className="md:w-full w-[90vw] mx-auto">

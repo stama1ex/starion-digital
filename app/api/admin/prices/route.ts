@@ -47,28 +47,23 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
+    const groupId = data.groupId || null;
 
-    // Check if price already exists
-    const existing = await prisma.price.findUnique({
+    // Prisma не принимает null в качестве части составного уникального ключа
+    // (partnerId_type_groupId), поэтому для товаров без группы ищем обычным
+    // фильтром и обновляем/создаём по id.
+    const existing = await prisma.price.findFirst({
       where: {
-        partnerId_type_groupId: {
-          partnerId: data.partnerId,
-          type: data.type,
-          groupId: data.groupId || null,
-        },
+        partnerId: data.partnerId,
+        type: data.type,
+        groupId,
       },
     });
 
     let price;
     if (existing) {
       price = await prisma.price.update({
-        where: {
-          partnerId_type_groupId: {
-            partnerId: data.partnerId,
-            type: data.type,
-            groupId: data.groupId || null,
-          },
-        },
+        where: { id: existing.id },
         data: {
           price: data.price,
         },
@@ -78,7 +73,7 @@ export async function POST(request: NextRequest) {
         data: {
           partnerId: data.partnerId,
           type: data.type,
-          groupId: data.groupId || null,
+          groupId,
           price: data.price,
         },
       });

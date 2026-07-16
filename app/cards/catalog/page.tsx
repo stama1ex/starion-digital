@@ -24,7 +24,7 @@ export default async function CardsCatalogPage({ params }: any) {
   await getTranslations({ locale, namespace: 'Catalog' });
 
   const rawProducts = await prisma.product.findMany({
-    where: { type: 'POSTCARD' },
+    where: { type: 'POSTCARD', isHidden: false },
     orderBy: { number: 'asc' },
     include: { group: true },
   });

@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Edit2, Plus, Upload, X } from 'lucide-react';
+import { Trash2, Edit2, Plus, Upload, X, Eye, EyeOff } from 'lucide-react';
 import { ProductType } from '@prisma/client';
 import {
   useProducts,
@@ -91,6 +91,7 @@ export default function ProductsManagement() {
     groupId: '',
     costPrice: '',
     image: '',
+    isHidden: false,
   });
 
   const uploadFile = async (file: File) => {
@@ -165,6 +166,7 @@ export default function ProductsManagement() {
         groupId,
         costPrice: parseFloat(formData.costPrice),
         imageUrl: formData.image,
+        isHidden: formData.isHidden,
       };
 
       if (editingId) {
@@ -191,9 +193,32 @@ export default function ProductsManagement() {
       groupId: product.groupId ? product.groupId.toString() : 'NONE',
       costPrice: product.costPrice.toString(),
       image: product.image,
+      isHidden: !!product.isHidden,
     });
     setEditingId(product.id);
     setIsDialogOpen(true);
+  };
+
+  const handleToggleHidden = async (product: any) => {
+    try {
+      await AdminAPI.updateProduct({
+        id: product.id,
+        number: product.number,
+        type: product.type,
+        country: product.country,
+        groupId: product.groupId,
+        costPrice: parseFloat(product.costPrice),
+        imageUrl: product.image,
+        isHidden: !product.isHidden,
+      });
+      await refetchProducts();
+      toast.success(
+        product.isHidden ? 'Товар снова виден на сайте' : 'Товар скрыт с сайта',
+      );
+    } catch (error) {
+      const message = await handleApiError(error);
+      toast.error('Ошибка при изменении видимости: ' + message);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -217,6 +242,7 @@ export default function ProductsManagement() {
       groupId: '',
       costPrice: '',
       image: '',
+      isHidden: false,
     });
     setEditingId(null);
   };
@@ -324,7 +350,10 @@ export default function ProductsManagement() {
 
       <div className="grid gap-2">
         {filteredProducts.map((product) => (
-          <Card key={product.id} className="p-0">
+          <Card
+            key={product.id}
+            className={product.isHidden ? 'p-0 opacity-60' : 'p-0'}
+          >
             <CardContent className="px-3 py-1">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                 {/* Информация в одну строку */}
@@ -335,6 +364,11 @@ export default function ProductsManagement() {
                       {product.number}
                     </span>
                   </div>
+                  {product.isHidden && (
+                    <span className="text-xs font-medium text-amber-600 dark:text-amber-500 border border-amber-600/40 dark:border-amber-500/40 rounded px-1.5 py-0.5">
+                      Скрыт с сайта
+                    </span>
+                  )}
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Тип:</span>
                     <span>
@@ -362,6 +396,26 @@ export default function ProductsManagement() {
 
                 {/* Кнопки действий */}
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleHidden(product)}
+                    className="gap-1 h-8"
+                    title={
+                      product.isHidden
+                        ? 'Показать товар на сайте'
+                        : 'Скрыть товар с сайта'
+                    }
+                  >
+                    {product.isHidden ? (
+                      <EyeOff size={14} />
+                    ) : (
+                      <Eye size={14} />
+                    )}
+                    <span className="hidden sm:inline">
+                      {product.isHidden ? 'Показать' : 'Скрыть'}
+                    </span>
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -471,6 +525,20 @@ export default function ProductsManagement() {
                 }
                 placeholder="0.00"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="isHidden"
+                type="checkbox"
+                checked={formData.isHidden}
+                onChange={(e) =>
+                  setFormData({ ...formData, isHidden: e.target.checked })
+                }
+                className="h-4 w-4"
+              />
+              <label htmlFor="isHidden" className="text-sm font-medium">
+                Скрыть товар с сайта (останется в админке)
+              </label>
             </div>
             <div>
               <label className="text-sm font-medium">Изображение</label>
