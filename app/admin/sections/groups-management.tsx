@@ -14,6 +14,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import {
   useGroups,
@@ -38,6 +45,7 @@ interface ProductGroup {
 export function GroupsManagement() {
   const { groups, refetch } = useGroups();
   const confirm = useConfirm();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newGroupTranslations, setNewGroupTranslations] = useState({
     en: '',
     ro: '',
@@ -74,6 +82,7 @@ export function GroupsManagement() {
       });
 
       setNewGroupTranslations({ en: '', ro: '', ru: '' });
+      setIsCreateDialogOpen(false);
       refetch();
     } catch (error: any) {
       const message = await handleApiError(error);
@@ -130,14 +139,20 @@ export function GroupsManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Создание новой группы */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Создать новую группу</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="flex justify-end">
+        <Button onClick={() => setIsCreateDialogOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Создать группу
+        </Button>
+      </div>
+
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Создать новую группу</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label className="mb-2">Русский</Label>
                 <Input
@@ -179,32 +194,36 @@ export function GroupsManagement() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="mb-2">Тип товара</Label>
-                <Select value={newGroupType} onValueChange={setNewGroupType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRODUCT_TYPES_OPTIONS.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex mt-auto">
-                <Button onClick={handleCreate}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Создать
-                </Button>
-              </div>
+            <div>
+              <Label className="mb-2">Тип товара</Label>
+              <Select value={newGroupType} onValueChange={setNewGroupType}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRODUCT_TYPES_OPTIONS.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateDialogOpen(false)}
+            >
+              Отмена
+            </Button>
+            <Button onClick={handleCreate}>
+              <Plus className="h-4 w-4 mr-2" />
+              Создать
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Список групп по типам */}
       {PRODUCT_TYPES_OPTIONS.map((type) => {
