@@ -45,11 +45,24 @@ export default function PartnershipContent() {
     if (!res.ok) throw new Error(data.error || t('error_submit'));
   };
 
+  // Проверяем занятость логина/email ДО отправки кода — иначе человек
+  // вводит код с почты и только потом узнаёт, что логин или email уже заняты
+  const checkAvailability = async () => {
+    const res = await fetch('/api/partnership-requests/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ login: formData.login, email: formData.email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t('error_submit'));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
       setSending(true);
+      await checkAvailability();
       await requestCode();
       setCodeDialogOpen(true);
       toast.success(t('code_sent'));
