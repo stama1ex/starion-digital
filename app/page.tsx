@@ -79,7 +79,7 @@ export default async function Page({ params }: PageProps) {
   };
 
   const exampleProduct = await prisma.product.findFirst({
-    where: { type: 'MAGNET' },
+    where: { type: 'MAGNET', isHidden: false },
     orderBy: { number: 'asc' },
   });
 

@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         image: data.imageUrl || data.image || 'public/default.avif',
         groupId: data.groupId ? parseInt(data.groupId) : null,
         costPrice: data.costPrice,
+        isHidden: data.isHidden ?? false,
       },
     });
     return NextResponse.json(product);
@@ -78,6 +79,7 @@ export async function PUT(request: NextRequest) {
       country: data.country,
       groupId: data.groupId ? parseInt(data.groupId) : null,
       costPrice: data.costPrice,
+      isHidden: !!data.isHidden,
     };
 
     // Если imageUrl передан (даже пустая строка) — обновляем

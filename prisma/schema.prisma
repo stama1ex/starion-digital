@@ -32,6 +32,7 @@ model Product {
   image     String
   groupId   Int?     // Необязательная связь с группой
   costPrice Decimal  @db.Decimal(10,2) @default(0) // Себестоимость
+  isHidden  Boolean  @default(false) // Скрыт с публичного сайта, но остаётся в админке
 
   group    ProductGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
   items     OrderItem[]

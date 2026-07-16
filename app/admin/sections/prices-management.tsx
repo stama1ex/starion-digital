@@ -197,10 +197,14 @@ export default function PricesManagement() {
         });
       });
 
-      await Promise.all(promises);
+      const results = await Promise.all(promises);
+      if (results.some((r) => !r.ok)) {
+        toast.error('Не удалось сохранить часть цен');
+      }
       await fetchPrices();
     } catch (error) {
       console.error('Error saving prices:', error);
+      toast.error('Ошибка при сохранении цен');
     } finally {
       setLoading(false);
     }
@@ -256,8 +260,14 @@ export default function PricesManagement() {
         }),
       );
 
-      await Promise.all(promises.flat().filter((p) => p !== null));
-      toast.success('Пресет успешно применён ко всем партнерам!');
+      const results = await Promise.all(
+        promises.flat().filter((p) => p !== null),
+      );
+      if (results.some((r) => !r.ok)) {
+        toast.error('Не удалось применить часть цен пресета');
+      } else {
+        toast.success('Пресет успешно применён ко всем партнерам!');
+      }
       setShowPresetModal(null);
       setPresetPrices({});
       await fetchPrices(); // Обновляем данные для текущего партнера
@@ -312,8 +322,12 @@ export default function PricesManagement() {
         }),
       );
 
-      await Promise.all(promises);
-      toast.success('Цена успешно применена ко всем партнерам!');
+      const results = await Promise.all(promises);
+      if (results.some((r) => !r.ok)) {
+        toast.error('Не удалось применить цену для части партнеров');
+      } else {
+        toast.success('Цена успешно применена ко всем партнерам!');
+      }
       setShowGroupPresetModal(null);
       await fetchPrices();
     } catch (error) {
@@ -380,9 +394,13 @@ export default function PricesManagement() {
           });
         });
 
-      await Promise.all(promises);
-      toast.success('Цены по умолчанию сохранены');
-      setIsDefaultPricesModalOpen(false);
+      const results = await Promise.all(promises);
+      if (results.some((r) => !r.ok)) {
+        toast.error('Не удалось сохранить часть цен по умолчанию');
+      } else {
+        toast.success('Цены по умолчанию сохранены');
+        setIsDefaultPricesModalOpen(false);
+      }
     } catch (error) {
       console.error('Error saving default prices:', error);
       toast.error('Ошибка при сохранении цен по умолчанию');
