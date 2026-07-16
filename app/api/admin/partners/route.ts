@@ -21,6 +21,8 @@ export async function GET() {
         login: true,
         phone: true,
         address: true,
+        email: true,
+        emailVerified: true,
         isVip: true,
         role: true,
         createdAt: true,
@@ -158,36 +160,20 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json();
 
+    // Логин, пароль, телефон, адрес и email — личные данные партнёра, он
+    // сам управляет ими в личном кабинете (включая сброс пароля через
+    // подтверждение по email). Админ со страницы управления партнёрами
+    // может редактировать только отображаемое имя и VIP-статус — это не
+    // даёт админу возможности перехватить или подменить учётные данные
+    // партнёра.
     const updateData: any = {};
 
     if (data.name && data.name.trim()) {
       updateData.name = data.name;
     }
 
-    if (data.login && data.login.trim()) {
-      updateData.login = data.login;
-    }
-
-    if (data.phone !== undefined) {
-      updateData.phone = data.phone?.trim() || null;
-    }
-
-    if (data.address !== undefined) {
-      updateData.address = data.address?.trim() || null;
-    }
-
     if (data.isVip !== undefined) {
       updateData.isVip = !!data.isVip;
-    }
-
-    // Обновлять пароль только если он явно передан
-    if (data.password && data.password.length > 0) {
-      updateData.password = await bcrypt.hash(data.password, 10);
-    }
-
-    // Менять роль можно, но только если ты уверен – можно вообще убрать это
-    if (data.role) {
-      updateData.role = data.role;
     }
 
     if (Object.keys(updateData).length === 0) {
@@ -206,6 +192,8 @@ export async function PUT(request: NextRequest) {
         login: true,
         phone: true,
         address: true,
+        email: true,
+        emailVerified: true,
         isVip: true,
         role: true,
         createdAt: true,
