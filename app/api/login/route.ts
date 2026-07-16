@@ -10,6 +10,11 @@ import {
   getSessionCookieName,
   getSessionCookieOptions,
 } from '@/lib/auth/session';
+import {
+  sendVerificationCode,
+  confirmVerificationCode,
+  normalizeEmail,
+} from '@/lib/email/verification';
 
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
@@ -25,17 +30,20 @@ export async function POST(req: Request) {
       return new Response('Too many requests', { status: 429 });
     }
 
-    const { login, password } = await req.json();
+    const { login, password, code } = await req.json();
 
     if (!login || !password) {
       return new Response('Missing credentials', { status: 400 });
     }
 
-    const partner = await prisma.partner.findUnique({
-      where: { login },
+    // Идентификатор может быть либо логином, либо привязанным email
+    const partner = await prisma.partner.findFirst({
+      where: {
+        OR: [{ login }, { email: normalizeEmail(login) }],
+      },
     });
 
-    // Не говорим, существует ли логин
+    // Не говорим, существует ли логин/email
     if (!partner) {
       return new Response('Invalid credentials', { status: 401 });
     }
@@ -43,6 +51,28 @@ export async function POST(req: Request) {
     const ok = await bcrypt.compare(password, partner.password);
     if (!ok) {
       return new Response('Invalid credentials', { status: 401 });
+    }
+
+    // Если к аккаунту привязан email — вход требует код подтверждения при
+    // каждой попытке, чтобы дополнительно защитить аккаунт
+    if (partner.email) {
+      if (!code) {
+        try {
+          await sendVerificationCode(partner.email);
+        } catch (err) {
+          console.error('Error sending login verification code:', err);
+          return errorResponse('Не удалось отправить код подтверждения');
+        }
+        return Response.json({ requiresEmailVerification: true });
+      }
+
+      try {
+        await confirmVerificationCode(partner.email, code);
+      } catch (err) {
+        const message =
+          err instanceof Error ? err.message : 'Неверный код подтверждения';
+        return errorResponse(message);
+      }
     }
 
     const { sessionToken, sessionBind } = await createSessionCookies(
@@ -59,4 +89,8 @@ export async function POST(req: Request) {
   } catch {
     return new Response('Invalid request', { status: 400 });
   }
+}
+
+function errorResponse(message: string) {
+  return Response.json({ error: message }, { status: 400 });
 }

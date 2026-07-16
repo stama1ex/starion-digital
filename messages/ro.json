@@ -46,7 +46,8 @@
     "contacts": "Contacte",
     "language": "Limbă",
     "soon": "În curând",
-    "my_account": "Contul meu"
+    "my_account": "Contul meu",
+    "email_recommended": "Recomandăm să asociați un email în setările contului"
   },
   "Categories": {
     "magnet": {
@@ -272,9 +273,9 @@
 
   "Login": {
     "title": "Intrare pentru parteneri",
-    "login": "Login",
+    "login": "Login sau Email",
     "password": "Parolă",
-    "login_placeholder": "Numele companiei",
+    "login_placeholder": "Numele companiei sau email",
     "password_placeholder": "Parolă",
     "submit": "Autentificare",
     "loading": "Se conectează...",
@@ -282,19 +283,66 @@
     "too_many_attempts": "Prea multe încercări. Încercați din nou mai târziu.",
     "success": "Autentificare reușită",
     "no_account": "Nu aveți cont?",
-    "apply_partnership": "Trimiteți o cerere"
+    "apply_partnership": "Trimiteți o cerere",
+    "code_sent": "Codul de confirmare a fost trimis pe email",
+    "code_description": "Am trimis un cod de confirmare pe email-ul asociat contului. Introduceți-l pentru a finaliza autentificarea.",
+    "invalid_code": "Cod de confirmare incorect",
+    "forgot_password": "Ați uitat parola?"
   },
   "PartnerUI": {
     "logout_success": "V-ați deconectat cu succes",
     "no_access": "Acces doar pentru parteneri",
     "login": "Autentificare",
-    "logout": "Deconectare"
+    "logout": "Deconectare",
+    "admin_panel": "Panou de administrare"
+  },
+  "CodeVerificationDialog": {
+    "title": "Confirmare prin email",
+    "code_placeholder": "Cod din email",
+    "confirm": "Confirmă",
+    "confirming": "Se verifică...",
+    "sending": "Se trimite...",
+    "resend": "Retrimite codul",
+    "resend_countdown": "Retrimite în {seconds}s",
+    "invalid_code": "Cod de confirmare incorect"
+  },
+  "ForgotPassword": {
+    "title": "Recuperare parolă",
+    "identifier_description": "Introduceți login-ul sau email-ul asociat contului. Dacă există un cont, vom trimite un cod de confirmare pe email-ul asociat.",
+    "identifier_placeholder": "Login sau email",
+    "send_code": "Trimite codul",
+    "sending": "Se trimite...",
+    "code_sent": "Dacă există un cont, un cod a fost trimis pe email",
+    "code_description": "Introduceți codul trimis pe email-ul asociat contului.",
+    "code_placeholder": "Cod din email",
+    "confirm": "Confirmă",
+    "confirming": "Se verifică...",
+    "resend": "Retrimite codul",
+    "resend_countdown": "Retrimite în {seconds}s",
+    "password_description": "Alegeți o parolă nouă pentru contul dvs.",
+    "new_password": "Parolă nouă",
+    "new_password_placeholder": "Minimum 6 caractere",
+    "confirm_password": "Confirmați parola",
+    "confirm_password_placeholder": "Repetați parola nouă",
+    "saving": "Se salvează...",
+    "save_password": "Salvează parola",
+    "done_title": "Parola a fost schimbată",
+    "done_description": "Acum vă puteți autentifica cu noua parolă. Toate sesiunile anterioare au fost încheiate.",
+    "close": "Închide",
+    "invalid_code": "Cod de confirmare incorect",
+    "send_error": "Nu s-a putut trimite codul",
+    "reset_error": "Nu s-a putut reseta parola",
+    "password_too_short": "Parola trebuie să conțină minimum 6 caractere",
+    "password_mismatch": "Parolele nu coincid",
+    "reset_success": "Parola a fost schimbată cu succes"
   },
   "Partnership": {
     "title": "Cerere de parteneriat",
     "description": "Completați formularul și vă vom contacta pentru a discuta condițiile de cooperare",
     "phone_label": "Număr de telefon",
     "phone_placeholder": "+XXX XXX XXX XX",
+    "email_label": "Email",
+    "email_placeholder": "you@example.com",
     "address_label": "Adresă (opțional)",
     "address_placeholder": "Oraș, stradă, casă",
     "login_label": "Login dorit",
@@ -312,6 +360,9 @@
     "success_message": "Cererea dvs. a fost trimisă cu succes. O vom examina în curând și vă vom contacta.",
     "back_to_home": "Înapoi la pagina principală",
     "error_submit": "Eroare la trimiterea cererii",
-    "error_network": "Eroare la trimitere. Încercați mai târziu."
+    "error_network": "Eroare la trimitere. Încercați mai târziu.",
+    "email_not_verified": "Confirmați email-ul cu codul primit",
+    "code_sent": "Codul de confirmare a fost trimis pe email",
+    "code_description": "Am trimis un cod de confirmare pe {email}. Introduceți-l pentru a trimite cererea."
   }
 }

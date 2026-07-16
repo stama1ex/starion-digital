@@ -32,6 +32,7 @@ import {
   handleApiError,
 } from '@/lib/admin';
 import { PartnershipRequests } from './partnership-requests';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 interface PartnersManagementProps {
   onRequestsChange?: () => void;
@@ -44,6 +45,7 @@ export default function PartnersManagement({
 }: PartnersManagementProps) {
   const { partners, loading, refetch } = usePartners(true);
   const { user } = useCurrentUser();
+  const confirm = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -116,7 +118,12 @@ export default function PartnersManagement({
       return;
     }
 
-    if (!confirm('Вы уверены? Это удалит партнёра из системы.')) return;
+    const ok = await confirm({
+      description: 'Вы уверены? Это удалит партнёра из системы.',
+      confirmText: 'Удалить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     try {
       await AdminAPI.deletePartner(id);

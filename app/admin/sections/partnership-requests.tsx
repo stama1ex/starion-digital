@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Trash2,
 } from 'lucide-react';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 type RequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
@@ -41,6 +42,7 @@ export function PartnershipRequests({
   const [requests, setRequests] = useState<PartnershipRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<number | null>(null);
+  const confirm = useConfirm();
 
   const fetchRequests = async () => {
     try {
@@ -57,12 +59,15 @@ export function PartnershipRequests({
   };
 
   const handleAction = async (id: number, action: 'approve' | 'reject') => {
-    const confirmMessage =
-      action === 'approve'
-        ? 'Вы уверены? Это создаст нового партнера.'
-        : 'Вы уверены? Заявка будет отклонена.';
-
-    if (!confirm(confirmMessage)) return;
+    const ok = await confirm({
+      description:
+        action === 'approve'
+          ? 'Вы уверены? Это создаст нового партнера.'
+          : 'Вы уверены? Заявка будет отклонена.',
+      confirmText: action === 'approve' ? 'Одобрить' : 'Отклонить',
+      variant: action === 'approve' ? 'default' : 'destructive',
+    });
+    if (!ok) return;
 
     setProcessing(id);
     try {
@@ -91,7 +96,12 @@ export function PartnershipRequests({
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Вы уверены? Заявка будет удалена безвозвратно.')) return;
+    const ok = await confirm({
+      description: 'Вы уверены? Заявка будет удалена безвозвратно.',
+      confirmText: 'Удалить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     setProcessing(id);
     try {

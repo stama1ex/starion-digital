@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
+import { memo, useCallback, useMemo } from 'react';
 import { Container } from '@/components/shared/container';
 import { Title } from '@/components/shared/title';
 import ExampleBlock from '@/components/shared/example-block';
@@ -41,7 +42,7 @@ interface CatalogProps {
   hideTitle?: boolean;
 }
 
-const Catalog: React.FC<CatalogProps> = ({
+const CatalogImpl: React.FC<CatalogProps> = ({
   titleKey,
   exampleProductNumber,
   className,
@@ -56,29 +57,50 @@ const Catalog: React.FC<CatalogProps> = ({
     ? products.find((p) => p.number === exampleProductNumber) || null
     : null;
 
-  const getPrice = (p: ProductDTO) => {
-    if (!prices) return null;
-    const match = prices.find(
-      (x) => x.type === p.type && x.group?.id === p.group?.id,
-    );
-    return match?.price ?? null;
-  };
+  const getPrice = useCallback(
+    (p: ProductDTO) => {
+      if (!prices) return null;
+      const match = prices.find(
+        (x) => x.type === p.type && x.group?.id === p.group?.id,
+      );
+      return match?.price ?? null;
+    },
+    [prices],
+  );
 
-  // Получаем уникальные группы (объекты, не строки)
-  const uniqueGroups = (() => {
+  // Уникальные группы + товары по группам одним проходом, вместо
+  // отдельного .filter() по всему списку на каждую группу
+  const { uniqueGroups, groupedProducts, ungroupedProducts } = useMemo(() => {
     const seen = new Set<number>();
-    const result: NonNullable<ProductDTO['group']>[] = [];
+    const groups: NonNullable<ProductDTO['group']>[] = [];
+    const byGroup = new Map<number, ProductDTO[]>();
+    const ungrouped: ProductDTO[] = [];
+
     for (const p of products) {
-      if (p.group && !seen.has(p.group.id)) {
-        seen.add(p.group.id);
-        result.push(p.group);
+      if (p.group) {
+        if (!seen.has(p.group.id)) {
+          seen.add(p.group.id);
+          groups.push(p.group);
+        }
+        const list = byGroup.get(p.group.id);
+        if (list) {
+          list.push(p);
+        } else {
+          byGroup.set(p.group.id, [p]);
+        }
+      } else {
+        ungrouped.push(p);
       }
     }
-    return result.sort((a, b) => a.id - b.id);
-  })();
 
-  // Товары без группы
-  const ungroupedProducts = products.filter((p) => !p.group);
+    groups.sort((a, b) => a.id - b.id);
+
+    return {
+      uniqueGroups: groups,
+      groupedProducts: byGroup,
+      ungroupedProducts: ungrouped,
+    };
+  }, [products]);
 
   return (
     <div className={className}>
@@ -111,9 +133,7 @@ const Catalog: React.FC<CatalogProps> = ({
 
         {/* Товары по группам */}
         {uniqueGroups.map((group) => {
-          const groupProducts = products.filter(
-            (p) => p.group?.id === group.id,
-          );
+          const groupProducts = groupedProducts.get(group.id) ?? [];
           return (
             <div key={group.id}>
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-6 px-4 md:px-0">
@@ -121,7 +141,6 @@ const Catalog: React.FC<CatalogProps> = ({
                   <ProductCard
                     key={product.id}
                     product={product}
-                    modelUrls={modelUrls}
                     getPrice={getPrice}
                   />
                 ))}
@@ -142,7 +161,6 @@ const Catalog: React.FC<CatalogProps> = ({
                 <ProductCard
                   key={product.id}
                   product={product}
-                  modelUrls={modelUrls}
                   getPrice={getPrice}
                 />
               ))}
@@ -153,5 +171,7 @@ const Catalog: React.FC<CatalogProps> = ({
     </div>
   );
 };
+
+const Catalog = memo(CatalogImpl);
 
 export default Catalog;

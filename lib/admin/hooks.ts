@@ -1,113 +1,55 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback } from 'react';
-import { AdminAPI } from './api-client';
+import useSWR, { type KeyedMutator } from 'swr';
+import { fetchData } from './api-client';
 
 /**
- * Custom hooks for admin data fetching
+ * Custom hooks for admin data fetching.
+ *
+ * Backed by SWR's global cache so switching admin tabs (which remounts
+ * these sections, since Radix TabsContent unmounts inactive panels)
+ * reuses already-fetched data instead of refetching from scratch every
+ * time — the cached value renders instantly while SWR revalidates in
+ * the background.
  */
 
+function useAdminList<T = any>(endpoint: string | null) {
+  const { data, error, isLoading, mutate } = useSWR<T[]>(endpoint, fetchData);
+  return {
+    data: data ?? [],
+    loading: isLoading,
+    error: (error as Error) ?? null,
+    mutate,
+  };
+}
+
 export function usePartners(excludeAdmin = true) {
-  const [partners, setPartners] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+  const { data, loading, error, mutate } = useAdminList<any>(
+    '/api/admin/partners',
+  );
+  const partners = excludeAdmin
+    ? data.filter((p: any) => p.name !== 'ADMIN')
+    : data;
 
-  const fetchPartners = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await AdminAPI.getPartners();
-      const filtered = excludeAdmin
-        ? data.filter((p: any) => p.name !== 'ADMIN')
-        : data;
-      setPartners(filtered);
-    } catch (err) {
-      setError(err as Error);
-      console.error('Error fetching partners:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, [excludeAdmin]);
-
-  useEffect(() => {
-    fetchPartners();
-  }, [fetchPartners]);
-
-  return { partners, loading, error, refetch: fetchPartners };
+  return { partners, loading, error, refetch: () => mutate(), mutate };
 }
 
 export function useProducts() {
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await AdminAPI.getProducts();
-      setProducts(data);
-    } catch (err) {
-      setError(err as Error);
-      console.error('Error fetching products:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  return { products, loading, error, refetch: fetchProducts };
+  const { data, loading, error, mutate } = useAdminList<any>(
+    '/api/admin/products',
+  );
+  return { products: data, loading, error, refetch: () => mutate(), mutate };
 }
 
 export function useGroups() {
-  const [groups, setGroups] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  const fetchGroups = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await AdminAPI.getGroups();
-      setGroups(data);
-    } catch (err) {
-      setError(err as Error);
-      console.error('Error fetching groups:', err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
-
-  return { groups, loading, error, refetch: fetchGroups };
+  const { data, loading, error, mutate } = useAdminList<any>(
+    '/api/admin/groups',
+  );
+  return { groups: data, loading, error, refetch: () => mutate(), mutate };
 }
 
 export function useCurrentUser() {
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        setLoading(true);
-        const data = await AdminAPI.getCurrentUser();
-        setUser(data);
-      } catch (err) {
-        setError(err as Error);
-        console.error('Error fetching current user:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchUser();
-  }, []);
-
-  return { user, loading, error };
+  const { data, error, isLoading } = useSWR<any>('/api/me', fetchData);
+  return { user: data ?? null, loading: isLoading, error: (error as Error) ?? null };
 }
+
+export type { KeyedMutator };

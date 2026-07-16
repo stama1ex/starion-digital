@@ -171,6 +171,16 @@ export async function revokeSessionById(partnerId: number, sessionId: number) {
   `;
 }
 
+// Отзывает все активные сессии партнёра — используется после сброса пароля,
+// чтобы разлогинить всех, включая возможного злоумышленника с угнанной сессией
+export async function revokeAllSessions(partnerId: number) {
+  await prisma.$executeRaw`
+    UPDATE "PartnerSession"
+    SET "revokedAt" = NOW()
+    WHERE "partnerId" = ${partnerId} AND "revokedAt" IS NULL
+  `;
+}
+
 export function getSessionCookieName() {
   return SESSION_COOKIE_NAME;
 }

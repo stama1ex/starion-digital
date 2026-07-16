@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import SalesAnalytics from './sections/sales-analytics';
@@ -72,7 +73,7 @@ export default function AdminDashboard({
     fetchPendingRequests();
   }, []);
 
-  const handleRefreshOrders = async () => {
+  const handleRefreshOrders = useCallback(async () => {
     try {
       // Загружаем свежие данные без перезагрузки страницы
       const [ordersRes, realizationsRes] = await Promise.all([
@@ -94,7 +95,42 @@ export default function AdminDashboard({
       // Fallback: перезагружаем страницу
       window.location.reload();
     }
-  };
+  }, []);
+
+  // Поллинг новых заказов: лёгкий запрос раз в 20 секунд вместо ручного
+  // обновления страницы — если появился новый заказ, подтягиваем полный
+  // список автоматически.
+  const lastSeenOrderIdRef = useRef<number | null>(
+    initialOrders[0]?.id ?? null,
+  );
+
+  useEffect(() => {
+    const checkForNewOrders = async () => {
+      if (document.hidden) return;
+      try {
+        const res = await fetch('/api/admin/orders/check-new');
+        if (!res.ok) return;
+        const data: { latestId: number | null } = await res.json();
+
+        if (
+          data.latestId !== null &&
+          data.latestId !== lastSeenOrderIdRef.current
+        ) {
+          const isFirstCheck = lastSeenOrderIdRef.current === null;
+          lastSeenOrderIdRef.current = data.latestId;
+          await handleRefreshOrders();
+          if (!isFirstCheck) {
+            toast.success('Новый заказ');
+          }
+        }
+      } catch (error) {
+        console.error('Error polling for new orders:', error);
+      }
+    };
+
+    const interval = setInterval(checkForNewOrders, 20000);
+    return () => clearInterval(interval);
+  }, [handleRefreshOrders]);
 
   const handleRefreshPendingRequests = async () => {
     try {

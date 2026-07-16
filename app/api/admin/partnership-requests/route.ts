@@ -68,16 +68,34 @@ export async function PUT(request: NextRequest) {
         );
       }
 
+      if (partnershipRequest.email) {
+        const existingPartnerByEmail = await prisma.partner.findUnique({
+          where: { email: partnershipRequest.email },
+        });
+
+        if (existingPartnerByEmail) {
+          return NextResponse.json(
+            { error: 'Партнер с таким email уже существует' },
+            { status: 400 }
+          );
+        }
+      }
+
       // Хешируем пароль
       const hashedPassword = await bcrypt.hash(partnershipRequest.password, 10);
 
-      // Создаем партнера
+      // Создаем партнера — email уже подтверждён кодом на этапе заявки
       const newPartner = await prisma.partner.create({
         data: {
           name: partnershipRequest.login,
           login: partnershipRequest.login,
           password: hashedPassword,
           phone: partnershipRequest.phone,
+          email: partnershipRequest.email,
+          // email подтверждён кодом только для заявок, оформленных уже
+          // после введения этой проверки — у старых заявок email может
+          // отсутствовать
+          emailVerified: !!partnershipRequest.email,
           address: partnershipRequest.address,
           role: 'PARTNER',
         },

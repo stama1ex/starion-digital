@@ -1,20 +1,31 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Container } from '@/components/shared/container';
-import { Mail, Phone, Lock, User, MapPin, ArrowLeft } from 'lucide-react';
+import {
+  Mail,
+  Phone,
+  Lock,
+  User,
+  MapPin,
+  ArrowLeft,
+  Loader2,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { CodeVerificationDialog } from '@/components/shared/code-verification-dialog';
 
 export default function PartnershipContent() {
   const router = useRouter();
   const t = useTranslations('Partnership');
   const [formData, setFormData] = useState({
     phone: '',
+    email: '',
     address: '',
     login: '',
     password: '',
@@ -22,30 +33,74 @@ export default function PartnershipContent() {
   });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false);
+
+  const requestCode = async () => {
+    const res = await fetch('/api/verify-email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t('error_submit'));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSending(true);
+
+    try {
+      setSending(true);
+      await requestCode();
+      setCodeDialogOpen(true);
+      toast.success(t('code_sent'));
+    } catch (error) {
+      console.error('Error sending code:', error);
+      toast.error(error instanceof Error ? error.message : t('error_submit'));
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Провал confirm (неверный/просроченный код) — пробрасываем ошибку, чтобы
+  // попап показал её и остался открытым для повторной попытки. Провал самой
+  // отправки заявки (после верного кода) — отдельная ошибка, просто тостом.
+  const handleSubmitCode = async (code: string) => {
+    const confirmRes = await fetch('/api/verify-email/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: formData.email, code }),
+    });
+    const confirmData = await confirmRes.json();
+    if (!confirmRes.ok) {
+      throw new Error(confirmData.error || t('email_not_verified'));
+    }
+
+    setCodeDialogOpen(false);
 
     try {
       const res = await fetch('/api/partnership-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, emailToken: confirmData.token }),
       });
-
       const result = await res.json();
-
       if (res.ok) {
         setSent(true);
       } else {
-        alert(result.error || t('error_submit'));
+        toast.error(result.error || t('error_submit'));
       }
     } catch (error) {
-      console.error('Error:', error);
-      alert(t('error_network'));
-    } finally {
-      setSending(false);
+      console.error('Error submitting request:', error);
+      toast.error(t('error_network'));
+    }
+  };
+
+  const handleResendCode = async () => {
+    try {
+      await requestCode();
+      toast.success(t('code_sent'));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t('error_submit'));
     }
   };
 
@@ -112,6 +167,23 @@ export default function PartnershipContent() {
                   setFormData({ ...formData, phone: e.target.value })
                 }
                 placeholder={t('phone_placeholder')}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="email" className="flex items-center gap-2 mb-2">
+                <Mail className="w-4 h-4" />
+                {t('email_label')} *
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                placeholder={t('email_placeholder')}
               />
             </div>
 
@@ -188,7 +260,14 @@ export default function PartnershipContent() {
             </div>
 
             <Button type="submit" disabled={sending} className="w-full">
-              {sending ? t('sending') : t('submit_button')}
+              {sending ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  {t('sending')}
+                </>
+              ) : (
+                t('submit_button')
+              )}
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
@@ -197,6 +276,14 @@ export default function PartnershipContent() {
           </form>
         </CardContent>
       </Card>
+
+      <CodeVerificationDialog
+        open={codeDialogOpen}
+        onOpenChange={setCodeDialogOpen}
+        description={t('code_description', { email: formData.email })}
+        onSubmitCode={handleSubmitCode}
+        onResend={handleResendCode}
+      />
     </Container>
   );
 }

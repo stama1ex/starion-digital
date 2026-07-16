@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { prisma } from '@/lib/db';
 import { toPlain } from '@/lib/toPlain';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
+import { resolveProductImages } from '@/lib/resolveProductImages';
 import KeychainsCatalogContent from './keychains-catalog-content';
 
 export const revalidate = 300;
@@ -28,7 +29,11 @@ export default async function KeychainsCatalogPage({ params }: any) {
     include: { group: true },
   });
 
-  const products = toPlain(rawProducts);
+  const plainProducts = toPlain(rawProducts);
+
+  // Резолвим Dropbox-картинки одним батчем на сервере, чтобы каталог не
+  // дёргал /api/dropbox/temp-link на каждую карточку отдельно с клиента
+  const products = await resolveProductImages(plainProducts);
 
   let prices: {
     type: string;

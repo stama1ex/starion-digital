@@ -22,6 +22,7 @@ import {
   PRODUCT_TYPES_OPTIONS,
   groupBy,
 } from '@/lib/admin';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 interface ProductGroup {
   id: number;
@@ -36,6 +37,7 @@ interface ProductGroup {
 
 export function GroupsManagement() {
   const { groups, refetch } = useGroups();
+  const confirm = useConfirm();
   const [newGroupTranslations, setNewGroupTranslations] = useState({
     en: '',
     ro: '',
@@ -108,7 +110,12 @@ export function GroupsManagement() {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Удалить эту группу? Товары останутся без группы.')) return;
+    const ok = await confirm({
+      description: 'Удалить эту группу? Товары останутся без группы.',
+      confirmText: 'Удалить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
 
     try {
       await AdminAPI.deleteGroup(id);

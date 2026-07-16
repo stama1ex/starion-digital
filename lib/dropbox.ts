@@ -8,7 +8,15 @@ async function parseDropboxError(res: Response) {
   }
 }
 
-export async function getAccessToken(): Promise<string> {
+// Кэшируем access token в памяти процесса — без этого каждая картинка на
+// сайте (каждый продукт в каталоге, каждая открытка на главной и т.д.)
+// дергала бы отдельный OAuth-запрос к Dropbox. Токен живёт несколько часов,
+// поэтому переиспользуем его, пока не истёк, и дедуплицируем параллельные
+// запросы за токеном в момент его обновления.
+let cachedToken: { token: string; expiresAt: number } | null = null;
+let pendingTokenRequest: Promise<string> | null = null;
+
+async function fetchAccessToken(): Promise<string> {
   const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -27,7 +35,26 @@ export async function getAccessToken(): Promise<string> {
   }
 
   const data = await res.json();
+  const expiresInMs = (data.expires_in ?? 14400) * 1000; // Dropbox default: 4 часа
+  cachedToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + expiresInMs - 60_000, // запас в минуту на сетевые задержки
+  };
   return data.access_token as string;
+}
+
+export async function getAccessToken(): Promise<string> {
+  if (cachedToken && Date.now() < cachedToken.expiresAt) {
+    return cachedToken.token;
+  }
+
+  if (!pendingTokenRequest) {
+    pendingTokenRequest = fetchAccessToken().finally(() => {
+      pendingTokenRequest = null;
+    });
+  }
+
+  return pendingTokenRequest;
 }
 
 export async function uploadToDropbox(

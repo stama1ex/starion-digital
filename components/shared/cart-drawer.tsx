@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useCartStore } from '@/store/cart-store';
-import { ShoppingCart } from 'lucide-react';
+import { Loader2, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
@@ -62,6 +62,9 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
   const { items, removeItem, clear } = useCartStore();
   const { address: partnerAddress, isVip } = usePartner();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submittingType, setSubmittingType] = useState<
+    'regular' | 'realization' | null
+  >(null);
   const [comment, setComment] = useState('');
   const [address, setAddress] = useState('');
   const addressInitialized = useRef(false);
@@ -81,6 +84,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
   ) => {
     if (!items.length || isSubmitting) return;
     setIsSubmitting(true);
+    setSubmittingType(orderType);
 
     try {
       const payload = {
@@ -112,6 +116,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
       toast.error(t('toast_error'));
     } finally {
       setIsSubmitting(false);
+      setSubmittingType(null);
     }
   };
 
@@ -208,7 +213,14 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
                 disabled={!items.length || isSubmitting}
                 onClick={() => handleSubmit('regular')}
               >
-                {isSubmitting ? t('sending') : 'Оформить заказ'}
+                {submittingType === 'regular' ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {t('sending')}
+                  </>
+                ) : (
+                  'Оформить заказ'
+                )}
               </Button>
 
               {isVip && (
@@ -218,7 +230,14 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
                     disabled={!items.length || isSubmitting}
                     onClick={() => handleSubmit('realization')}
                   >
-                    {t('realization_button')}
+                    {submittingType === 'realization' ? (
+                      <>
+                        <Loader2 className="size-4 animate-spin" />
+                        {t('sending')}
+                      </>
+                    ) : (
+                      t('realization_button')
+                    )}
                   </Button>
                   <InfoTooltip
                     text={t('realization_info')}

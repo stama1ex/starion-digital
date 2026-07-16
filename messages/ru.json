@@ -46,7 +46,8 @@
     "contacts": "Контакты",
     "language": "Язык",
     "soon": "Скоро",
-    "my_account": "Мой аккаунт"
+    "my_account": "Мой аккаунт",
+    "email_recommended": "Рекомендуем привязать email в настройках аккаунта"
   },
   "Categories": {
     "magnet": {
@@ -268,9 +269,9 @@
 
   "Login": {
     "title": "Вход для партнёра",
-    "login": "Логин",
+    "login": "Логин или Email",
     "password": "Пароль",
-    "login_placeholder": "Название фирмы",
+    "login_placeholder": "Название фирмы или email",
     "password_placeholder": "Пароль",
     "submit": "Войти",
     "loading": "Вход...",
@@ -278,19 +279,66 @@
     "too_many_attempts": "Слишком много попыток. Попробуйте позже.",
     "success": "Успешный вход",
     "no_account": "Нет аккаунта?",
-    "apply_partnership": "Подайте заявку"
+    "apply_partnership": "Подайте заявку",
+    "code_sent": "Код подтверждения отправлен на почту",
+    "code_description": "Мы отправили код подтверждения на почту, привязанную к аккаунту. Введите его, чтобы завершить вход.",
+    "invalid_code": "Неверный код подтверждения",
+    "forgot_password": "Забыли пароль?"
   },
   "PartnerUI": {
     "logout_success": "Вы успешно вышли из аккаунта",
     "no_access": "Доступ только для партнёров",
     "login": "Войти",
-    "logout": "Выйти"
+    "logout": "Выйти",
+    "admin_panel": "Админ панель"
+  },
+  "CodeVerificationDialog": {
+    "title": "Подтверждение по email",
+    "code_placeholder": "Код из письма",
+    "confirm": "Подтвердить",
+    "confirming": "Проверка...",
+    "sending": "Отправка...",
+    "resend": "Отправить код повторно",
+    "resend_countdown": "Повторно через {seconds} с",
+    "invalid_code": "Неверный код подтверждения"
+  },
+  "ForgotPassword": {
+    "title": "Восстановление пароля",
+    "identifier_description": "Введите логин или email, привязанный к аккаунту. Если аккаунт найден, мы отправим код подтверждения на привязанную почту.",
+    "identifier_placeholder": "Логин или email",
+    "send_code": "Отправить код",
+    "sending": "Отправка...",
+    "code_sent": "Если аккаунт найден, код отправлен на почту",
+    "code_description": "Введите код, отправленный на почту, привязанную к аккаунту.",
+    "code_placeholder": "Код из письма",
+    "confirm": "Подтвердить",
+    "confirming": "Проверка...",
+    "resend": "Отправить код повторно",
+    "resend_countdown": "Повторно через {seconds} с",
+    "password_description": "Придумайте новый пароль для входа в аккаунт.",
+    "new_password": "Новый пароль",
+    "new_password_placeholder": "Минимум 6 символов",
+    "confirm_password": "Повторите пароль",
+    "confirm_password_placeholder": "Повторите новый пароль",
+    "saving": "Сохранение...",
+    "save_password": "Сохранить пароль",
+    "done_title": "Пароль изменён",
+    "done_description": "Теперь можно войти в аккаунт с новым паролем. Все предыдущие сеансы входа завершены.",
+    "close": "Закрыть",
+    "invalid_code": "Неверный код подтверждения",
+    "send_error": "Не удалось отправить код",
+    "reset_error": "Не удалось сбросить пароль",
+    "password_too_short": "Пароль должен содержать минимум 6 символов",
+    "password_mismatch": "Пароли не совпадают",
+    "reset_success": "Пароль успешно изменён"
   },
   "Partnership": {
     "title": "Заявка на партнерство",
     "description": "Заполните форму, и мы свяжемся с вами для обсуждения условий сотрудничества",
     "phone_label": "Номер телефона",
     "phone_placeholder": "+XXX XXX XXX XX",
+    "email_label": "Email",
+    "email_placeholder": "you@example.com",
     "address_label": "Адрес (необязательно)",
     "address_placeholder": "Город, улица, дом",
     "login_label": "Желаемый логин",
@@ -308,6 +356,9 @@
     "success_message": "Ваша заявка успешно отправлена. Мы рассмотрим её в ближайшее время и свяжемся с вами.",
     "back_to_home": "Вернуться на главную",
     "error_submit": "Ошибка при отправке заявки",
-    "error_network": "Ошибка при отправке. Попробуйте позже."
+    "error_network": "Ошибка при отправке. Попробуйте позже.",
+    "email_not_verified": "Подтвердите email кодом из письма",
+    "code_sent": "Код подтверждения отправлен на почту",
+    "code_description": "Мы отправили код подтверждения на {email}. Введите его, чтобы отправить заявку."
   }
 }

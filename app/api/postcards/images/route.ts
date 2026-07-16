@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
-import { getAccessToken, getTemporaryLink } from '@/lib/dropbox';
+import { getAccessToken } from '@/lib/dropbox';
+import { resolveImageUrl } from '@/lib/resolveProductImages';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,35 +9,17 @@ export const dynamic = 'force-dynamic';
 const CACHE_TTL_MS = 30 * 60 * 1000;
 let cache: { urls: string[]; cachedAt: number } | null = null;
 
-function toLocalPath(path: string) {
-  const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
-  return `/${normalized}`;
-}
-
-async function resolveImageUrl(
+// В отличие от каталога, карусель на главной не умеет резолвить сырой
+// путь /products/... на клиенте (нет фолбэка через useDropboxImage),
+// поэтому при неудачном резолве Dropbox-ссылку просто пропускаем.
+async function resolvePostcardImage(
   image: string,
   accessToken: string,
 ): Promise<string | null> {
   if (!image || !image.trim()) return null;
-
-  if (image.startsWith('http')) {
-    return image;
-  }
-
-  if (image.startsWith('public/')) {
-    return toLocalPath(image);
-  }
-
-  if (image.startsWith('/products/')) {
-    try {
-      return await getTemporaryLink(image, accessToken);
-    } catch (err) {
-      console.error('Error resolving Dropbox link for', image, err);
-      return null;
-    }
-  }
-
-  return toLocalPath(image);
+  const resolved = await resolveImageUrl(image, accessToken);
+  if (!resolved || resolved.startsWith('/products/')) return null;
+  return resolved;
 }
 
 // Отдаём ссылки построчно (NDJSON), чтобы на клиенте карточки открыток
@@ -73,7 +56,7 @@ export async function GET() {
         const accessToken = await getAccessToken();
         await Promise.all(
           products.map(async (p) => {
-            const url = await resolveImageUrl(p.image, accessToken);
+            const url = await resolvePostcardImage(p.image, accessToken);
             if (url) {
               resolved.push(url);
               controller.enqueue(encoder.encode(JSON.stringify(url) + '\n'));

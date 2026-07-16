@@ -1,10 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPartnershipRequestToTelegram } from '@/lib/telegram';
+import { verifyEmailTicket } from '@/lib/email/verification';
 
 export async function POST(request: NextRequest) {
   try {
-    const { phone, address, login, password, message } = await request.json();
+    const { phone, address, login, password, message, emailToken } =
+      await request.json();
+
+    if (!emailToken) {
+      return NextResponse.json(
+        { error: 'Необходимо подтвердить email' },
+        { status: 400 }
+      );
+    }
+
+    let email: string;
+    try {
+      email = verifyEmailTicket(emailToken);
+    } catch (err) {
+      console.error('Email verification failed:', err);
+      return NextResponse.json(
+        { error: 'Не удалось подтвердить email' },
+        { status: 400 }
+      );
+    }
 
     // Получаем IP адрес пользователя
     const ipAddress =
@@ -60,6 +80,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Проверка уникальности email среди партнеров
+    const existingPartnerByEmail = await prisma.partner.findUnique({
+      where: { email },
+    });
+
+    if (existingPartnerByEmail) {
+      return NextResponse.json(
+        { error: 'Этот email уже используется другим аккаунтом' },
+        { status: 400 }
+      );
+    }
+
     // Проверка существующих незавершенных заявок
     const existingRequest = await prisma.partnershipRequest.findFirst({
       where: {
@@ -75,10 +107,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const existingRequestByEmail = await prisma.partnershipRequest.findFirst({
+      where: {
+        email,
+        status: 'PENDING',
+      },
+    });
+
+    if (existingRequestByEmail) {
+      return NextResponse.json(
+        { error: 'Заявка с этим email уже подана' },
+        { status: 400 }
+      );
+    }
+
     // Создание заявки
     const partnershipRequest = await prisma.partnershipRequest.create({
       data: {
         phone,
+        email,
         address: address || null,
         login,
         password,
