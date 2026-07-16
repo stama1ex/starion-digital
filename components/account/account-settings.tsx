@@ -152,6 +152,28 @@ export default function AccountSettings() {
     return data.token as string;
   };
 
+  // Пред-проверка занятости логина/email ДО отправки кода подтверждения —
+  // иначе человек проходит код(ы) с почты и только в конце узнаёт, что
+  // логин или email уже заняты другим аккаунтом
+  const checkAvailability = async (fields: {
+    login?: string;
+    email?: string;
+  }): Promise<string | null> => {
+    try {
+      const res = await fetch('/api/account/check-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(fields),
+      });
+      if (res.ok) return null;
+      const data = await res.json();
+      return data.error || 'Не удалось проверить логин/email';
+    } catch (error) {
+      console.error('Error checking availability:', error);
+      return 'Не удалось проверить логин/email';
+    }
+  };
+
   const openVerification = async (
     action: PendingAction,
     targetEmail: string,
@@ -209,6 +231,16 @@ export default function AccountSettings() {
     // этом этапе, а не только во время финального сохранения после диалога
     setSavingContact(true);
     try {
+      const emailIsChanging = trimmedEmail && trimmedEmail !== savedEmail;
+
+      if (emailIsChanging) {
+        const error = await checkAvailability({ email: trimmedEmail });
+        if (error) {
+          toast.error(error);
+          return;
+        }
+      }
+
       if (savedEmail && trimmedEmail && trimmedEmail !== savedEmail) {
         await openVerification('email-old', savedEmail);
       } else if (savedEmail && !trimmedEmail) {
@@ -295,6 +327,14 @@ export default function AccountSettings() {
 
     setUpdatingCredentials(true);
     try {
+      if (login) {
+        const error = await checkAvailability({ login });
+        if (error) {
+          toast.error(error);
+          return;
+        }
+      }
+
       await openVerification('credentials', savedEmail);
     } finally {
       setUpdatingCredentials(false);

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { sendPartnershipRequestToTelegram } from '@/lib/telegram';
 import { verifyEmailTicket } from '@/lib/email/verification';
+import { checkPartnershipAvailability } from '@/lib/partnership/check-availability';
 
 export async function POST(request: NextRequest) {
   try {
@@ -68,57 +69,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Проверка уникальности логина среди партнеров
-    const existingPartner = await prisma.partner.findUnique({
-      where: { login },
-    });
-
-    if (existingPartner) {
-      return NextResponse.json(
-        { error: 'Этот логин уже используется' },
-        { status: 400 }
-      );
-    }
-
-    // Проверка уникальности email среди партнеров
-    const existingPartnerByEmail = await prisma.partner.findUnique({
-      where: { email },
-    });
-
-    if (existingPartnerByEmail) {
-      return NextResponse.json(
-        { error: 'Этот email уже используется другим аккаунтом' },
-        { status: 400 }
-      );
-    }
-
-    // Проверка существующих незавершенных заявок
-    const existingRequest = await prisma.partnershipRequest.findFirst({
-      where: {
-        login,
-        status: 'PENDING',
-      },
-    });
-
-    if (existingRequest) {
-      return NextResponse.json(
-        { error: 'Заявка с этим логином уже подана' },
-        { status: 400 }
-      );
-    }
-
-    const existingRequestByEmail = await prisma.partnershipRequest.findFirst({
-      where: {
-        email,
-        status: 'PENDING',
-      },
-    });
-
-    if (existingRequestByEmail) {
-      return NextResponse.json(
-        { error: 'Заявка с этим email уже подана' },
-        { status: 400 }
-      );
+    // Финальная проверка занятости логина/email — на случай гонки, если
+    // кто-то занял их уже после пред-проверки на клиенте (см. /check)
+    const availabilityError = await checkPartnershipAvailability(login, email);
+    if (availabilityError) {
+      return NextResponse.json({ error: availabilityError }, { status: 400 });
     }
 
     // Создание заявки
