@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Eye, EyeOff, Loader2, Monitor, TriangleAlert } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { CodeVerificationDialog } from '@/components/shared/code-verification-dialog';
 import { ForgotPasswordDialog } from '@/components/shared/forgot-password-dialog';
 
@@ -20,8 +21,8 @@ interface AccountSession {
   browser: string;
 }
 
-function formatSessionDate(value: string) {
-  return new Intl.DateTimeFormat('ru-RU', {
+function formatSessionDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -39,6 +40,8 @@ type PendingAction =
   | null;
 
 export default function AccountSettings() {
+  const t = useTranslations('AccountSettings');
+  const locale = useLocale();
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [currentLogin, setCurrentLogin] = useState('');
@@ -85,7 +88,7 @@ export default function AccountSettings() {
         setAddress(data.address ?? '');
       } catch (error) {
         console.error('Error loading account:', error);
-        toast.error('Не удалось загрузить данные аккаунта');
+        toast.error(t('load_error'));
       } finally {
         setLoadingProfile(false);
       }
@@ -99,7 +102,7 @@ export default function AccountSettings() {
         setSessions(data.sessions);
       } catch (error) {
         console.error('Error loading sessions:', error);
-        toast.error('Не удалось загрузить активные сессии');
+        toast.error(t('sessions_load_error'));
       } finally {
         setLoadingSessions(false);
       }
@@ -107,6 +110,7 @@ export default function AccountSettings() {
 
     loadProfile();
     loadSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRevokeSession = async (sessionId: number) => {
@@ -117,10 +121,10 @@ export default function AccountSettings() {
       });
       if (!res.ok) throw new Error(await res.text());
       setSessions((prev) => prev.filter((s) => s.id !== sessionId));
-      toast.success('Сессия завершена');
+      toast.success(t('session_ended'));
     } catch (error) {
       console.error('Error revoking session:', error);
-      toast.error('Не удалось завершить сессию');
+      toast.error(t('session_end_error'));
     } finally {
       setRevokingSessionId(null);
     }
@@ -135,7 +139,7 @@ export default function AccountSettings() {
       body: JSON.stringify({ email: targetEmail }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Не удалось отправить код');
+    if (!res.ok) throw new Error(data.error || t('send_code_error'));
   };
 
   const confirmCode = async (
@@ -148,7 +152,7 @@ export default function AccountSettings() {
       body: JSON.stringify({ email: targetEmail, code }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Неверный код подтверждения');
+    if (!res.ok) throw new Error(data.error || t('confirm_code_error'));
     return data.token as string;
   };
 
@@ -167,10 +171,10 @@ export default function AccountSettings() {
       });
       if (res.ok) return null;
       const data = await res.json();
-      return data.error || 'Не удалось проверить логин/email';
+      return data.error || t('availability_check_error');
     } catch (error) {
       console.error('Error checking availability:', error);
-      return 'Не удалось проверить логин/email';
+      return t('availability_check_error');
     }
   };
 
@@ -182,11 +186,11 @@ export default function AccountSettings() {
       await sendCode(targetEmail);
       setPendingAction(action);
       setCodeDialogOpen(true);
-      toast.success('Код отправлен на почту');
+      toast.success(t('code_sent'));
     } catch (error) {
       console.error('Error requesting verification:', error);
       toast.error(
-        error instanceof Error ? error.message : 'Не удалось отправить код',
+        error instanceof Error ? error.message : t('send_code_error'),
       );
     }
   };
@@ -207,11 +211,11 @@ export default function AccountSettings() {
       });
 
       if (!res.ok) throw new Error(await res.text());
-      toast.success('Контактные данные обновлены');
+      toast.success(t('contact_saved'));
       setSavedEmail(email.trim());
     } catch (error) {
       console.error('Error saving contact info:', error);
-      toast.error('Не удалось сохранить контактные данные');
+      toast.error(t('contact_save_error'));
     } finally {
       setSavingContact(false);
     }
@@ -270,7 +274,7 @@ export default function AccountSettings() {
       });
 
       if (res.ok) {
-        toast.success('Данные успешно обновлены');
+        toast.success(t('credentials_updated'));
         if (login) setCurrentLogin(login);
         setLogin('');
         setCurrentPassword('');
@@ -278,18 +282,18 @@ export default function AccountSettings() {
         setConfirmPassword('');
       } else {
         const error = await res.text();
-        let errorMessage = 'Не удалось обновить данные';
+        let errorMessage = t('credentials_update_error');
         try {
           const errorJson = JSON.parse(error);
           errorMessage = errorJson.error || errorMessage;
         } catch {
           errorMessage = error || errorMessage;
         }
-        toast.error(`Ошибка: ${errorMessage}`);
+        toast.error(t('error_prefix', { message: errorMessage }));
       }
     } catch (error) {
       console.error('Error updating credentials:', error);
-      toast.error('Ошибка при обновлении данных');
+      toast.error(t('credentials_update_network_error'));
     } finally {
       setUpdatingCredentials(false);
     }
@@ -297,31 +301,27 @@ export default function AccountSettings() {
 
   const handleUpdateCredentials = async () => {
     if (!currentPassword) {
-      toast.error('Введите текущий пароль');
+      toast.error(t('enter_current_password'));
       return;
     }
 
     if (newPassword && newPassword !== confirmPassword) {
-      toast.error('Новые пароли не совпадают');
+      toast.error(t('passwords_mismatch'));
       return;
     }
 
     if (!login && !newPassword) {
-      toast.error('Введите новый логин или новый пароль');
+      toast.error(t('enter_new_login_or_password'));
       return;
     }
 
     if (!savedEmail) {
-      toast.error(
-        'Добавьте и сохраните email в контактных данных, чтобы изменить логин или пароль',
-      );
+      toast.error(t('need_email_for_credentials'));
       return;
     }
 
     if (email.trim() !== savedEmail) {
-      toast.error(
-        'У вас есть несохранённые изменения email — сначала сохраните контактные данные',
-      );
+      toast.error(t('unsaved_email_changes'));
       return;
     }
 
@@ -354,10 +354,10 @@ export default function AccountSettings() {
       try {
         await sendCode(email.trim());
         setPendingAction('email-new');
-        toast.success('Код отправлен на новый email');
+        toast.success(t('new_email_code_sent'));
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : 'Не удалось отправить код',
+          error instanceof Error ? error.message : t('send_code_error'),
         );
         setCodeDialogOpen(false);
         setPendingAction(null);
@@ -401,88 +401,86 @@ export default function AccountSettings() {
         : email.trim();
     try {
       await sendCode(targetEmail);
-      toast.success('Код отправлен повторно');
+      toast.success(t('code_resent'));
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : 'Не удалось отправить код',
+        error instanceof Error ? error.message : t('send_code_error'),
       );
     }
   };
 
   const dialogDescription =
     pendingAction === 'email-old'
-      ? `Шаг 1 из 2. Отправили код на текущий email (${savedEmail}) — нужно подтвердить, что смену email запрашиваете именно вы.`
+      ? t('dialog_description_step1', { email: savedEmail })
       : pendingAction === 'email-new'
-        ? `Шаг 2 из 2. Отправили код на новый email (${email.trim()}).`
+        ? t('dialog_description_step2', { email: email.trim() })
         : pendingAction === 'email-remove'
-          ? `Отправили код на текущий email (${savedEmail}), чтобы подтвердить удаление.`
-          : `Мы отправили код подтверждения на ${email.trim()}`;
+          ? t('dialog_description_remove', { email: savedEmail })
+          : t('dialog_description_default', { email: email.trim() });
 
   if (unauthorized) {
     return (
-      <p className="text-sm text-muted-foreground">
-        Войдите в аккаунт, чтобы просмотреть настройки.
-      </p>
+      <p className="text-sm text-muted-foreground">{t('unauthorized')}</p>
     );
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-2xl font-bold">Мой аккаунт</h2>
+      <h2 className="text-2xl font-bold">{t('title')}</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
         <Card className="h-full">
           <CardHeader>
-            <CardTitle>Контактные данные</CardTitle>
+            <CardTitle>{t('contact_card_title')}</CardTitle>
           </CardHeader>
           <CardContent className="flex h-full flex-col space-y-4">
             {!loadingProfile && (
               <p className="text-sm text-muted-foreground">
-                Логин: <span className="font-mono">{currentLogin}</span>
+                {t('login_label')}{' '}
+                <span className="font-mono">{currentLogin}</span>
               </p>
             )}
             <div>
               <Label htmlFor="account-email" className="mb-2">
-                Email
+                {t('email_label')}
               </Label>
               <Input
                 id="account-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@example.com"
+                placeholder={t('email_placeholder')}
               />
               {!email && !loadingProfile && (
                 <p className="mt-1.5 flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500">
                   <TriangleAlert size={13} className="shrink-0" />
-                  Настоятельно рекомендуем привязать email — без него нельзя
-                  сменить логин или пароль
+                  {t('email_hint')}
                 </p>
               )}
             </div>
             <div>
               <Label htmlFor="account-phone" className="mb-2">
-                Телефон
+                {t('phone_label')}
               </Label>
               <Input
                 id="account-phone"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+373 XX XXX XXX"
+                placeholder={t('phone_placeholder')}
               />
             </div>
 
             <div>
               <Label htmlFor="account-address" className="mb-2">
-                Адрес
+                {t('address_label')}
               </Label>
               <Input
                 id="account-address"
                 type="text"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                placeholder="Город, улица, дом"
+                placeholder={t('address_placeholder')}
               />
             </div>
             <Button
@@ -493,10 +491,10 @@ export default function AccountSettings() {
               {savingContact ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Сохранение...
+                  {t('saving')}
                 </>
               ) : (
-                'Сохранить контакты'
+                t('save_contacts')
               )}
             </Button>
           </CardContent>
@@ -504,18 +502,20 @@ export default function AccountSettings() {
 
         <Card className="h-full">
           <CardHeader>
-            <CardTitle>Изменить логин и пароль</CardTitle>
+            <CardTitle>{t('credentials_card_title')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="current-password">Текущий пароль *</Label>
+                <Label htmlFor="current-password">
+                  {t('current_password_label')}
+                </Label>
                 <button
                   type="button"
                   onClick={() => setForgotPasswordOpen(true)}
                   className="text-xs font-medium text-primary hover:underline underline-offset-4 cursor-pointer"
                 >
-                  Забыли пароль?
+                  {t('forgot_password')}
                 </button>
               </div>
               <div className="relative">
@@ -524,7 +524,7 @@ export default function AccountSettings() {
                   type={showCurrentPassword ? 'text' : 'password'}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Введите текущий пароль"
+                  placeholder={t('current_password_placeholder')}
                   className="pr-10"
                 />
                 <button
@@ -542,27 +542,25 @@ export default function AccountSettings() {
             </div>
 
             <div className="border-t pt-4">
-              <h3 className="font-medium mb-3">
-                Новые данные (заполните нужное)
-              </h3>
+              <h3 className="font-medium mb-3">{t('new_data_heading')}</h3>
 
               <div className="space-y-3">
                 <div>
                   <Label htmlFor="new-login" className="mb-2">
-                    Новый логин
+                    {t('new_login_label')}
                   </Label>
                   <Input
                     id="new-login"
                     type="text"
                     value={login}
                     onChange={(e) => setLogin(e.target.value)}
-                    placeholder="Оставьте пустым, если не хотите менять"
+                    placeholder={t('optional_placeholder')}
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="new-password" className="mb-2">
-                    Новый пароль
+                    {t('new_password_label')}
                   </Label>
                   <div className="relative">
                     <Input
@@ -570,7 +568,7 @@ export default function AccountSettings() {
                       type={showNewPassword ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Оставьте пустым, если не хотите менять"
+                      placeholder={t('optional_placeholder')}
                       className="pr-10"
                     />
                     <button
@@ -589,7 +587,7 @@ export default function AccountSettings() {
 
                 <div>
                   <Label htmlFor="confirm-password" className="mb-2">
-                    Подтвердите новый пароль
+                    {t('confirm_password_label')}
                   </Label>
                   <div className="relative">
                     <Input
@@ -597,7 +595,7 @@ export default function AccountSettings() {
                       type={showConfirmPassword ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Повторите новый пароль"
+                      placeholder={t('confirm_password_placeholder')}
                       disabled={!newPassword}
                       className="pr-10"
                     />
@@ -623,14 +621,13 @@ export default function AccountSettings() {
             {!savedEmail ? (
               <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500">
                 <TriangleAlert size={13} className="shrink-0" />
-                Добавьте и сохраните email в контактных данных, чтобы иметь
-                возможность менять логин и пароль
+                {t('need_email_hint')}
               </p>
             ) : (
               email.trim() !== savedEmail && (
                 <p className="flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-500">
                   <TriangleAlert size={13} className="shrink-0" />
-                  Сначала сохраните изменённый email в контактных данных
+                  {t('unsaved_email_hint')}
                 </p>
               )
             )}
@@ -648,10 +645,10 @@ export default function AccountSettings() {
               {updatingCredentials ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Сохранение...
+                  {t('saving')}
                 </>
               ) : (
-                'Сохранить изменения'
+                t('save_changes')
               )}
             </Button>
           </CardContent>
@@ -660,13 +657,15 @@ export default function AccountSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Активные сессии</CardTitle>
+          <CardTitle>{t('sessions_card_title')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {loadingSessions ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
+            <p className="text-sm text-muted-foreground">{t('loading')}</p>
           ) : sessions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Нет активных сессий</p>
+            <p className="text-sm text-muted-foreground">
+              {t('no_sessions')}
+            </p>
           ) : (
             sessions.map((session) => (
               <div
@@ -685,16 +684,19 @@ export default function AccountSettings() {
                       </span>
                       {session.isCurrent && (
                         <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                          Это устройство
+                          {t('this_device')}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Вход: {formatSessionDate(session.createdAt)}
+                      {t('login_at', {
+                        date: formatSessionDate(session.createdAt, locale),
+                      })}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Последняя активность:{' '}
-                      {formatSessionDate(session.lastUsedAt)}
+                      {t('last_active', {
+                        date: formatSessionDate(session.lastUsedAt, locale),
+                      })}
                     </p>
                   </div>
                 </div>
@@ -709,10 +711,10 @@ export default function AccountSettings() {
                     {revokingSessionId === session.id ? (
                       <>
                         <Loader2 className="size-4 animate-spin" />
-                        Завершение...
+                        {t('ending_session')}
                       </>
                     ) : (
-                      'Завершить'
+                      t('end_session')
                     )}
                   </Button>
                 )}
@@ -734,9 +736,9 @@ export default function AccountSettings() {
         }}
         title={
           pendingAction === 'email-old'
-            ? 'Подтверждение текущего email (шаг 1 из 2)'
+            ? t('confirm_current_email_title')
             : pendingAction === 'email-new'
-              ? 'Подтверждение нового email (шаг 2 из 2)'
+              ? t('confirm_new_email_title')
               : undefined
         }
         description={dialogDescription}
