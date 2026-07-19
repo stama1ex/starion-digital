@@ -13,7 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ChevronDown, ChevronUp, CreditCard } from 'lucide-react';
+import { ChevronDown, ChevronUp, CreditCard, History } from 'lucide-react';
 import type { AdminRealization } from '../types';
 
 interface RealizationTrackingProps {
@@ -135,6 +135,10 @@ export default function RealizationTracking({
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split('T')[0],
   );
+  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [historyPartnerId, setHistoryPartnerId] = useState<number | null>(
+    null,
+  );
 
   const partnerGroups = useMemo(
     () => buildPartnerGroups(realizations),
@@ -159,6 +163,34 @@ export default function RealizationTracking({
       month: '2-digit',
       year: 'numeric',
     }).format(new Date(value));
+
+  // paymentDate хранит только дату (выбирается в date-picker'e и всегда
+  // сохраняется как UTC-полночь) - точное время операции берём из createdAt
+  const formatTimeOnly = (value: string | Date) =>
+    new Intl.DateTimeFormat('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(value));
+
+  const historyGroup = partnerGroups.find(
+    (group) => group.partnerId === historyPartnerId,
+  );
+
+  const historyPayments = (historyGroup?.realizations ?? [])
+    .flatMap((realization) =>
+      realization.payments.map((payment) => ({
+        ...payment,
+        realizationId: realization.id,
+      })),
+    )
+    .sort(
+      (a, b) => new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime(),
+    );
+
+  const handleOpenHistoryDialog = (partnerId: number) => {
+    setHistoryPartnerId(partnerId);
+    setIsHistoryDialogOpen(true);
+  };
 
   const handleOpenPaymentDialog = (partnerId: number) => {
     setCurrentPartnerId(partnerId);
@@ -354,17 +386,30 @@ export default function RealizationTracking({
                             </p>
                           </div>
 
-                          {group.debt > 0 && (
+                          <div className="flex gap-2">
                             <Button
+                              variant="outline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleOpenPaymentDialog(group.partnerId);
+                                handleOpenHistoryDialog(group.partnerId);
                               }}
                             >
-                              <CreditCard className="mr-2 h-4 w-4" />
-                              Добавить платёж
+                              <History className="mr-2 h-4 w-4" />
+                              История платежей
                             </Button>
-                          )}
+
+                            {group.debt > 0 && (
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenPaymentDialog(group.partnerId);
+                                }}
+                              >
+                                <CreditCard className="mr-2 h-4 w-4" />
+                                Добавить платёж
+                              </Button>
+                            )}
+                          </div>
                         </div>
 
                         <div className="space-y-2">
@@ -493,6 +538,59 @@ export default function RealizationTracking({
               <Button onClick={handleAddPayment}>Добавить</Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
+        <DialogContent className="max-h-[80vh] max-w-lg flex flex-col overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>
+              История платежей{' '}
+              {historyGroup ? `— ${historyGroup.partnerName}` : ''}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="flex-1 space-y-2 overflow-y-auto pr-1">
+            {historyPayments.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                Платежей ещё не было
+              </p>
+            ) : (
+              historyPayments.map((payment) => (
+                <div
+                  key={payment.id}
+                  className="rounded-lg border bg-background/60 p-3"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold">
+                        {formatMoney(Number(payment.amount))}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {formatDate(payment.paymentDate)},{' '}
+                        {formatTimeOnly(payment.createdAt)} • Реализация #
+                        {payment.realizationId}
+                      </p>
+                    </div>
+                  </div>
+                  {payment.notes && (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {payment.notes}
+                    </p>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {historyGroup && (
+            <div className="flex justify-between border-t pt-3 text-sm">
+              <span className="text-muted-foreground">Всего оплачено</span>
+              <span className="font-semibold">
+                {formatMoney(historyGroup.paidAmount)}
+              </span>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </>

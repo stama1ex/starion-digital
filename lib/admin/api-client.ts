@@ -83,6 +83,11 @@ export const AdminAPI = {
   deleteOrder: (orderId: number) =>
     deleteData(`/api/admin/orders?orderId=${orderId}`),
   createOrder: (data: any) => postData('/api/admin/create-order', data),
+  mergeOrders: (orderIds: number[]) =>
+    postData<{ order: any; deletedOrderIds: number[] }>(
+      '/api/admin/orders/merge',
+      { orderIds },
+    ),
 
   // Prices
   getPrices: (partnerId: number) =>

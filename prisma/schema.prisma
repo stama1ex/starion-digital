@@ -91,6 +91,7 @@ model Order {
   totalPrice    Decimal     @db.Decimal(12, 2)
   status        OrderStatus @default(NEW)
   isRealization Boolean     @default(false) // Флаг заказа на реализацию
+  isMerged      Boolean     @default(false) // Заказ получен объединением нескольких заказов
   notes         String?     @db.Text // Примечание к заказу
   address       String?     @db.Text // Адрес доставки/самовывоза для заказа
   customPrices  Json? // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}

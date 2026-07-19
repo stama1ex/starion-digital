@@ -33,6 +33,7 @@ import {
   Search,
   Phone,
   MapPin,
+  GitMerge,
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import type { AdminOrder } from '../types';
@@ -50,6 +51,7 @@ import {
 } from '@/lib/admin';
 import { ProductGroup } from '@prisma/client';
 import { useConfirm } from '@/app/providers/confirm-provider';
+import { cn } from '@/lib/utils';
 
 interface OrdersManagementProps {
   orders: AdminOrder[];
@@ -96,6 +98,9 @@ export default function OrdersManagement({
   const [editingPricesOrder, setEditingPricesOrder] =
     useState<AdminOrder | null>(null);
   const [loadedOrdersCount, setLoadedOrdersCount] = useState(20);
+  const [mergeMode, setMergeMode] = useState(false);
+  const [selectedMergeIds, setSelectedMergeIds] = useState<number[]>([]);
+  const [merging, setMerging] = useState(false);
   const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -351,6 +356,55 @@ export default function OrdersManagement({
     }
   };
 
+  // Партнёр, к которому уже привязан текущий выбор для объединения
+  const mergePartnerId =
+    selectedMergeIds.length > 0
+      ? orders.find((o) => o.id === selectedMergeIds[0])?.partnerId
+      : null;
+
+  const isEligibleForMerge = (order: AdminOrder) =>
+    !(order as any).isRealization &&
+    (order.status === 'NEW' || order.status === 'CONFIRMED') &&
+    (mergePartnerId == null || order.partnerId === mergePartnerId);
+
+  const handleToggleMergeSelect = (orderId: number) => {
+    setSelectedMergeIds((prev) =>
+      prev.includes(orderId)
+        ? prev.filter((id) => id !== orderId)
+        : [...prev, orderId],
+    );
+  };
+
+  const handleToggleMergeMode = () => {
+    setMergeMode((prev) => !prev);
+    setSelectedMergeIds([]);
+  };
+
+  const handleMergeOrders = async () => {
+    if (selectedMergeIds.length < 2) return;
+
+    const ok = await confirm({
+      description: `Объединить ${selectedMergeIds.length} заказа(ов) в один? Все товары сложатся в самый ранний из выбранных заказов, а остальные будут безвозвратно удалены (в примечании останется пометка, из каких заказов было объединение).`,
+      confirmText: 'Объединить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+
+    try {
+      setMerging(true);
+      const result = await AdminAPI.mergeOrders(selectedMergeIds);
+      toast.success(`Заказы объединены в заказ №${result.order.id}`);
+      setSelectedMergeIds([]);
+      setMergeMode(false);
+      onRefresh();
+    } catch (error) {
+      const message = await handleApiError(error);
+      toast.error(`Ошибка при объединении заказов: ${message}`);
+    } finally {
+      setMerging(false);
+    }
+  };
+
   const filteredOrders =
     filter === 'ALL'
       ? orders
@@ -504,11 +558,64 @@ export default function OrdersManagement({
     <div className="space-y-3">
       <div className="flex justify-between items-center mb-2">
         <h2 className="text-2xl font-bold">Заказы</h2>
-        <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
-          <Plus size={16} />
-          Создать заказ
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant={mergeMode ? 'secondary' : 'outline'}
+            onClick={handleToggleMergeMode}
+            className="gap-2"
+          >
+            <GitMerge size={16} />
+            {mergeMode ? 'Отменить объединение' : 'Объединить заказы'}
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+            <Plus size={16} />
+            Создать заказ
+          </Button>
+        </div>
       </div>
+
+      {mergeMode && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-1">
+            <p className="text-sm">
+              {selectedMergeIds.length === 0
+                ? 'Выберите минимум 2 заказа одного партнёра, чтобы объединить их товары в один заказ'
+                : `Выбрано заказов: ${selectedMergeIds.length}${
+                    mergePartnerId
+                      ? ` • ${
+                          partners.find((p) => p.id === mergePartnerId)
+                            ?.name || ''
+                        }`
+                      : ''
+                  }`}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedMergeIds([])}
+                disabled={selectedMergeIds.length === 0 || merging}
+              >
+                Сбросить выбор
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleMergeOrders}
+                disabled={selectedMergeIds.length < 2 || merging}
+              >
+                {merging ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Объединение...
+                  </>
+                ) : (
+                  `Объединить (${selectedMergeIds.length})`
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap gap-2">
         <Card className="flex-1 min-w-37.5 px-3 py-1">
@@ -588,18 +695,41 @@ export default function OrdersManagement({
               0,
             );
 
+            const mergeEligible = isEligibleForMerge(order);
+
             return (
               <Card
                 key={order.id}
-                className="py-1 cursor-pointer hover:bg-secondary/50 transition-colors"
+                className={cn(
+                  'py-1 cursor-pointer hover:bg-secondary/50 transition-colors',
+                  mergeMode && !mergeEligible && 'opacity-50',
+                )}
                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
               >
                 <CardContent>
                   <div className="flex items-center justify-between gap-4">
+                    {mergeMode && (
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 shrink-0 rounded border-input accent-primary"
+                        checked={selectedMergeIds.includes(order.id)}
+                        disabled={!mergeEligible}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={() => handleToggleMergeSelect(order.id)}
+                        title={
+                          mergeEligible
+                            ? undefined
+                            : 'Нельзя выбрать: другой партнёр, заказ на реализацию, оплачен или отменён'
+                        }
+                      />
+                    )}
                     {/* Левая часть: номер, партнер, дата */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold">Заказ #{order.id}</span>
+                        <span className="font-semibold">
+                          Заказ #{order.id}
+                          {order.isMerged && ' (объединено)'}
+                        </span>
                         <Badge
                           className={`${
                             ORDER_STATUS_COLORS[

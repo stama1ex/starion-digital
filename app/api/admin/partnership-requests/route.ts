@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 import { checkAdminAuth } from '../auth-utils';
+import { sendEmail } from '@/lib/email/transport';
 
 // GET - Получить все заявки
 export async function GET() {
@@ -120,6 +121,21 @@ export async function PUT(request: NextRequest) {
         where: { id },
         data: { status: 'APPROVED' },
       });
+
+      // Уведомляем заявителя на email, если он указан - не прерываем
+      // выполнение, если письмо не отправилось (партнёр уже создан)
+      if (partnershipRequest.email) {
+        try {
+          await sendEmail({
+            to: partnershipRequest.email,
+            subject: 'Заявка на партнёрство одобрена — Starion Digital',
+            html: `<p>Здравствуйте!</p><p>Ваша заявка на партнёрство одобрена. Теперь вы можете войти в личный кабинет партнёра, используя логин <b>${partnershipRequest.login}</b> и пароль, указанный при подаче заявки.</p><p>С уважением,<br/>Команда Starion Digital</p>`,
+            text: `Здравствуйте!\n\nВаша заявка на партнёрство одобрена. Теперь вы можете войти в личный кабинет партнёра, используя логин "${partnershipRequest.login}" и пароль, указанный при подаче заявки.\n\nС уважением, команда Starion Digital`,
+          });
+        } catch (emailError) {
+          console.error('Failed to send approval email:', emailError);
+        }
+      }
 
       return NextResponse.json({
         success: true,
