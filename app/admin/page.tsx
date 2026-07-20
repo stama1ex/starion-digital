@@ -116,6 +116,8 @@ export default async function AdminPage() {
             select: {
               id: true,
               amount: true,
+              notes: true,
+              paymentDate: true,
               createdAt: true,
             },
           },
