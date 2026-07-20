@@ -127,14 +127,14 @@ export default function OrdersContent() {
               )}
 
               <div className="border rounded-lg p-4 bg-popover/40 hover:bg-popover/60 transition-all">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-lg font-semibold">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                  <div className="text-lg font-semibold min-w-0 wrap-break-word">
                     {t('order')} № {order.id}
                   </div>
 
                   <span
                     className={cn(
-                      'text-sm font-medium px-2 py-1 rounded-md',
+                      'text-sm font-medium px-2 py-1 rounded-md shrink-0',
                       order.status === 'NEW' &&
                         'bg-yellow-500/20 text-yellow-600',
                       order.status === 'CONFIRMED' &&
@@ -151,18 +151,21 @@ export default function OrdersContent() {
 
                 <div className="flex flex-col gap-2">
                   {order.items.map((it, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                    <div
+                      key={i}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
                         {it.product.image && (
                           <OrderItemImage imagePath={it.product.image} />
                         )}
-                        <div className="text-sm">
+                        <div className="text-sm wrap-break-word">
                           {t('number')} {it.product.number} — {it.quantity}{' '}
                           {t('pcs')}
                         </div>
                       </div>
 
-                      <div className="text-sm font-semibold text-primary">
+                      <div className="text-sm font-semibold text-primary shrink-0">
                         {it.sum} {t('currency_raw')}
                       </div>
                     </div>

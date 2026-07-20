@@ -325,7 +325,7 @@ export default function DebtTracking({
             ) : (
               balancesList.map((b) => (
                 <div key={b.id} className="border-b last:border-b-0">
-                  <p className="font-medium">{b.name}</p>
+                  <p className="font-medium wrap-break-word">{b.name}</p>
                   {b.phone && (
                     <p className="text-xs text-muted-foreground">
                       {b.phone}

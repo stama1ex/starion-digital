@@ -167,14 +167,14 @@ export default function TopProducts({
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 gap-4">
+        <CardHeader className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between space-y-0 gap-4">
           <CardTitle>Товары по прибыли</CardTitle>
           {statsByType.length > 0 && (
             <Select
               value={activeGroup?.type}
               onValueChange={setSelectedType}
             >
-              <SelectTrigger className="w-56">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Тип товара" />
               </SelectTrigger>
               <SelectContent>

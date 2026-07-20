@@ -556,9 +556,9 @@ export default function OrdersManagement({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
         <h2 className="text-2xl font-bold">Заказы</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant={mergeMode ? 'secondary' : 'outline'}
             onClick={handleToggleMergeMode}
@@ -589,7 +589,7 @@ export default function OrdersManagement({
                       : ''
                   }`}
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
@@ -652,8 +652,8 @@ export default function OrdersManagement({
         </Card>
       </div>
 
-      <div className="flex gap-2 justify-between">
-        <div className="flex-1 max-w-xs">
+      <div className="flex flex-col sm:flex-row gap-2 sm:justify-between">
+        <div className="w-full sm:flex-1 sm:max-w-xs">
           <Input
             value={orderPartnerSearchQuery}
             onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
@@ -665,7 +665,7 @@ export default function OrdersManagement({
           value={filter}
           onValueChange={(v) => setFilter(v as OrderStatusType | 'ALL')}
         >
-          <SelectTrigger className="w-64">
+          <SelectTrigger className="w-full sm:w-64">
             <SelectValue placeholder="Фильтр по статусу" />
           </SelectTrigger>
           <SelectContent>
@@ -797,11 +797,11 @@ export default function OrdersManagement({
                       {/* Order Notes */}
                       <div className="bg-secondary p-3 rounded">
                         <div className="flex justify-between items-start gap-2">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <p className="text-xs font-medium text-muted-foreground mb-1">
                               Примечание:
                             </p>
-                            <p className="text-sm">
+                            <p className="text-sm wrap-break-word">
                               {order.notes || (
                                 <span className="text-muted-foreground italic">
                                   Нет примечания
@@ -1243,7 +1243,7 @@ export default function OrdersManagement({
                     Товары не найдены
                   </p>
                 ) : (
-                  <div className="columns-3 xl:columns-4 gap-2">
+                  <div className="columns-2 sm:columns-3 xl:columns-4 gap-2">
                     {filteredProducts.map((product) => (
                       <div
                         key={product.id}

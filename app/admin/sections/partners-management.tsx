@@ -179,8 +179,10 @@ export default function PartnersManagement({
   return (
     <Tabs defaultValue="list" className="space-y-4">
       <TabsList className="grid w-full md:w-auto grid-cols-2">
-        <TabsTrigger value="list">Список партнеров</TabsTrigger>
-        <TabsTrigger value="requests" className="relative">
+        <TabsTrigger value="list" className="text-xs sm:text-sm">
+          Список партнеров
+        </TabsTrigger>
+        <TabsTrigger value="requests" className="text-xs sm:text-sm relative">
           Заявки
           {pendingRequestsCount > 0 && (
             <Badge
@@ -306,31 +308,35 @@ export default function PartnersManagement({
             {editingId && editingPartner && (
               <div className="space-y-2 rounded-lg border bg-muted/40 p-3 text-sm">
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-muted-foreground">Логин</span>
-                  <span className="font-mono">{editingPartner.login}</span>
+                  <span className="text-muted-foreground shrink-0">Логин</span>
+                  <span className="font-mono min-w-0 truncate">
+                    {editingPartner.login}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="flex items-center gap-1.5 text-muted-foreground shrink-0">
                     <Phone size={13} />
                     Телефон
                   </span>
-                  <span>{editingPartner.phone || '—'}</span>
+                  <span className="min-w-0 truncate">
+                    {editingPartner.phone || '—'}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="flex items-center gap-1.5 text-muted-foreground shrink-0">
                     <MapPin size={13} />
                     Адрес
                   </span>
-                  <span className="text-right">
+                  <span className="min-w-0 truncate text-right">
                     {editingPartner.address || '—'}
                   </span>
                 </div>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="flex items-center gap-1.5 text-muted-foreground shrink-0">
                     <Mail size={13} />
                     Email
                   </span>
-                  <span className="text-right">
+                  <span className="min-w-0 truncate text-right">
                     {editingPartner.email
                       ? `${editingPartner.email}${
                           editingPartner.emailVerified
@@ -396,7 +402,7 @@ export default function PartnersManagement({
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 sm:right-3 sm:p-0 text-muted-foreground hover:text-foreground"
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>

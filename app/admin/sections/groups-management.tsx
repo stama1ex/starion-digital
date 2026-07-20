@@ -299,22 +299,22 @@ export function GroupsManagement() {
                         </div>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">
                             {(group.translations as any)?.ru || group.slug}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Товаров: {group._count?.products || 0}
                           </p>
                           {group.translations && (
-                            <p className="text-xs text-muted-foreground mt-1">
+                            <p className="text-xs text-muted-foreground mt-1 truncate">
                               EN: {(group.translations as any).en || '-'} | RO:{' '}
                               {(group.translations as any).ro || '-'}
                             </p>
                           )}
                         </div>
-                        <div className="flex gap-2">
+                        <div className="flex gap-2 shrink-0">
                           <Button
                             size="sm"
                             variant="outline"

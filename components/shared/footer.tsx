@@ -84,7 +84,7 @@ const Footer: React.FC<FooterProps> = ({
 
   return (
     <footer className="w-full bg-background border-t pt-10 mt-10">
-      <Container>
+      <Container className="px-4 md:px-0">
         <div className="flex w-full flex-col justify-between gap-10 lg:flex-row lg:items-start lg:text-left">
           <div className="flex w-full flex-col justify-between gap-6 items-center lg:items-start">
             <Link href="/">

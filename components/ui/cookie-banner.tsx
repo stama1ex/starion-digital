@@ -30,7 +30,7 @@ export function CookieBanner() {
     <div className="fixed bottom-0 left-0 right-0 bg-background border-t p-4 shadow-lg z-50">
       <div className="container mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <p className="text-sm">{t('message')}</p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={handleDecline}>
             {t('decline')}
           </Button>

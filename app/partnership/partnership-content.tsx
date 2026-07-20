@@ -119,7 +119,7 @@ export default function PartnershipContent() {
 
   if (sent) {
     return (
-      <Container className="py-8">
+      <Container className="py-8 px-4 md:px-0">
         <Card className="max-w-2xl mx-auto">
           <CardContent className="p-8 text-center">
             <div className="mb-4">
@@ -147,7 +147,7 @@ export default function PartnershipContent() {
   }
 
   return (
-    <Container className="py-8">
+    <Container className="py-8 px-4 md:px-0">
       <Button
         variant="ghost"
         onClick={() => router.back()}
