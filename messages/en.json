@@ -241,7 +241,12 @@
     },
     "number_raw": "{id}",
     "pcs_raw": "{count}",
-    "currency_raw": "MDL"
+    "currency_raw": "MDL",
+    "edit": "Edit",
+    "cancel": "Cancel",
+    "history_title": "Change history",
+    "changed_by_you": "Changed by you",
+    "changed_by_staff": "Changed by our team"
   },
   "Cart": {
     "cart": "Cart",

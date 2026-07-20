@@ -19,6 +19,7 @@ export async function GET() {
       totalPrice: true,
       createdAt: true,
       status: true,
+      isRealization: true,
       items: {
         select: {
           quantity: true,
@@ -26,6 +27,15 @@ export async function GET() {
           product: {
             select: { number: true, image: true, country: true },
           },
+        },
+      },
+      changeLogs: {
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          summary: true,
+          createdAt: true,
+          changedBy: { select: { id: true, name: true, role: true } },
         },
       },
     },

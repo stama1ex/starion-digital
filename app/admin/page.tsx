@@ -51,6 +51,15 @@ export default async function AdminPage() {
               role: true,
             },
           },
+          changeLogs: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              summary: true,
+              createdAt: true,
+              changedBy: { select: { id: true, name: true, role: true } },
+            },
+          },
           items: {
             select: {
               id: true,

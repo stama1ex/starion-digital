@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkAdminAuth, checkSuperAdminAuth } from '../auth-utils';
 import { toPlain } from '@/lib/toPlain';
+import { applyRealizationConfirmSideEffect } from '@/lib/orders/status';
 
 // GET - получить все заказы
 export async function GET() {
@@ -18,6 +19,12 @@ export async function GET() {
         partner: true,
         createdBy: { select: { id: true, name: true, role: true } },
         items: { include: { product: true } },
+        changeLogs: {
+          orderBy: { createdAt: 'desc' },
+          include: {
+            changedBy: { select: { id: true, name: true, role: true } },
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
       where: {
@@ -103,31 +110,11 @@ export async function PUT(request: NextRequest) {
 
     // Если это заказ на реализацию и статус CONFIRMED - создаём или восстанавливаем Realization
     if (existingOrder.isRealization && status === 'CONFIRMED') {
-      if (!existingOrder.realization) {
-        // Создаем новую реализацию
-        await prisma.realization.create({
-          data: {
-            orderId: order.id,
-            partnerId: order.partnerId,
-            totalCost: order.totalPrice,
-            items: {
-              create: order.items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-                unitPrice: item.pricePerItem,
-                costPrice: item.product.costPrice,
-                totalPrice: item.sum,
-              })),
-            },
-          },
-        });
-      } else if (existingOrder.realization.status === 'CANCELLED') {
-        // Восстанавливаем отмененную реализацию
-        await prisma.realization.update({
-          where: { id: existingOrder.realization.id },
-          data: { status: 'PENDING' },
-        });
-      }
+      await applyRealizationConfirmSideEffect(
+        prisma,
+        order,
+        existingOrder.realization,
+      );
     }
 
     // Если это заказ на реализацию и статус меняется с CONFIRMED на NEW - удаляем реализацию

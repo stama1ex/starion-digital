@@ -246,7 +246,12 @@
     },
     "number_raw": "{id}",
     "pcs_raw": "{count}",
-    "currency_raw": "MDL"
+    "currency_raw": "MDL",
+    "edit": "Editează",
+    "cancel": "Anulare",
+    "history_title": "Istoric modificări",
+    "changed_by_you": "Modificat de dvs.",
+    "changed_by_staff": "Modificat de echipă"
   },
   "Cart": {
     "cart": "Coș",

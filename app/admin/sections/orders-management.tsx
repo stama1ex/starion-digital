@@ -34,8 +34,11 @@ import {
   Phone,
   MapPin,
   GitMerge,
+  TriangleAlert,
+  History,
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
+import { EditOrderDialog } from '@/components/shared/edit-order-dialog';
 import type { AdminOrder } from '../types';
 import {
   ORDER_STATUS_LABELS,
@@ -106,6 +109,9 @@ export default function OrdersManagement({
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedMergeIds, setSelectedMergeIds] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
+  const [editingItemsOrderId, setEditingItemsOrderId] = useState<
+    number | null
+  >(null);
   const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -704,6 +710,10 @@ export default function OrdersManagement({
 
             const mergeEligible = isEligibleForMerge(order);
 
+            const hasMarginIssue = order.items.some(
+              (item) => Number(item.pricePerItem) < Number(item.product.costPrice),
+            );
+
             const creator = order.createdBy;
             const creatorLabel = !creator
               ? null
@@ -760,6 +770,15 @@ export default function OrdersManagement({
                         {(order as any).isRealization && (
                           <Badge className="bg-transparent border border-purple-400 text-xs text-purple-400">
                             На реализацию
+                          </Badge>
+                        )}
+                        {hasMarginIssue && (
+                          <Badge
+                            className="gap-1 bg-red-500/15 text-xs text-red-600 dark:text-red-400"
+                            title="Есть товары с ценой ниже себестоимости"
+                          >
+                            <TriangleAlert size={11} />
+                            Ниже себестоимости
                           </Badge>
                         )}
                       </div>
@@ -850,19 +869,65 @@ export default function OrdersManagement({
                       <div>
                         <h4 className="text-sm font-medium mb-2">Товары:</h4>
                         <div className="space-y-1">
-                          {order.items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="text-sm flex justify-between"
-                            >
-                              <span>
-                                {item.product.number} × {item.quantity}
-                              </span>
-                              <span>{Number(item.sum).toFixed(2)} MDL</span>
-                            </div>
-                          ))}
+                          {order.items.map((item) => {
+                            const belowCost =
+                              Number(item.pricePerItem) <
+                              Number(item.product.costPrice);
+                            return (
+                              <div
+                                key={item.id}
+                                className={cn(
+                                  'text-sm flex justify-between gap-2',
+                                  belowCost && 'text-red-600 dark:text-red-400',
+                                )}
+                                title={
+                                  belowCost
+                                    ? `Цена ${Number(item.pricePerItem).toFixed(2)} MDL ниже себестоимости ${Number(item.product.costPrice).toFixed(2)} MDL`
+                                    : undefined
+                                }
+                              >
+                                <span className="flex items-center gap-1">
+                                  {belowCost && (
+                                    <TriangleAlert
+                                      size={12}
+                                      className="shrink-0"
+                                    />
+                                  )}
+                                  {item.product.number} × {item.quantity}
+                                </span>
+                                <span>{Number(item.sum).toFixed(2)} MDL</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
+
+                      {order.changeLogs.length > 0 && (
+                        <div className="space-y-1.5">
+                          <h4 className="flex items-center gap-1.5 text-sm font-medium">
+                            <History className="h-3.5 w-3.5" />
+                            История изменений
+                          </h4>
+                          {order.changeLogs.map((entry) => (
+                            <p
+                              key={entry.id}
+                              className="text-xs text-muted-foreground wrap-break-word"
+                            >
+                              {formatDate(entry.createdAt)} —{' '}
+                              {entry.changedBy
+                                ? `${
+                                    entry.changedBy.role === 'PARTNER'
+                                      ? 'партнёр'
+                                      : entry.changedBy.role === 'SUPER_ADMIN'
+                                        ? 'супер админ'
+                                        : 'админ'
+                                  } ${entry.changedBy.name}`
+                                : 'неизвестно'}
+                              : {entry.summary}
+                            </p>
+                          ))}
+                        </div>
+                      )}
 
                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t">
                         <div>
@@ -875,6 +940,26 @@ export default function OrdersManagement({
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                          {/* Кнопка редактирования позиций заказа */}
+                          {canManage &&
+                            !(order as any).isRealization &&
+                            (order.status === 'NEW' ||
+                              order.status === 'CONFIRMED') && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full sm:w-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingItemsOrderId(order.id);
+                                }}
+                                title="Редактировать товары в заказе"
+                              >
+                                <Pencil className="h-4 w-4 sm:mr-0 mr-2" />
+                                <span className="sm:hidden">Товары</span>
+                              </Button>
+                            )}
+
                           {/* Кнопка редактирования цен */}
                           {canManage && (
                             <Button
@@ -1400,6 +1485,18 @@ export default function OrdersManagement({
             }
             onRefresh();
           }}
+        />
+      )}
+
+      {/* Edit Order Items Dialog */}
+      {editingItemsOrderId !== null && (
+        <EditOrderDialog
+          orderId={editingItemsOrderId}
+          open={editingItemsOrderId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingItemsOrderId(null);
+          }}
+          onSuccess={onRefresh}
         />
       )}
     </div>
