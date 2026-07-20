@@ -159,3 +159,85 @@ export async function POST(req: Request) {
     return new Response(err.message ?? 'Error', { status: 400 });
   }
 }
+
+// DELETE - удалить платёж (откатывает paidAmount/статус реализации и, если
+// нужно, статус заказа PAID -> CONFIRMED)
+export async function DELETE(req: Request) {
+  try {
+    const admin = await getPartnerFromSessionCookie('ADMIN');
+    if (!admin) {
+      return new Response('Unauthorized - Admin only', { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const paymentId = Number(searchParams.get('paymentId'));
+
+    if (!Number.isInteger(paymentId)) {
+      return new Response('Invalid payment id', { status: 400 });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const payment = await tx.realizationPayment.findUnique({
+        where: { id: paymentId },
+        include: { realization: true },
+      });
+
+      if (!payment) {
+        throw new Error('Payment not found');
+      }
+
+      const { realization } = payment;
+      const totalCost = Number(realization.totalCost);
+      const newPaidAmount = Math.max(
+        0,
+        Number(realization.paidAmount) - Number(payment.amount),
+      );
+
+      // Отменённую реализацию не "воскрешаем" пересчётом статуса
+      const newStatus =
+        realization.status === 'CANCELLED'
+          ? realization.status
+          : newPaidAmount <= 0
+            ? 'PENDING'
+            : newPaidAmount >= totalCost
+              ? 'COMPLETED'
+              : 'PARTIAL';
+
+      await tx.realization.update({
+        where: { id: realization.id },
+        data: { paidAmount: newPaidAmount, status: newStatus },
+      });
+
+      // Если реализация перестала быть полностью оплаченной - откатываем
+      // связанный заказ с PAID обратно на CONFIRMED
+      if (realization.status === 'COMPLETED' && newStatus !== 'COMPLETED') {
+        const order = await tx.order.findUnique({
+          where: { id: realization.orderId },
+        });
+        if (order?.status === 'PAID') {
+          await tx.order.update({
+            where: { id: realization.orderId },
+            data: { status: 'CONFIRMED' },
+          });
+        }
+      }
+
+      await tx.realizationPayment.delete({ where: { id: paymentId } });
+
+      return { realizationId: realization.id, partnerId: realization.partnerId };
+    });
+
+    return Response.json({ ok: true, ...result });
+  } catch (error) {
+    const err = error as Error;
+    console.error('Error deleting realization payment:', err);
+
+    if (err.message === 'Payment not found') {
+      return new Response(err.message, { status: 404 });
+    }
+
+    return new Response(err.message ?? 'Failed to delete payment', {
+      status: 400,
+    });
+  }
+}
