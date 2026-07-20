@@ -13,8 +13,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ChevronDown, ChevronUp, CreditCard, History } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  CreditCard,
+  History,
+  Loader2,
+  Trash2,
+} from 'lucide-react';
 import type { AdminRealization } from '../types';
+import { useConfirm } from '@/app/providers/confirm-provider';
 
 interface RealizationTrackingProps {
   realizations: AdminRealization[];
@@ -139,6 +147,10 @@ export default function RealizationTracking({
   const [historyPartnerId, setHistoryPartnerId] = useState<number | null>(
     null,
   );
+  const [deletingPaymentId, setDeletingPaymentId] = useState<number | null>(
+    null,
+  );
+  const confirm = useConfirm();
 
   const partnerGroups = useMemo(
     () => buildPartnerGroups(realizations),
@@ -238,6 +250,38 @@ export default function RealizationTracking({
     } catch (error) {
       console.error('Error adding partner payment:', error);
       toast.error('Ошибка при добавлении платежа');
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: number) => {
+    const ok = await confirm({
+      description:
+        'Удалить этот платёж? Сумма будет вычтена из оплаченного по реализации, а статус (и статус связанного заказа, если он был оплачен) пересчитаются автоматически.',
+      confirmText: 'Удалить',
+      variant: 'destructive',
+    });
+    if (!ok) return;
+
+    try {
+      setDeletingPaymentId(paymentId);
+      const response = await fetch(
+        `/api/admin/realization-payment?paymentId=${paymentId}`,
+        { method: 'DELETE' },
+      );
+
+      if (response.ok) {
+        toast.success('Платёж удалён');
+        onRefresh();
+        return;
+      }
+
+      const error = await response.text();
+      toast.error(`Ошибка: ${error}`);
+    } catch (error) {
+      console.error('Error deleting realization payment:', error);
+      toast.error('Ошибка при удалении платежа');
+    } finally {
+      setDeletingPaymentId(null);
     }
   };
 
@@ -568,7 +612,7 @@ export default function RealizationTracking({
                   className="rounded-lg border bg-background/60 p-3"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-semibold">
                         {formatMoney(Number(payment.amount))}
                       </p>
@@ -578,6 +622,20 @@ export default function RealizationTracking({
                         {payment.realizationId}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeletePayment(payment.id)}
+                      disabled={deletingPaymentId === payment.id}
+                      title="Удалить платёж"
+                    >
+                      {deletingPaymentId === payment.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
                   </div>
                   {payment.notes && (
                     <p className="mt-2 text-sm text-muted-foreground">
