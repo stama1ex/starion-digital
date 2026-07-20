@@ -157,20 +157,26 @@ export default function RealizationTracking({
       return true;
     });
 
-  const formatDate = (value: string | Date) =>
-    new Intl.DateTimeFormat('ru-RU', {
+  const formatDate = (value: string | Date | null | undefined) => {
+    const date = new Date(value ?? NaN);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('ru-RU', {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-    }).format(new Date(value));
+    }).format(date);
+  };
 
   // paymentDate хранит только дату (выбирается в date-picker'e и всегда
   // сохраняется как UTC-полночь) - точное время операции берём из createdAt
-  const formatTimeOnly = (value: string | Date) =>
-    new Intl.DateTimeFormat('ru-RU', {
+  const formatTimeOnly = (value: string | Date | null | undefined) => {
+    const date = new Date(value ?? NaN);
+    if (Number.isNaN(date.getTime())) return '—';
+    return new Intl.DateTimeFormat('ru-RU', {
       hour: '2-digit',
       minute: '2-digit',
-    }).format(new Date(value));
+    }).format(date);
+  };
 
   const historyGroup = partnerGroups.find(
     (group) => group.partnerId === historyPartnerId,
