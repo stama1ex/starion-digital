@@ -87,6 +87,8 @@
     "plates_title": "Каталог тарелок",
     "cards_title": "Каталог открыток",
     "keychains_title": "Каталог брелоков",
+    "prev_category": "Вернуться к: {name}",
+    "next_category": "Перейти к: {name}",
     "all_others": "Все остальные",
     "search_placeholder": "Поиск по номеру...",
     "fetch_error": "Не удалось загрузить {type}",

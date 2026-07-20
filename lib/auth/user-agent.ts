@@ -1,6 +1,6 @@
 export function parseUserAgent(userAgent: string | null | undefined) {
   if (!userAgent) {
-    return { os: 'Неизвестно', browser: 'Неизвестно' };
+    return { os: 'Неизвестно', browser: 'Неизвестно', isMobile: false };
   }
 
   const ua = userAgent;
@@ -21,5 +21,7 @@ export function parseUserAgent(userAgent: string | null | undefined) {
   else if (/Firefox\//.test(ua)) browser = 'Firefox';
   else if (/Safari\//.test(ua) && !/Chrome\//.test(ua)) browser = 'Safari';
 
-  return { os, browser };
+  const isMobile = /iPhone|iPad|iPod|Android|Mobile/.test(ua);
+
+  return { os, browser, isMobile };
 }

@@ -354,8 +354,20 @@ export default function PartnersManagement({
                     )}
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Пароль</p>
-                    <p className="font-mono text-sm">•••••</p>
+                    <p className="text-sm text-muted-foreground">Email</p>
+                    {partner.email ? (
+                      <p className="text-sm flex items-center gap-1">
+                        <Mail
+                          size={12}
+                          className="text-muted-foreground shrink-0"
+                        />
+                        <span className="truncate">{partner.email}</span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-muted-foreground italic">
+                        Не указан
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-2 justify-end">
                     {partner.role === 'SUPER_ADMIN' ? (

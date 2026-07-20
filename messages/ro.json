@@ -91,6 +91,8 @@
     "plates_title": "Catalog Farfurii",
     "cards_title": "Catalog Felicitări",
     "keychains_title": "Catalog Brelocuri",
+    "prev_category": "Înapoi la: {name}",
+    "next_category": "Mergi la: {name}",
     "all_others": "Toate Celelalte",
     "search_placeholder": "Căutare după număr...",
     "fetch_error": "Nu s-a putut încărca {type}",

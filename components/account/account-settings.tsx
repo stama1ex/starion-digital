@@ -6,7 +6,14 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Eye, EyeOff, Loader2, Monitor, TriangleAlert } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Loader2,
+  Monitor,
+  Smartphone,
+  TriangleAlert,
+} from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CodeVerificationDialog } from '@/components/shared/code-verification-dialog';
 import { ForgotPasswordDialog } from '@/components/shared/forgot-password-dialog';
@@ -19,6 +26,7 @@ interface AccountSession {
   isCurrent: boolean;
   os: string;
   browser: string;
+  isMobile: boolean;
 }
 
 function formatSessionDate(value: string, locale: string) {
@@ -673,10 +681,17 @@ export default function AccountSettings() {
                 className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border p-3"
               >
                 <div className="flex items-start gap-3 min-w-0">
-                  <Monitor
-                    className="mt-0.5 shrink-0 text-muted-foreground"
-                    size={18}
-                  />
+                  {session.isMobile ? (
+                    <Smartphone
+                      className="mt-0.5 shrink-0 text-muted-foreground"
+                      size={18}
+                    />
+                  ) : (
+                    <Monitor
+                      className="mt-0.5 shrink-0 text-muted-foreground"
+                      size={18}
+                    />
+                  )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium wrap-break-word">
