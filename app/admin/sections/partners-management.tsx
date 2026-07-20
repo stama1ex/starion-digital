@@ -252,7 +252,10 @@ export default function PartnersManagement({
               className="w-full sm:w-64"
             />
             <div className="flex gap-2">
-              <Button onClick={handleOpenNew} className="gap-2 flex-1 sm:flex-none">
+              <Button
+                onClick={handleOpenNew}
+                className="gap-2 flex-1 sm:flex-none"
+              >
                 <Plus size={16} />
                 Добавить партнера
               </Button>
@@ -303,13 +306,20 @@ export default function PartnersManagement({
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">
-                      {partner.role === 'ADMIN' ? 'Телеграм для уведомлений' : 'Контакты'}
+                      {partner.role === 'ADMIN'
+                        ? 'Телеграм для уведомлений'
+                        : 'Контакты'}
                     </p>
                     {partner.role === 'ADMIN' ? (
                       partner.telegramChatId ? (
                         <p className="text-sm flex items-center gap-1">
-                          <Send size={12} className="text-muted-foreground shrink-0" />
-                          <span className="truncate">{partner.telegramChatId}</span>
+                          <Send
+                            size={12}
+                            className="text-muted-foreground shrink-0"
+                          />
+                          <span className="truncate">
+                            {partner.telegramChatId}
+                          </span>
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground italic">
@@ -320,13 +330,19 @@ export default function PartnersManagement({
                       <div className="space-y-0.5">
                         {partner.phone && (
                           <p className="text-sm flex items-center gap-1">
-                            <Phone size={12} className="text-muted-foreground shrink-0" />
+                            <Phone
+                              size={12}
+                              className="text-muted-foreground shrink-0"
+                            />
                             <span className="truncate">{partner.phone}</span>
                           </p>
                         )}
                         {partner.address && (
                           <p className="text-sm flex items-center gap-1">
-                            <MapPin size={12} className="text-muted-foreground shrink-0" />
+                            <MapPin
+                              size={12}
+                              className="text-muted-foreground shrink-0"
+                            />
                             <span className="truncate">{partner.address}</span>
                           </p>
                         )}
@@ -454,7 +470,9 @@ export default function PartnersManagement({
                 </div>
                 <p className="border-t pt-2 text-xs text-muted-foreground">
                   Логин, пароль, телефон, адрес и email{' '}
-                  {effectiveRole === 'ADMIN' ? 'админ меняет' : 'партнёр меняет'}{' '}
+                  {effectiveRole === 'ADMIN'
+                    ? 'админ меняет'
+                    : 'партнёр меняет'}{' '}
                   самостоятельно в личном кабинете
                 </p>
               </div>
@@ -555,8 +573,29 @@ export default function PartnersManagement({
                   placeholder="Например: 123456789"
                 />
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Сюда будут приходить уведомления о новых заказах. Узнать
-                  chat_id можно, написав боту любое сообщение.
+                  Сюда будут приходить уведомления о новых заказах. Важно:
+                  Telegram не разрешает боту писать первым - админ должен
+                  сначала сам открыть{' '}
+                  <a
+                    href="https://t.me/starion_orders_bot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    @starion_orders_bot
+                  </a>{' '}
+                  и нажать «Start» (или отправить любое сообщение) - иначе
+                  уведомления не дойдут с ошибкой &quot;chat not found&quot;.
+                  После этого узнать свой chat_id можно, например, у бота{' '}
+                  <a
+                    href="https://t.me/userinfobot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    @userinfobot
+                  </a>
+                  .
                 </p>
               </div>
             )}
