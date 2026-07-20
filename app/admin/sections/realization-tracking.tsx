@@ -254,8 +254,8 @@ export default function RealizationTracking({
           </div>
         </div>
 
-        <div className="flex justify-between">
-          <div className="max-w-xs">
+        <div className="flex flex-col sm:flex-row gap-2 sm:justify-between">
+          <div className="w-full sm:max-w-xs">
             <Input
               value={partnerSearchQuery}
               onChange={(e) => setPartnerSearchQuery(e.target.value)}
@@ -392,7 +392,7 @@ export default function RealizationTracking({
                             </p>
                           </div>
 
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button
                               variant="outline"
                               onClick={(e) => {
@@ -452,7 +452,7 @@ export default function RealizationTracking({
                                     </p>
                                   </div>
 
-                                  <div className="grid min-w-64 grid-cols-2 gap-3 text-sm">
+                                  <div className="grid w-full grid-cols-2 gap-3 text-sm sm:w-auto sm:min-w-64">
                                     <div>
                                       <p className="text-muted-foreground">
                                         Всего

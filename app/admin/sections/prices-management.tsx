@@ -489,7 +489,7 @@ export default function PricesManagement() {
           <Button
             variant="outline"
             onClick={handleOpenDefaultPricesModal}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto h-auto whitespace-normal py-2 text-center sm:h-9 sm:whitespace-nowrap"
           >
             ⚙️ Цены по умолчанию для новых партнёров
           </Button>
@@ -519,7 +519,7 @@ export default function PricesManagement() {
         <div className="space-y-4">
           {PRODUCT_TYPES.map((type) => (
             <Card key={type}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 space-y-0">
                 <CardTitle className="text-lg">
                   {PRODUCT_TYPE_LABELS[type] || type}
                 </CardTitle>
@@ -527,7 +527,7 @@ export default function PricesManagement() {
                   variant="outline"
                   size="sm"
                   onClick={() => setShowPresetModal(type)}
-                  className="ml-auto"
+                  className="w-full sm:w-auto sm:ml-auto"
                 >
                   📋 Пресет для всех партнеров
                 </Button>
@@ -555,7 +555,7 @@ export default function PricesManagement() {
                                     group.slug,
                                 })
                               }
-                              className="h-6 px-2 text-xs shrink-0"
+                              className="h-7 sm:h-6 px-2 text-xs shrink-0"
                               title="Применить цену ко всем партнерам"
                             >
                               📋
@@ -587,7 +587,7 @@ export default function PricesManagement() {
                             groupName: 'Без группы',
                           })
                         }
-                        className="h-6 px-2 text-xs shrink-0"
+                        className="h-7 sm:h-6 px-2 text-xs shrink-0"
                         title="Применить цену ко всем партнерам"
                       >
                         📋
@@ -675,7 +675,7 @@ export default function PricesManagement() {
                 </div>
               </div>
 
-              <div className="flex gap-2 justify-end pt-4 border-t">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -683,12 +683,14 @@ export default function PricesManagement() {
                     setPresetPrices({});
                   }}
                   disabled={applyingPreset}
+                  className="w-full sm:w-auto"
                 >
                   Отмена
                 </Button>
                 <Button
                   onClick={() => handleApplyPresetToAll(showPresetModal)}
                   disabled={applyingPreset}
+                  className="w-full sm:w-auto"
                 >
                   {applyingPreset ? (
                     <>
@@ -746,11 +748,12 @@ export default function PricesManagement() {
                 </p>
               </div>
 
-              <div className="flex gap-2 justify-end pt-4 border-t">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => setShowGroupPresetModal(null)}
                   disabled={applyingPreset}
+                  className="w-full sm:w-auto"
                 >
                   Отмена
                 </Button>
@@ -771,6 +774,7 @@ export default function PricesManagement() {
                     }
                   }}
                   disabled={applyingPreset}
+                  className="w-full sm:w-auto"
                 >
                   {applyingPreset ? (
                     <>
@@ -812,7 +816,7 @@ export default function PricesManagement() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                           {Array.isArray(groups) &&
                             groups
                               .filter((g) => g.type === type)
@@ -865,17 +869,19 @@ export default function PricesManagement() {
                 </div>
               )}
 
-              <div className="flex gap-2 justify-end pt-4 border-t">
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4 border-t">
                 <Button
                   variant="outline"
                   onClick={() => setIsDefaultPricesModalOpen(false)}
                   disabled={savingDefaultPrices}
+                  className="w-full sm:w-auto"
                 >
                   Отмена
                 </Button>
                 <Button
                   onClick={handleSaveDefaultPrices}
                   disabled={savingDefaultPrices || loadingDefaultPrices}
+                  className="w-full sm:w-auto"
                 >
                   {savingDefaultPrices ? (
                     <>

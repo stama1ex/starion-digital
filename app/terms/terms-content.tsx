@@ -53,7 +53,9 @@ export default function TermsContent({ translations }: TermsContentProps) {
           <Card key={section.id} id={section.id} className="shadow-md">
             <CardContent className="p-6 space-y-4">
               <div className="flex items-center gap-3">
-                {icons[section.id as keyof typeof icons]}
+                <span className="shrink-0">
+                  {icons[section.id as keyof typeof icons]}
+                </span>
                 <h2 className="text-2xl font-semibold">{section.title}</h2>
               </div>
               <p className="text-muted-foreground">{section.text}</p>

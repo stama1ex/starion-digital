@@ -99,7 +99,7 @@ export const Header: React.FC<Props> = ({ className }) => {
         className,
       )}
     >
-      <Container className="flex items-center justify-between py-4 sm:py-6 gap-4 relative">
+      <Container className="flex items-center justify-between py-4 sm:py-6 gap-4 relative px-4 md:px-0">
         {/* LOGO */}
         <div className="relative flex items-center justify-between w-full sm:w-auto">
           <Link href="/" className="hidden md:flex items-center gap-2">

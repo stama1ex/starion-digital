@@ -530,7 +530,7 @@ export default function AccountSettings() {
                 <button
                   type="button"
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 p-2 sm:right-3 sm:p-0 text-muted-foreground hover:text-foreground"
                 >
                   {showCurrentPassword ? (
                     <EyeOff size={18} />
@@ -574,7 +574,7 @@ export default function AccountSettings() {
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 sm:right-3 sm:p-0 text-muted-foreground hover:text-foreground"
                     >
                       {showNewPassword ? (
                         <EyeOff size={18} />
@@ -605,7 +605,7 @@ export default function AccountSettings() {
                         setShowConfirmPassword(!showConfirmPassword)
                       }
                       disabled={!newPassword}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground disabled:opacity-50"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 p-2 sm:right-3 sm:p-0 text-muted-foreground hover:text-foreground disabled:opacity-50"
                     >
                       {showConfirmPassword ? (
                         <EyeOff size={18} />
@@ -670,16 +670,16 @@ export default function AccountSettings() {
             sessions.map((session) => (
               <div
                 key={session.id}
-                className="flex items-center justify-between gap-3 rounded-lg border p-3"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-lg border p-3"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 min-w-0">
                   <Monitor
                     className="mt-0.5 shrink-0 text-muted-foreground"
                     size={18}
                   />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium wrap-break-word">
                         {session.os} · {session.browser}
                       </span>
                       {session.isCurrent && (
@@ -705,6 +705,7 @@ export default function AccountSettings() {
                   <Button
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto shrink-0"
                     onClick={() => handleRevokeSession(session.id)}
                     disabled={revokingSessionId === session.id}
                   >

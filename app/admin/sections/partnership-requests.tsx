@@ -193,8 +193,8 @@ export function PartnershipRequests({
       {requests.map((req) => (
         <Card key={req.id}>
           <CardContent>
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:justify-between items-start gap-4">
+              <div className="flex-1 min-w-0 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {getStatusBadge(req.status)}
@@ -205,64 +205,70 @@ export function PartnershipRequests({
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
                       <span className="text-xs text-muted-foreground">
                         Логин:
                       </span>
-                      <p className="font-medium">{req.login}</p>
+                      <p className="font-medium break-all">{req.login}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-4 h-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
                       <span className="text-xs text-muted-foreground">
                         Телефон:
                       </span>
-                      <p className="font-medium">{req.phone}</p>
+                      <p className="font-medium break-all">{req.phone}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                    <div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
                       <span className="text-xs text-muted-foreground">
                         Пароль:
                       </span>
-                      <p className="font-mono text-sm">{req.password}</p>
+                      <p className="font-mono text-sm break-all">
+                        {req.password}
+                      </p>
                     </div>
                   </div>
                 </div>
 
                 {req.address && (
                   <div className="flex gap-2 pt-2 border-t">
-                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
+                    <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground">
                         Адрес:
                       </span>
-                      <p className="text-sm mt-1">{req.address}</p>
+                      <p className="text-sm mt-1 wrap-break-word">
+                        {req.address}
+                      </p>
                     </div>
                   </div>
                 )}
 
                 {req.message && (
                   <div className="flex gap-2 pt-2 border-t">
-                    <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5" />
-                    <div className="flex-1">
+                    <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <span className="text-xs text-muted-foreground">
                         Сообщение:
                       </span>
-                      <p className="text-sm mt-1">{req.message}</p>
+                      <p className="text-sm mt-1 wrap-break-word">
+                        {req.message}
+                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
               {req.status === 'PENDING' && (
-                <div className="flex flex-col gap-2 min-w-35">
+                <div className="flex flex-col gap-2 w-full sm:w-auto sm:min-w-35">
                   <Button
                     size="sm"
                     variant="default"

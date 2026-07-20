@@ -98,13 +98,13 @@ function ProductCardImpl({ product, getPrice }: Props) {
       }`}
     >
       {!hasImage || loading || !imgSrc ? (
-        <NoImageIcon className="md:w-64 md:h-64 w-32 h-32 text-primary mb-2" />
+        <NoImageIcon className="md:w-64 md:h-64 w-24 h-24 sm:w-28 sm:h-28 text-primary mb-2" />
       ) : imgSrc.includes('dropboxusercontent.com') ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={imgSrc}
           alt={product.number}
-          className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
+          className="md:w-64 md:h-64 w-24 h-24 sm:w-28 sm:h-28 object-contain mb-2"
           onError={() => setImgError(true)}
         />
       ) : (
@@ -113,7 +113,7 @@ function ProductCardImpl({ product, getPrice }: Props) {
           height={500}
           src={imgSrc}
           alt={product.number}
-          className="md:w-64 md:h-64 w-32 h-32 object-contain mb-2"
+          className="md:w-64 md:h-64 w-24 h-24 sm:w-28 sm:h-28 object-contain mb-2"
           onError={() => setImgError(true)}
         />
       )}

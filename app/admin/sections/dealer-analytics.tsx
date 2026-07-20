@@ -131,17 +131,17 @@ export default function DealerAnalytics({
               dealersByVolume.map((dealer, idx) => (
                 <div
                   key={dealer.id}
-                  className="flex justify-between items-center pb-3 border-b last:border-b-0"
+                  className="flex justify-between items-center gap-3 pb-3 border-b last:border-b-0"
                 >
-                  <div>
-                    <p className="font-medium">
+                  <div className="min-w-0">
+                    <p className="font-medium wrap-break-word">
                       {idx + 1}. {dealer.name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {dealer.orderCount} заказов
                     </p>
                   </div>
-                  <p className="font-bold text-lg">
+                  <p className="font-bold text-lg shrink-0">
                     {dealer.totalVolume.toFixed(0)} MDL
                   </p>
                 </div>

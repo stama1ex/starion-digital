@@ -148,10 +148,10 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
                   key={item.id}
                   className="flex items-center justify-between gap-3 border rounded-md p-2"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <CartItemImage image={item.image} alt={item.number} />
-                    <div>
-                      <div className="text-sm font-medium">{`Souvenir ${item.number}`}</div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium wrap-break-word">{`Souvenir ${item.number}`}</div>
                       <div className="text-xs text-muted-foreground">
                         {t('qty')}: {item.quantity}
                       </div>
@@ -165,6 +165,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
                   <Button
                     variant="ghost"
                     size="icon"
+                    className="shrink-0"
                     onClick={() => removeItem(item.id)}
                   >
                     ✕
@@ -224,7 +225,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
               </Button>
 
               {isVip && (
-                <div className="relative inline-flex">
+                <div className="relative inline-flex self-start md:self-auto">
                   <Button
                     variant="secondary"
                     disabled={!items.length || isSubmitting}
