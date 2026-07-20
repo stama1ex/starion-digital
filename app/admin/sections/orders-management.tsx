@@ -57,12 +57,17 @@ interface OrdersManagementProps {
   orders: AdminOrder[];
   onRefresh: () => void;
   groups: ProductGroup[];
+  // Полное управление заказами (смена статуса, примечания, кастомные цены,
+  // объединение, удаление) - только для супер-админа. Ограниченный админ
+  // может только видеть список, создавать новые заказы и экспортировать.
+  canManage?: boolean;
 }
 
 export default function OrdersManagement({
   orders: initialOrders,
   onRefresh,
   groups,
+  canManage = true,
 }: OrdersManagementProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<OrderStatusType | 'ALL'>('ALL');
@@ -559,14 +564,16 @@ export default function OrdersManagement({
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-2">
         <h2 className="text-2xl font-bold">Заказы</h2>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={mergeMode ? 'secondary' : 'outline'}
-            onClick={handleToggleMergeMode}
-            className="gap-2"
-          >
-            <GitMerge size={16} />
-            {mergeMode ? 'Отменить объединение' : 'Объединить заказы'}
-          </Button>
+          {canManage && (
+            <Button
+              variant={mergeMode ? 'secondary' : 'outline'}
+              onClick={handleToggleMergeMode}
+              className="gap-2"
+            >
+              <GitMerge size={16} />
+              {mergeMode ? 'Отменить объединение' : 'Объединить заказы'}
+            </Button>
+          )}
           <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
             <Plus size={16} />
             Создать заказ
@@ -583,8 +590,8 @@ export default function OrdersManagement({
                 : `Выбрано заказов: ${selectedMergeIds.length}${
                     mergePartnerId
                       ? ` • ${
-                          partners.find((p) => p.id === mergePartnerId)
-                            ?.name || ''
+                          partners.find((p) => p.id === mergePartnerId)?.name ||
+                          ''
                         }`
                       : ''
                   }`}
@@ -697,6 +704,15 @@ export default function OrdersManagement({
 
             const mergeEligible = isEligibleForMerge(order);
 
+            const creator = order.createdBy;
+            const creatorLabel = !creator
+              ? null
+              : creator.role === 'PARTNER'
+                ? `Оформлено партнёром`
+                : `Оформлено ${
+                    creator.role === 'SUPER_ADMIN' ? 'супер админом' : 'админом'
+                  }: ${creator.name}`;
+
             return (
               <Card
                 key={order.id}
@@ -750,6 +766,11 @@ export default function OrdersManagement({
                       <p className="text-xs text-muted-foreground mt-2 truncate">
                         {order.partner.name} • {formatDate(order.createdAt)}
                       </p>
+                      {creatorLabel && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {creatorLabel}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center">
@@ -809,18 +830,20 @@ export default function OrdersManagement({
                               )}
                             </p>
                           </div>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditNotes(order.id, order.notes);
-                            }}
-                            title="Редактировать примечание"
-                          >
-                            <Pencil className="h-3 w-3" />
-                          </Button>
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditNotes(order.id, order.notes);
+                              }}
+                              title="Редактировать примечание"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -853,66 +876,69 @@ export default function OrdersManagement({
 
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                           {/* Кнопка редактирования цен */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditPrices(order);
-                            }}
-                            title="Редактировать цены для этого заказа"
-                          >
-                            <DollarSign className="h-4 w-4 sm:mr-0 mr-2" />
-                            <span className="sm:hidden">Цены</span>
-                          </Button>
-
-                          {(order as any).isRealization &&
-                          order.status === 'PAID' ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">
-                                Заказ полностью оплачен
-                              </span>
-                            </div>
-                          ) : (
-                            <div
-                              className="flex items-center gap-2"
-                              onClick={(e) => e.stopPropagation()}
+                          {canManage && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full sm:w-auto"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditPrices(order);
+                              }}
+                              title="Редактировать цены для этого заказа"
                             >
-                              <label className="text-sm font-medium whitespace-nowrap">
-                                Статус:
-                              </label>
-                              <Select
-                                value={order.status}
-                                onValueChange={(value) =>
-                                  handleStatusChange(
-                                    order.id,
-                                    value as OrderStatusType,
-                                  )
-                                }
-                                disabled={updating === order.id}
-                              >
-                                <SelectTrigger className="w-full sm:w-40">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="NEW">Новый</SelectItem>
-                                  <SelectItem value="CONFIRMED">
-                                    Подтверждён
-                                  </SelectItem>
-                                  {/* PAID доступен только для обычных заказов вручную */}
-                                  {!(order as any).isRealization && (
-                                    <SelectItem value="PAID">
-                                      Оплачен
-                                    </SelectItem>
-                                  )}
-                                  <SelectItem value="CANCELLED">
-                                    Отменён
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                              <DollarSign className="h-4 w-4 sm:mr-0 mr-2" />
+                              <span className="sm:hidden">Цены</span>
+                            </Button>
                           )}
+
+                          {canManage &&
+                            ((order as any).isRealization &&
+                            order.status === 'PAID' ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">
+                                  Заказ полностью оплачен
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                className="flex items-center gap-2"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <label className="text-sm font-medium whitespace-nowrap">
+                                  Статус:
+                                </label>
+                                <Select
+                                  value={order.status}
+                                  onValueChange={(value) =>
+                                    handleStatusChange(
+                                      order.id,
+                                      value as OrderStatusType,
+                                    )
+                                  }
+                                  disabled={updating === order.id}
+                                >
+                                  <SelectTrigger className="w-full sm:w-40">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="NEW">Новый</SelectItem>
+                                    <SelectItem value="CONFIRMED">
+                                      Подтверждён
+                                    </SelectItem>
+                                    {/* PAID доступен только для обычных заказов вручную */}
+                                    {!(order as any).isRealization && (
+                                      <SelectItem value="PAID">
+                                        Оплачен
+                                      </SelectItem>
+                                    )}
+                                    <SelectItem value="CANCELLED">
+                                      Отменён
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            ))}
 
                           {/* Кнопка экспорта */}
                           <Button
@@ -930,7 +956,7 @@ export default function OrdersManagement({
                           </Button>
 
                           {/* Кнопка удаления для отмененных заказов */}
-                          {order.status === 'CANCELLED' && (
+                          {canManage && order.status === 'CANCELLED' && (
                             <Button
                               variant="destructive"
                               size="sm"
@@ -1051,26 +1077,28 @@ export default function OrdersManagement({
                 )}
               </div>
 
-              {/* Order Type */}
-              <div>
-                <Label htmlFor="order-type" className="mb-1">
-                  Тип заказа
-                </Label>
-                <Select
-                  value={orderType}
-                  onValueChange={(v) =>
-                    setOrderType(v as 'regular' | 'realization')
-                  }
-                >
-                  <SelectTrigger id="order-type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="regular">Обычный</SelectItem>
-                    <SelectItem value="realization">На реализацию</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Order Type - реализация доступна только супер-админу */}
+              {canManage && (
+                <div>
+                  <Label htmlFor="order-type" className="mb-1">
+                    Тип заказа
+                  </Label>
+                  <Select
+                    value={orderType}
+                    onValueChange={(v) =>
+                      setOrderType(v as 'regular' | 'realization')
+                    }
+                  >
+                    <SelectTrigger id="order-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="regular">Обычный</SelectItem>
+                      <SelectItem value="realization">На реализацию</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               {/* Notes */}
               <div>

@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth } from '../auth-utils';
+import { checkSuperAdminAuth } from '../auth-utils';
 import { toPlain } from '@/lib/toPlain';
 
 // GET - получить все реализации
 export async function GET() {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }

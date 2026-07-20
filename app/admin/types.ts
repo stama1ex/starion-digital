@@ -10,6 +10,7 @@ import type {
 
 export type AdminOrder = Order & {
   partner: Partner;
+  createdBy: Pick<Partner, 'id' | 'name' | 'role'> | null;
   items: (OrderItem & { product: Product })[];
 };
 

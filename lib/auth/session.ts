@@ -6,7 +6,7 @@ const SESSION_COOKIE_NAME = 'session';
 const SESSION_BIND_COOKIE_NAME = 'session_bind';
 const SESSION_TTL_DAYS = 7;
 
-type SessionRole = 'ADMIN' | 'PARTNER';
+type SessionRole = 'SUPER_ADMIN' | 'ADMIN' | 'PARTNER';
 
 type PartnerSessionRow = {
   id: number;
@@ -66,7 +66,7 @@ export async function createSessionCookies(
 
 export async function getPartnerFromSessionToken(
   token: string | null | undefined,
-  role?: SessionRole,
+  role?: SessionRole | SessionRole[],
   bindToken?: string | null | undefined,
 ) {
   if (!token || !bindToken) {
@@ -104,8 +104,11 @@ export async function getPartnerFromSessionToken(
     return null;
   }
 
-  if (role && partner.role !== role) {
-    return null;
+  if (role) {
+    const allowedRoles = Array.isArray(role) ? role : [role];
+    if (!allowedRoles.includes(partner.role as SessionRole)) {
+      return null;
+    }
   }
 
   return partner;
@@ -127,7 +130,9 @@ export async function revokeSessionByCookies() {
   `;
 }
 
-export async function getPartnerFromSessionCookie(role?: SessionRole) {
+export async function getPartnerFromSessionCookie(
+  role?: SessionRole | SessionRole[],
+) {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE_NAME)?.value;
   const bindToken = cookieStore.get(SESSION_BIND_COOKIE_NAME)?.value;

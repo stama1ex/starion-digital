@@ -36,7 +36,7 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
         setIsPartner(data.isPartner);
         setAddress(data.address ?? null);
         setIsVip(!!data.isVip);
-        setIsAdmin(data.role === 'ADMIN');
+        setIsAdmin(data.role === 'ADMIN' || data.role === 'SUPER_ADMIN');
         setHasEmail(!!data.hasEmail);
       } finally {
         setLoading(false);

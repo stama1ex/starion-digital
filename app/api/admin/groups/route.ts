@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth } from '../auth-utils';
+import { checkSuperAdminAuth } from '../auth-utils';
 
 // GET - получить все группы или группы по типу
 export async function GET(req: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,7 +36,7 @@ export async function GET(req: NextRequest) {
 // POST - создать новую группу
 export async function POST(req: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
 // PUT - обновить группу
 export async function PUT(req: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -114,7 +114,7 @@ export async function PUT(req: NextRequest) {
 // DELETE - удалить группу
 export async function DELETE(req: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

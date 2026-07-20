@@ -7,11 +7,16 @@ import { Title } from '@/components/shared/title';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 export default async function AdminPage() {
-  const currentPartner = await getPartnerFromSessionCookie('ADMIN');
+  const currentPartner = await getPartnerFromSessionCookie([
+    'ADMIN',
+    'SUPER_ADMIN',
+  ]);
 
   if (!currentPartner) {
     redirect('/login');
   }
+
+  const isSuperAdmin = currentPartner.role === 'SUPER_ADMIN';
 
   const [ordersRaw, partnersRaw, realizationsRaw, groupsRaw] =
     await Promise.all([
@@ -22,6 +27,7 @@ export default async function AdminPage() {
           totalPrice: true,
           status: true,
           isRealization: true,
+          isMerged: true,
           notes: true,
           address: true,
           customPrices: true,
@@ -36,6 +42,13 @@ export default async function AdminPage() {
               password: true,
               phone: true,
               address: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              role: true,
             },
           },
           items: {
@@ -75,58 +88,61 @@ export default async function AdminPage() {
           createdAt: true,
         },
       }),
-      prisma.realization.findMany({
-        select: {
-          id: true,
-          orderId: true,
-          partnerId: true,
-          totalCost: true,
-          paidAmount: true,
-          status: true,
-          createdAt: true,
-          updatedAt: true,
-          partner: {
+      // Ограниченному админу реализации не показываются - не тратим запрос
+      isSuperAdmin
+        ? prisma.realization.findMany({
             select: {
               id: true,
-              name: true,
-              role: true,
-              login: true,
-              password: true,
+              orderId: true,
+              partnerId: true,
+              totalCost: true,
+              paidAmount: true,
+              status: true,
               createdAt: true,
-            },
-          },
-          items: {
-            select: {
-              id: true,
-              quantity: true,
-              unitPrice: true,
-              costPrice: true,
-              totalPrice: true,
-              product: {
+              updatedAt: true,
+              partner: {
                 select: {
                   id: true,
-                  number: true,
-                  type: true,
-                  groupId: true,
+                  name: true,
+                  role: true,
+                  login: true,
+                  password: true,
+                  createdAt: true,
+                },
+              },
+              items: {
+                select: {
+                  id: true,
+                  quantity: true,
+                  unitPrice: true,
+                  costPrice: true,
+                  totalPrice: true,
+                  product: {
+                    select: {
+                      id: true,
+                      number: true,
+                      type: true,
+                      groupId: true,
+                    },
+                  },
+                },
+              },
+              payments: {
+                select: {
+                  id: true,
+                  amount: true,
+                  notes: true,
+                  paymentDate: true,
+                  createdAt: true,
                 },
               },
             },
-          },
-          payments: {
-            select: {
-              id: true,
-              amount: true,
-              notes: true,
-              paymentDate: true,
-              createdAt: true,
+            orderBy: { createdAt: 'desc' },
+            where: {
+              partner: { role: 'PARTNER' },
             },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        where: {
-          partner: { role: 'PARTNER' },
-        },
-      }),
+          })
+        : Promise.resolve([]),
       prisma.productGroup.findMany({
         orderBy: { slug: 'asc' },
       }),
@@ -151,6 +167,7 @@ export default async function AdminPage() {
           partners={partnersPlain}
           realizations={realizations}
           groups={groupsPlain}
+          isSuperAdmin={isSuperAdmin}
         />
       </div>
     </main>

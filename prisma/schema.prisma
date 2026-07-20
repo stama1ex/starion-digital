@@ -8,22 +8,24 @@ generator client {
 }
 
 model Partner {
-  id            Int         @id @default(autoincrement())
-  name          String
-  login         String      @unique
-  password      String
-  phone         String?
-  email         String?     @unique
-  emailVerified Boolean     @default(false) // Подтверждён кодом на email
-  address       String?
-  isVip         Boolean     @default(false) // Доступ к запросу на реализацию
-  role          PartnerRole @default(PARTNER)
-  createdAt     DateTime    @default(now())
+  id             Int         @id @default(autoincrement())
+  name           String
+  login          String      @unique
+  password       String
+  phone          String?
+  email          String?     @unique
+  emailVerified  Boolean     @default(false) // Подтверждён кодом на email
+  address        String?
+  isVip          Boolean     @default(false) // Доступ к запросу на реализацию
+  role           PartnerRole @default(PARTNER)
+  telegramChatId String? // Личный чат ТГ для уведомлений о заказах (для обычных админов)
+  createdAt      DateTime    @default(now())
 
-  prices       Price[]
-  orders       Order[]
-  realizations Realization[]
-  sessions     PartnerSession[]
+  prices        Price[]
+  orders        Order[]
+  createdOrders Order[]          @relation("OrderCreatedBy")
+  realizations  Realization[]
+  sessions      PartnerSession[]
 }
 
 model Product {
@@ -95,15 +97,18 @@ model Order {
   notes         String?     @db.Text // Примечание к заказу
   address       String?     @db.Text // Адрес доставки/самовывоза для заказа
   customPrices  Json? // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}
+  createdById   Int? // Кто фактически оформил заказ - сам партнёр или админ от его имени (null - неизвестно/старые заказы)
   createdAt     DateTime    @default(now())
 
   partner     Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  createdBy   Partner?     @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   items       OrderItem[]
   realization Realization?
 
   @@index([partnerId])
   @@index([status])
   @@index([createdAt])
+  @@index([createdById])
   @@index([partnerId, status])
 }
 
@@ -221,7 +226,8 @@ model PartnerSession {
 }
 
 enum PartnerRole {
-  ADMIN
+  SUPER_ADMIN // Полный доступ ко всей админ-панели, единственный
+  ADMIN // Ограниченный админ: только страница "Заказы" (просмотр, создание, экспорт)
   PARTNER
 }
 

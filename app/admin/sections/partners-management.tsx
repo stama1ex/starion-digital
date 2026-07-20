@@ -26,6 +26,9 @@ import {
   Mail,
   CalendarDays,
   Star,
+  Send,
+  ShieldCheck,
+  Crown,
 } from 'lucide-react';
 import {
   usePartners,
@@ -45,7 +48,7 @@ export default function PartnersManagement({
   onRequestsChange,
   pendingRequestsCount = 0,
 }: PartnersManagementProps) {
-  const { partners, loading, refetch } = usePartners(true);
+  const { partners, loading, refetch } = usePartners(false);
   const { user } = useCurrentUser();
   const confirm = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
@@ -60,7 +63,13 @@ export default function PartnersManagement({
     phone: '',
     address: '',
     isVip: false,
+    role: 'PARTNER' as 'PARTNER' | 'ADMIN',
+    telegramChatId: '',
   });
+
+  // При создании - роль берётся из formData (какую кнопку нажали), при
+  // редактировании - роль существующей записи (её сменить нельзя)
+  const effectiveRole = editingId ? editingPartner?.role : formData.role;
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -84,12 +93,21 @@ export default function PartnersManagement({
       if (editingId) {
         // Логин/пароль/телефон/адрес/email — личные данные партнёра, их
         // редактирует только он сам в личном кабинете. Админ здесь меняет
-        // только отображаемое имя и VIP-статус (см. api/admin/partners)
-        await AdminAPI.updatePartner({
-          id: editingId,
-          name: formData.name,
-          isVip: formData.isVip,
-        });
+        // только отображаемое имя и VIP-статус, а для ограниченных админов -
+        // ещё и личный чат ТГ для уведомлений (см. api/admin/partners)
+        if (editingPartner?.role === 'ADMIN') {
+          await AdminAPI.updatePartner({
+            id: editingId,
+            name: formData.name,
+            telegramChatId: formData.telegramChatId,
+          });
+        } else {
+          await AdminAPI.updatePartner({
+            id: editingId,
+            name: formData.name,
+            isVip: formData.isVip,
+          });
+        }
       } else {
         await AdminAPI.createPartner(formData);
       }
@@ -101,12 +119,20 @@ export default function PartnersManagement({
         phone: '',
         address: '',
         isVip: false,
+        role: 'PARTNER',
+        telegramChatId: '',
       });
       setEditingId(null);
       setEditingPartner(null);
       setIsDialogOpen(false);
       await refetch();
-      toast.success(editingId ? 'Партнёр обновлён' : 'Партнёр создан');
+      toast.success(
+        editingId
+          ? 'Изменения сохранены'
+          : formData.role === 'ADMIN'
+            ? 'Админ создан'
+            : 'Партнёр создан',
+      );
     } catch (error) {
       const message = await handleApiError(error);
       toast.error(`Ошибка: ${message}`);
@@ -121,6 +147,8 @@ export default function PartnersManagement({
       phone: '',
       address: '',
       isVip: !!partner.isVip,
+      role: partner.role === 'ADMIN' ? 'ADMIN' : 'PARTNER',
+      telegramChatId: partner.telegramChatId || '',
     });
     setEditingPartner(partner);
     setEditingId(partner.id);
@@ -158,6 +186,24 @@ export default function PartnersManagement({
       phone: '',
       address: '',
       isVip: false,
+      role: 'PARTNER',
+      telegramChatId: '',
+    });
+    setEditingId(null);
+    setEditingPartner(null);
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenNewAdmin = () => {
+    setFormData({
+      name: '',
+      login: '',
+      password: '',
+      phone: '',
+      address: '',
+      isVip: false,
+      role: 'ADMIN',
+      telegramChatId: '',
     });
     setEditingId(null);
     setEditingPartner(null);
@@ -197,18 +243,28 @@ export default function PartnersManagement({
 
       <TabsContent value="list" className="space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-2xl font-bold">Партнеры</h2>
-          <div className="flex gap-2 w-full sm:w-auto">
+          <h2 className="text-2xl font-bold">Партнёры и админы</h2>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Input
               placeholder="Поиск по имени или логину..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full sm:w-64"
             />
-            <Button onClick={handleOpenNew} className="gap-2">
-              <Plus size={16} />
-              Добавить партнера
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={handleOpenNew} className="gap-2 flex-1 sm:flex-none">
+                <Plus size={16} />
+                Добавить партнера
+              </Button>
+              <Button
+                onClick={handleOpenNewAdmin}
+                variant="outline"
+                className="gap-2 flex-1 sm:flex-none"
+              >
+                <ShieldCheck size={16} />
+                Добавить админа
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -219,12 +275,24 @@ export default function PartnersManagement({
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                   <div>
                     <p className="text-sm text-muted-foreground">Имя</p>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <p className="font-medium">{partner.name}</p>
                       {partner.isVip && (
                         <Badge className="gap-1 bg-yellow-500/20 text-yellow-700 dark:text-yellow-400">
                           <Star size={10} className="fill-current" />
                           VIP
+                        </Badge>
+                      )}
+                      {partner.role === 'SUPER_ADMIN' && (
+                        <Badge className="gap-1 bg-purple-500/20 text-purple-700 dark:text-purple-400">
+                          <Crown size={10} />
+                          Супер админ
+                        </Badge>
+                      )}
+                      {partner.role === 'ADMIN' && (
+                        <Badge className="gap-1 bg-blue-500/20 text-blue-700 dark:text-blue-400">
+                          <ShieldCheck size={10} />
+                          Админ
                         </Badge>
                       )}
                     </div>
@@ -234,8 +302,21 @@ export default function PartnersManagement({
                     <p className="font-mono text-sm">{partner.login}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Контакты</p>
-                    {partner.phone || partner.address ? (
+                    <p className="text-sm text-muted-foreground">
+                      {partner.role === 'ADMIN' ? 'Телеграм для уведомлений' : 'Контакты'}
+                    </p>
+                    {partner.role === 'ADMIN' ? (
+                      partner.telegramChatId ? (
+                        <p className="text-sm flex items-center gap-1">
+                          <Send size={12} className="text-muted-foreground shrink-0" />
+                          <span className="truncate">{partner.telegramChatId}</span>
+                        </p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                          Не настроен
+                        </p>
+                      )
+                    ) : partner.phone || partner.address ? (
                       <div className="space-y-0.5">
                         {partner.phone && (
                           <p className="text-sm flex items-center gap-1">
@@ -261,30 +342,38 @@ export default function PartnersManagement({
                     <p className="font-mono text-sm">•••••</p>
                   </div>
                   <div className="flex gap-2 justify-end">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(partner)}
-                      className="gap-2"
-                    >
-                      <Edit2 size={16} />
-                      Редактировать
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleDelete(partner.id)}
-                      disabled={partner.id === user?.id}
-                      title={
-                        partner.id === user?.id
-                          ? 'Вы не можете удалить себя'
-                          : ''
-                      }
-                      className="gap-2"
-                    >
-                      <Trash2 size={16} />
-                      Удалить
-                    </Button>
+                    {partner.role === 'SUPER_ADMIN' ? (
+                      <p className="text-sm text-muted-foreground italic">
+                        Единственный супер админ
+                      </p>
+                    ) : (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(partner)}
+                          className="gap-2"
+                        >
+                          <Edit2 size={16} />
+                          Редактировать
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => handleDelete(partner.id)}
+                          disabled={partner.id === user?.id}
+                          title={
+                            partner.id === user?.id
+                              ? 'Вы не можете удалить себя'
+                              : ''
+                          }
+                          className="gap-2"
+                        >
+                          <Trash2 size={16} />
+                          Удалить
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -301,7 +390,13 @@ export default function PartnersManagement({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingId ? 'Партнёр' : 'Добавить партнера'}
+              {editingId
+                ? effectiveRole === 'ADMIN'
+                  ? 'Админ'
+                  : 'Партнёр'
+                : formData.role === 'ADMIN'
+                  ? 'Добавить админа'
+                  : 'Добавить партнера'}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -358,7 +453,8 @@ export default function PartnersManagement({
                   </span>
                 </div>
                 <p className="border-t pt-2 text-xs text-muted-foreground">
-                  Логин, пароль, телефон, адрес и email партнёр меняет
+                  Логин, пароль, телефон, адрес и email{' '}
+                  {effectiveRole === 'ADMIN' ? 'админ меняет' : 'партнёр меняет'}{' '}
                   самостоятельно в личном кабинете
                 </p>
               </div>
@@ -371,7 +467,9 @@ export default function PartnersManagement({
                 onChange={(e) =>
                   setFormData({ ...formData, name: e.target.value })
                 }
-                placeholder="Название компании"
+                placeholder={
+                  effectiveRole === 'ADMIN' ? 'Имя админа' : 'Название компании'
+                }
               />
             </div>
 
@@ -408,45 +506,74 @@ export default function PartnersManagement({
                     </button>
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">
-                    Телефон (необязательно)
-                  </label>
-                  <Input
-                    type="tel"
-                    value={formData.phone || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
-                    placeholder="+373 XX XXX XXX"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">
-                    Адрес (необязательно)
-                  </label>
-                  <Input
-                    value={formData.address || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, address: e.target.value })
-                    }
-                    placeholder="Город, улица, дом"
-                  />
-                </div>
+                {formData.role === 'PARTNER' && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium">
+                        Телефон (необязательно)
+                      </label>
+                      <Input
+                        type="tel"
+                        value={formData.phone || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, phone: e.target.value })
+                        }
+                        placeholder="+373 XX XXX XXX"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">
+                        Адрес (необязательно)
+                      </label>
+                      <Input
+                        value={formData.address || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, address: e.target.value })
+                        }
+                        placeholder="Город, улица, дом"
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
 
-            <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.isVip}
-                onChange={(e) =>
-                  setFormData({ ...formData, isVip: e.target.checked })
-                }
-                className="h-4 w-4 rounded border-input accent-primary"
-              />
-              VIP-партнёр (доступен запрос на реализацию)
-            </label>
+            {effectiveRole === 'ADMIN' && (
+              <div>
+                <label className="text-sm font-medium flex items-center gap-1.5">
+                  <Send size={14} className="text-muted-foreground" />
+                  Chat ID в Telegram (необязательно)
+                </label>
+                <Input
+                  value={formData.telegramChatId || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      telegramChatId: e.target.value,
+                    })
+                  }
+                  placeholder="Например: 123456789"
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Сюда будут приходить уведомления о новых заказах. Узнать
+                  chat_id можно, написав боту любое сообщение.
+                </p>
+              </div>
+            )}
+
+            {effectiveRole === 'PARTNER' && (
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.isVip}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isVip: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                VIP-партнёр (доступен запрос на реализацию)
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>

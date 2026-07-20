@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth } from '../auth-utils';
+import { checkAdminAuth, checkSuperAdminAuth } from '../auth-utils';
 
 // GET all products
 export async function GET() {
@@ -32,7 +32,7 @@ export async function GET() {
 // POST create product
 export async function POST(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 // PUT update product
 export async function PUT(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
@@ -105,7 +105,7 @@ export async function PUT(request: NextRequest) {
 // DELETE product
 export async function DELETE(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
