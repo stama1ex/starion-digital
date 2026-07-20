@@ -29,8 +29,8 @@ export async function generateMetadata({
       locale === 'ru'
         ? 'Контакты Starion Digital'
         : locale === 'ro'
-        ? 'Contact Starion Digital'
-        : 'Starion Digital contact',
+          ? 'Contact Starion Digital'
+          : 'Starion Digital contact',
     ],
     openGraph: {
       title: `${t('meta.title')} - Contact Starion Digital`,
@@ -57,7 +57,7 @@ export async function generateMetadata({
         url: `https://starion-digital.com/${locale}/contacts`,
         sameAs: [
           'https://t.me/Viar_tech',
-          'https://www.instagram.com/magnetar_souvenir',
+          'https://www.instagram.com/starion_digital',
         ],
       }),
     },

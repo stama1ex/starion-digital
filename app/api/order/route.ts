@@ -118,6 +118,7 @@ export async function POST(req: Request) {
         trx.order.create({
           data: {
             partnerId,
+            createdById: partnerId,
             totalPrice: total,
             isRealization: orderType === 'realization', // Устанавливаем флаг
             address: address || null,

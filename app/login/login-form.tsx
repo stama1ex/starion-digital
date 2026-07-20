@@ -21,7 +21,9 @@ export default function LoginForm() {
   const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const goToDestination = (role: string) => {
-    window.location.replace(role === 'ADMIN' ? '/admin' : '/');
+    window.location.replace(
+      role === 'ADMIN' || role === 'SUPER_ADMIN' ? '/admin' : '/',
+    );
   };
 
   const submitLogin = async (code?: string) => {

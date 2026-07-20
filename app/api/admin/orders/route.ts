@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth } from '../auth-utils';
+import { checkAdminAuth, checkSuperAdminAuth } from '../auth-utils';
 import { toPlain } from '@/lib/toPlain';
 
 // GET - получить все заказы
@@ -16,6 +16,7 @@ export async function GET() {
     const ordersRaw = await prisma.order.findMany({
       include: {
         partner: true,
+        createdBy: { select: { id: true, name: true, role: true } },
         items: { include: { product: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -39,7 +40,7 @@ export async function GET() {
 // PUT - обновить статус заказа
 export async function PUT(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
@@ -166,7 +167,7 @@ export async function PUT(request: NextRequest) {
 // DELETE - удалить заказ
 export async function DELETE(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }

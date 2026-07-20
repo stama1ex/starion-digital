@@ -23,6 +23,7 @@ interface AdminDashboardProps {
   partners: AdminPartner[];
   realizations: AdminRealization[];
   groups: ProductGroup[];
+  isSuperAdmin: boolean;
 }
 
 export default function AdminDashboard({
@@ -30,6 +31,7 @@ export default function AdminDashboard({
   partners,
   realizations: initialRealizations,
   groups,
+  isSuperAdmin,
 }: AdminDashboardProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [realizations, setRealizations] = useState(initialRealizations);
@@ -54,8 +56,10 @@ export default function AdminDashboard({
     setNewOrdersCount(count);
   }, [orders]);
 
-  // Загрузка количества pending заявок
+  // Загрузка количества pending заявок - недоступно ограниченному админу
   useEffect(() => {
+    if (!isSuperAdmin) return;
+
     const fetchPendingRequests = async () => {
       try {
         const res = await fetch('/api/admin/partnership-requests');
@@ -71,14 +75,15 @@ export default function AdminDashboard({
       }
     };
     fetchPendingRequests();
-  }, []);
+  }, [isSuperAdmin]);
 
   const handleRefreshOrders = useCallback(async () => {
     try {
-      // Загружаем свежие данные без перезагрузки страницы
+      // Загружаем свежие данные без перезагрузки страницы. Реализации
+      // недоступны ограниченному админу - не тратим запрос впустую.
       const [ordersRes, realizationsRes] = await Promise.all([
         fetch('/api/admin/orders'),
-        fetch('/api/admin/realizations'),
+        isSuperAdmin ? fetch('/api/admin/realizations') : Promise.resolve(null),
       ]);
 
       if (ordersRes.ok) {
@@ -86,7 +91,7 @@ export default function AdminDashboard({
         setOrders(ordersData.orders || []);
       }
 
-      if (realizationsRes.ok) {
+      if (realizationsRes?.ok) {
         const realizationsData = await realizationsRes.json();
         setRealizations(realizationsData.realizations || []);
       }
@@ -95,7 +100,7 @@ export default function AdminDashboard({
       // Fallback: перезагружаем страницу
       window.location.reload();
     }
-  }, []);
+  }, [isSuperAdmin]);
 
   // Поллинг новых заказов: лёгкий запрос раз в 20 секунд вместо ручного
   // обновления страницы — если появился новый заказ, подтягиваем полный
@@ -146,6 +151,20 @@ export default function AdminDashboard({
       console.error('Error refreshing pending requests:', error);
     }
   };
+
+  // Ограниченный админ видит только страницу "Заказы", без вкладок
+  if (!isSuperAdmin) {
+    return (
+      <div className="space-y-6 p-4 md:p-0">
+        <OrdersManagement
+          orders={orders}
+          onRefresh={handleRefreshOrders}
+          groups={groups}
+          canManage={false}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-0">
@@ -217,6 +236,7 @@ export default function AdminDashboard({
                 orders={orders}
                 onRefresh={handleRefreshOrders}
                 groups={groups}
+                canManage={true}
               />
             </TabsContent>
 
@@ -394,7 +414,7 @@ export default function AdminDashboard({
                 value="partners"
                 className="text-xs sm:text-sm relative"
               >
-                Партнеры
+                Партнёры и админы
                 {pendingRequestsCount > 0 && (
                   <Badge
                     variant="destructive"

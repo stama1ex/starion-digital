@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImage } from '@/lib/dropbox';
-import { checkAdminAuth } from '../auth-utils';
+import { checkSuperAdminAuth } from '../auth-utils';
 
 function sanitizeFilename(name: string) {
   return (
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[UPLOAD] Starting upload request');
 
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       console.log('[UPLOAD] Unauthorized access attempt');
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },

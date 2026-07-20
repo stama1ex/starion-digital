@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth } from '../../auth-utils';
+import { checkSuperAdminAuth } from '../../auth-utils';
 import { Prisma } from '@prisma/client';
 import { toPlain } from '@/lib/toPlain';
 
 // POST - объединить несколько заказов одного партнёра в один
 export async function POST(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 },

@@ -4,9 +4,9 @@ import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
-// Admin auth check helper
+// Admin auth check helper - любой админ (ограниченный или супер-админ)
 async function checkAdminAuth() {
-  return getPartnerFromSessionCookie('ADMIN');
+  return getPartnerFromSessionCookie(['ADMIN', 'SUPER_ADMIN']);
 }
 
 interface CreateOrderForPartnerBody {
@@ -71,12 +71,21 @@ export async function POST(req: Request) {
       return new Response('Invalid request', { status: 400 });
     }
 
+    // Ограниченный админ создаёт только обычные заказы - реализация доступна
+    // только супер-админу (полноценное управление реализациями ему недоступно)
+    if (orderType === 'realization' && admin.role !== 'SUPER_ADMIN') {
+      return new Response(
+        'Only super admin can create realization orders',
+        { status: 403 },
+      );
+    }
+
     // Check if partner exists
     const partner = await prisma.partner.findUnique({
       where: { id: partnerId },
     });
 
-    if (!partner || partner.role === 'ADMIN') {
+    if (!partner || partner.role !== 'PARTNER') {
       return new Response('Partner not found', { status: 404 });
     }
 
@@ -132,6 +141,7 @@ export async function POST(req: Request) {
         const createdOrder = await trx.order.create({
           data: {
             partnerId,
+            createdById: admin.id,
             totalPrice: total,
             status: 'CONFIRMED',
             isRealization: orderType === 'realization',

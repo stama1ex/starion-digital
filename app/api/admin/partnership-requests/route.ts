@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
-import { checkAdminAuth } from '../auth-utils';
+import { checkSuperAdminAuth } from '../auth-utils';
 import { sendEmail } from '@/lib/email/transport';
 
 // GET - Получить все заявки
 export async function GET() {
-  if (!(await checkAdminAuth())) {
+  if (!(await checkSuperAdminAuth())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -27,7 +27,7 @@ export async function GET() {
 
 // PUT - Одобрить или отклонить заявку
 export async function PUT(request: NextRequest) {
-  if (!(await checkAdminAuth())) {
+  if (!(await checkSuperAdminAuth())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -166,7 +166,7 @@ export async function PUT(request: NextRequest) {
 
 // DELETE - Удалить заявку
 export async function DELETE(request: NextRequest) {
-  if (!(await checkAdminAuth())) {
+  if (!(await checkSuperAdminAuth())) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

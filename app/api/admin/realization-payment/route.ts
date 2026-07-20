@@ -11,7 +11,7 @@ interface RealizationPaymentBody {
 
 export async function POST(req: Request) {
   try {
-    const admin = await getPartnerFromSessionCookie('ADMIN');
+    const admin = await getPartnerFromSessionCookie('SUPER_ADMIN');
     if (!admin) {
       return new Response('Unauthorized - Admin only', { status: 401 });
     }
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
 // нужно, статус заказа PAID -> CONFIRMED)
 export async function DELETE(req: Request) {
   try {
-    const admin = await getPartnerFromSessionCookie('ADMIN');
+    const admin = await getPartnerFromSessionCookie('SUPER_ADMIN');
     if (!admin) {
       return new Response('Unauthorized - Admin only', { status: 401 });
     }

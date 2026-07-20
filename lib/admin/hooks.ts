@@ -27,7 +27,7 @@ export function usePartners(excludeAdmin = true) {
     '/api/admin/partners',
   );
   const partners = excludeAdmin
-    ? data.filter((p: any) => p.name !== 'ADMIN')
+    ? data.filter((p: any) => p.role === 'PARTNER')
     : data;
 
   return { partners, loading, error, refetch: () => mutate(), mutate };

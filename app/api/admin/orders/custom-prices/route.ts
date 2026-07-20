@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth } from '../../auth-utils';
+import { checkSuperAdminAuth } from '../../auth-utils';
 import { Prisma } from '@prisma/client';
 
 // PATCH - обновить кастомные цены для заказа
 export async function PATCH(request: NextRequest) {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkSuperAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
