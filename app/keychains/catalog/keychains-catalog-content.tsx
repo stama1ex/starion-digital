@@ -4,6 +4,7 @@
 import Catalog from '@/components/shared/catalog';
 import CatalogTabs from '@/components/shared/catalog-tabs';
 import { Container } from '@/components/shared/container';
+import CategoryPagination from '@/components/shared/category-pagination';
 
 interface KeychainProductDTO {
   id: number;
@@ -47,23 +48,29 @@ export default function KeychainsCatalogContent({
 
   if (uniqueGroups.length === 0) {
     return (
-      <Catalog
-        titleKey="keychains_title"
-        products={products}
-        modelUrls={modelUrls}
-        prices={prices}
-      />
+      <>
+        <Catalog
+          titleKey="keychains_title"
+          products={products}
+          modelUrls={modelUrls}
+          prices={prices}
+        />
+        <CategoryPagination current="keychain" />
+      </>
     );
   }
 
   return (
-    <Container>
-      <CatalogTabs
-        titleKey="keychains_title"
-        products={products}
-        modelUrls={modelUrls}
-        prices={prices}
-      />
-    </Container>
+    <>
+      <Container>
+        <CatalogTabs
+          titleKey="keychains_title"
+          products={products}
+          modelUrls={modelUrls}
+          prices={prices}
+        />
+      </Container>
+      <CategoryPagination current="keychain" />
+    </>
   );
 }

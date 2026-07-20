@@ -86,6 +86,8 @@
     "plates_title": "Plates Catalog",
     "cards_title": "Postcards Catalog",
     "keychains_title": "Keychains Catalog",
+    "prev_category": "Back to: {name}",
+    "next_category": "Go to: {name}",
     "all_others": "All Others",
     "search_placeholder": "Search by number...",
     "fetch_error": "Failed to load {type}",

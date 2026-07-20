@@ -5,6 +5,7 @@ import Catalog from '@/components/shared/catalog';
 import CatalogTabs from '@/components/shared/catalog-tabs';
 import ExampleBlock from '@/components/shared/example-block';
 import { Container } from '@/components/shared/container';
+import CategoryPagination from '@/components/shared/category-pagination';
 
 interface PlateProductDTO {
   id: number;
@@ -57,41 +58,47 @@ export default function PlatesCatalogContent({
   // Если нет групп, показываем обычный каталог
   if (uniqueGroups.length === 0) {
     return (
-      <Catalog
-        titleKey="plates_title"
-        exampleProductNumber={exampleProductNumber}
-        products={products}
-        modelUrls={modelUrls}
-        prices={prices}
-      />
+      <>
+        <Catalog
+          titleKey="plates_title"
+          exampleProductNumber={exampleProductNumber}
+          products={products}
+          modelUrls={modelUrls}
+          prices={prices}
+        />
+        <CategoryPagination current="plate" />
+      </>
     );
   }
 
   return (
-    <Container>
-      {/* ExampleBlock отображается над табами */}
-      {exampleProduct && (
-        <ExampleBlock
-          souvenir={{
-            number: exampleProduct.number,
-            image: exampleProduct.image,
-            country: exampleProduct.country,
-            type: exampleProduct.type.toLowerCase(),
-          }}
-          reverse={false}
-          className="my-6 md:my-12"
-          modelUrl={modelUrls[exampleProduct.type.toLowerCase()] || ''}
+    <>
+      <Container>
+        {/* ExampleBlock отображается над табами */}
+        {exampleProduct && (
+          <ExampleBlock
+            souvenir={{
+              number: exampleProduct.number,
+              image: exampleProduct.image,
+              country: exampleProduct.country,
+              type: exampleProduct.type.toLowerCase(),
+            }}
+            reverse={false}
+            className="my-6 md:my-12"
+            modelUrl={modelUrls[exampleProduct.type.toLowerCase()] || ''}
+          />
+        )}
+
+        <hr />
+
+        <CatalogTabs
+          titleKey="plates_title"
+          products={products}
+          modelUrls={modelUrls}
+          prices={prices}
         />
-      )}
-
-      <hr />
-
-      <CatalogTabs
-        titleKey="plates_title"
-        products={products}
-        modelUrls={modelUrls}
-        prices={prices}
-      />
-    </Container>
+      </Container>
+      <CategoryPagination current="plate" />
+    </>
   );
 }

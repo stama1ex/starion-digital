@@ -109,9 +109,9 @@ export default function OrdersManagement({
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedMergeIds, setSelectedMergeIds] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
-  const [editingItemsOrderId, setEditingItemsOrderId] = useState<
-    number | null
-  >(null);
+  const [editingItemsOrderId, setEditingItemsOrderId] = useState<number | null>(
+    null,
+  );
   const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -711,7 +711,8 @@ export default function OrdersManagement({
             const mergeEligible = isEligibleForMerge(order);
 
             const hasMarginIssue = order.items.some(
-              (item) => Number(item.pricePerItem) < Number(item.product.costPrice),
+              (item) =>
+                Number(item.pricePerItem) < Number(item.product.costPrice),
             );
 
             const creator = order.createdBy;
@@ -810,7 +811,7 @@ export default function OrdersManagement({
                   </div>
 
                   {isExpanded && (
-                    <div className="mt-4 space-y-3 border-t pt-3">
+                    <div className="mt-1 space-y-3 border-t pt-3">
                       {/* Partner contact info */}
                       {(order.partner.phone ||
                         order.address ||
@@ -929,7 +930,7 @@ export default function OrdersManagement({
                         </div>
                       )}
 
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-1 border-t">
                         <div>
                           <p className="text-sm text-muted-foreground">
                             Общая сумма:
