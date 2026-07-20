@@ -21,11 +21,12 @@ model Partner {
   telegramChatId String? // Личный чат ТГ для уведомлений о заказах (для обычных админов)
   createdAt      DateTime    @default(now())
 
-  prices        Price[]
-  orders        Order[]
-  createdOrders Order[]          @relation("OrderCreatedBy")
-  realizations  Realization[]
-  sessions      PartnerSession[]
+  prices          Price[]
+  orders          Order[]
+  createdOrders   Order[]          @relation("OrderCreatedBy")
+  orderChangeLogs OrderChangeLog[] @relation("OrderChangeLogChangedBy")
+  realizations    Realization[]
+  sessions        PartnerSession[]
 }
 
 model Product {
@@ -100,16 +101,32 @@ model Order {
   createdById   Int? // Кто фактически оформил заказ - сам партнёр или админ от его имени (null - неизвестно/старые заказы)
   createdAt     DateTime    @default(now())
 
-  partner     Partner      @relation(fields: [partnerId], references: [id], onDelete: Cascade)
-  createdBy   Partner?     @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  partner     Partner          @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+  createdBy   Partner?         @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   items       OrderItem[]
   realization Realization?
+  changeLogs  OrderChangeLog[]
 
   @@index([partnerId])
   @@index([status])
   @@index([createdAt])
   @@index([createdById])
   @@index([partnerId, status])
+}
+
+// История изменений позиций заказа (кто добавил/удалил/изменил количество)
+model OrderChangeLog {
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  changedById Int? // null, если аккаунт изменившего был позже удалён
+  summary     String   @db.Text // краткое описание изменения для отображения
+  details     Json // {added:[...], removed:[...], changed:[...]}
+  createdAt   DateTime @default(now())
+
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy Partner? @relation("OrderChangeLogChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
 }
 
 model OrderItem {

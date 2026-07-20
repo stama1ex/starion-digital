@@ -2,17 +2,29 @@
 
 import { Container } from '@/components/shared/container';
 import { Title } from '@/components/shared/title';
+import { Button } from '@/components/ui/button';
+import { EditOrderDialog } from '@/components/shared/edit-order-dialog';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { Pencil, History } from 'lucide-react';
+
+interface OrderChangeLogEntry {
+  id: number;
+  summary: string;
+  createdAt: string;
+  changedBy: { id: number; name: string; role: string } | null;
+}
 
 interface Order {
   id: number;
   createdAt: string;
   status: string;
   totalPrice: number;
+  isRealization: boolean;
+  changeLogs: OrderChangeLogEntry[];
   items: {
     quantity: number;
     sum: number;
@@ -70,13 +82,17 @@ export default function OrdersContent() {
   const locale = useLocale();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingOrderId, setEditingOrderId] = useState<number | null>(null);
+
+  const loadOrders = useCallback(() => {
+    return fetch('/api/order')
+      .then((res) => res.json())
+      .then((data) => setOrders(data.orders || []));
+  }, []);
 
   useEffect(() => {
-    fetch('/api/order')
-      .then((res) => res.json())
-      .then((data) => setOrders(data.orders || []))
-      .finally(() => setLoading(false));
-  }, []);
+    loadOrders().finally(() => setLoading(false));
+  }, [loadOrders]);
 
   if (loading)
     return (
@@ -172,17 +188,64 @@ export default function OrdersContent() {
                   ))}
                 </div>
 
-                <div className="border-t mt-4 pt-3 flex justify-between text-sm font-semibold">
+                <div className="border-t mt-4 pt-3 flex justify-between items-center gap-3 text-sm font-semibold">
                   <span>{t('total')}:</span>
                   <span className="text-primary">
                     {order.totalPrice} {t('currency_raw')}
                   </span>
                 </div>
+
+                {(order.status === 'NEW' || order.status === 'CONFIRMED') &&
+                  !order.isRealization && (
+                    <div className="mt-3 flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setEditingOrderId(order.id)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        {t('edit')}
+                      </Button>
+                    </div>
+                  )}
+
+                {order.changeLogs.length > 0 && (
+                  <div className="mt-3 space-y-1.5 border-t pt-3">
+                    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <History className="h-3.5 w-3.5" />
+                      {t('history_title')}
+                    </div>
+                    {order.changeLogs.map((entry) => (
+                      <p
+                        key={entry.id}
+                        className="text-xs text-muted-foreground wrap-break-word"
+                      >
+                        {formatDate(entry.createdAt, locale)} —{' '}
+                        {entry.changedBy?.role === 'PARTNER'
+                          ? t('changed_by_you')
+                          : t('changed_by_staff')}
+                        : {entry.summary}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
+
+      {editingOrderId !== null && (
+        <EditOrderDialog
+          orderId={editingOrderId}
+          open={editingOrderId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingOrderId(null);
+          }}
+          onSuccess={loadOrders}
+        />
+      )}
     </Container>
   );
 }

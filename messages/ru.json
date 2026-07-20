@@ -242,7 +242,12 @@
     },
     "number_raw": "{id}",
     "pcs_raw": "{count}",
-    "currency_raw": "MDL"
+    "currency_raw": "MDL",
+    "edit": "Редактировать",
+    "cancel": "Отмена",
+    "history_title": "История изменений",
+    "changed_by_you": "Изменено вами",
+    "changed_by_staff": "Изменено администрацией"
   },
   "Cart": {
     "cart": "Корзина",
