@@ -25,6 +25,8 @@ export default async function AdminPage() {
           id: true,
           partnerId: true,
           totalPrice: true,
+          hasVat: true,
+          vatAmount: true,
           status: true,
           isRealization: true,
           isMerged: true,
@@ -66,6 +68,7 @@ export default async function AdminPage() {
               quantity: true,
               pricePerItem: true,
               sum: true,
+              vatAmount: true,
               product: {
                 select: {
                   id: true,
