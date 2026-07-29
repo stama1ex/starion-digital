@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
-import { resolveItemPrice } from '@/lib/orders/pricing';
+import { resolveItemPrice, calculateVatAmount } from '@/lib/orders/pricing';
 import { sendEmail } from '@/lib/email/transport';
 import { toPlain } from '@/lib/toPlain';
 
@@ -205,11 +205,14 @@ export async function PATCH(
               defaultPrices,
             );
 
+        const sum = pricePerItem * quantity;
+
         return {
           productId,
           quantity,
           pricePerItem,
-          sum: pricePerItem * quantity,
+          sum,
+          vatAmount: calculateVatAmount(sum, order.hasVat),
           number: product.number,
         };
       });
@@ -251,19 +254,22 @@ export async function PATCH(
         throw new Error('Нет изменений для сохранения');
       }
 
-      const totalPrice = newLines.reduce((s, l) => s + l.sum, 0);
+      const baseTotal = newLines.reduce((s, l) => s + l.sum, 0);
+      const vatTotal = newLines.reduce((s, l) => s + l.vatAmount, 0);
 
       await trx.orderItem.deleteMany({ where: { orderId } });
       await trx.order.update({
         where: { id: orderId },
         data: {
-          totalPrice,
+          totalPrice: baseTotal + vatTotal,
+          vatAmount: vatTotal,
           items: {
             create: newLines.map((l) => ({
               productId: l.productId,
               quantity: l.quantity,
               pricePerItem: l.pricePerItem,
               sum: l.sum,
+              vatAmount: l.vatAmount,
             })),
           },
         },

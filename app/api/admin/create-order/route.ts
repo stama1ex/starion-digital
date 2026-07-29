@@ -3,6 +3,7 @@ import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
+import { calculateVatAmount } from '@/lib/orders/pricing';
 
 // Admin auth check helper - любой админ (ограниченный или супер-админ)
 async function checkAdminAuth() {
@@ -13,6 +14,7 @@ interface CreateOrderForPartnerBody {
   partnerId: number;
   items: { productId: number; qty: number }[];
   orderType?: 'regular' | 'realization';
+  hasVat?: boolean;
   notes?: string;
   address?: string;
   createdAt?: string;
@@ -65,6 +67,9 @@ export async function POST(req: Request) {
       createdAt,
     } = body;
     const createdAtDate = buildCreatedAt(createdAt);
+    // НДС применим только к обычным заказам - реализация ведёт отдельный учёт
+    // оплат (частичные платежи), пропорциональное выделение НДС там не поддерживается
+    const hasVat = orderType === 'regular' && body.hasVat === true;
 
     // Validate input
     if (!partnerId || !Array.isArray(items) || items.length === 0) {
@@ -124,16 +129,19 @@ export async function POST(req: Request) {
       const qty = Math.max(1, Number(i.qty));
       const price = Number(priceEntry.price);
       const sum = price * qty;
+      const vatAmount = calculateVatAmount(sum, hasVat);
 
       return {
         productId: product.id,
         quantity: qty,
         pricePerItem: price,
         sum,
+        vatAmount,
       };
     });
 
     const total = dbItems.reduce((s, i) => s + i.sum, 0);
+    const totalVat = dbItems.reduce((s, i) => s + i.vatAmount, 0);
 
     // --- транзакция: создаём заказ со статусом CONFIRMED ---
     const order = await prisma.$transaction(
@@ -142,7 +150,9 @@ export async function POST(req: Request) {
           data: {
             partnerId,
             createdById: admin.id,
-            totalPrice: total,
+            totalPrice: total + totalVat,
+            hasVat,
+            vatAmount: totalVat,
             status: 'CONFIRMED',
             isRealization: orderType === 'realization',
             notes: notes || null,
@@ -201,12 +211,14 @@ export async function POST(req: Request) {
       .map((i) => `• ${i.number}: ${i.qty} шт × ${i.price} = ${i.sum} MDL`)
       .join('\n');
 
+    const vatLine = hasVat ? `\n💵 в т.ч. НДС 20%: ${totalVat.toFixed(2)} MDL` : '';
+
     const captionText =
       `📌 Новый заказ №${order.id}\n\n` +
       `👤 Покупатель: ${order.partner.name}\n` +
       `💬 Комментарий: ${adminNote}\n[${typeLabel}]\n\n` +
       `🛒 Состав заказа:\n${itemsText}\n\n` +
-      `💰 Итого: ${total} MDL`;
+      `💰 Итого: ${(total + totalVat).toFixed(2)} MDL${vatLine}`;
 
     try {
       const excelBuffer = await createOrderExcel(order);

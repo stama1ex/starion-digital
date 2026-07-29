@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import { EditOrderDialog } from '@/components/shared/edit-order-dialog';
+import { VAT_RATE } from '@/lib/orders/pricing';
 import type { AdminOrder } from '../types';
 import {
   ORDER_STATUS_LABELS,
@@ -85,6 +86,7 @@ export default function OrdersManagement({
   const [orderType, setOrderType] = useState<'regular' | 'realization'>(
     'regular',
   );
+  const [orderHasVat, setOrderHasVat] = useState(false);
   const [creating, setCreating] = useState(false);
   const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
   const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
@@ -228,6 +230,7 @@ export default function OrdersManagement({
     const requestData = {
       partnerId: parseInt(selectedPartnerId),
       orderType,
+      hasVat: orderType === 'regular' && orderHasVat,
       items,
       notes: orderNotes.trim() || undefined,
       address: orderAddress.trim() || undefined,
@@ -256,6 +259,7 @@ export default function OrdersManagement({
       toast.success('Заказ создан успешно');
       setIsCreateDialogOpen(false);
       setOrderType('regular');
+      setOrderHasVat(false);
       setPartnerSearchQuery('');
       setProductSearchQuery('');
       setOrderNotes('');
@@ -498,6 +502,10 @@ export default function OrdersManagement({
 
   const filteredProducts = getFilteredProducts();
 
+  // Множитель НДС для предпросмотра суммы (реализация НДС не поддерживает)
+  const vatMultiplier =
+    orderType === 'regular' && orderHasVat ? 1 + VAT_RATE : 1;
+
   // Подсчет итогов
   const getTotals = () => {
     if (!selectedPartnerId) return { totalItems: 0, totalSum: 0 };
@@ -520,7 +528,7 @@ export default function OrdersManagement({
               p.type === product.type && p.groupId === product.groupId,
           );
           if (priceEntry) {
-            totalSum += qty * Number(priceEntry.price);
+            totalSum += qty * Number(priceEntry.price) * vatMultiplier;
           }
         }
       }
@@ -553,7 +561,8 @@ export default function OrdersManagement({
               p.type === product.type && p.groupId === product.groupId,
           );
           if (priceEntry) {
-            byType[product.type].sum += qty * Number(priceEntry.price);
+            byType[product.type].sum +=
+              qty * Number(priceEntry.price) * vatMultiplier;
           }
         }
       }
@@ -773,6 +782,11 @@ export default function OrdersManagement({
                             На реализацию
                           </Badge>
                         )}
+                        {order.hasVat && (
+                          <Badge className="bg-transparent border border-blue-400 text-xs text-blue-400">
+                            с НДС
+                          </Badge>
+                        )}
                         {hasMarginIssue && (
                           <Badge
                             className="gap-1 bg-red-500/15 text-xs text-red-600 dark:text-red-400"
@@ -896,11 +910,36 @@ export default function OrdersManagement({
                                   )}
                                   {item.product.number} × {item.quantity}
                                 </span>
-                                <span>{Number(item.sum).toFixed(2)} MDL</span>
+                                <span>
+                                  {(
+                                    Number(item.sum) + Number(item.vatAmount)
+                                  ).toFixed(2)}{' '}
+                                  MDL
+                                </span>
                               </div>
                             );
                           })}
                         </div>
+                        {order.hasVat && (
+                          <div className="text-xs text-muted-foreground mt-2 pt-2 border-t space-y-0.5">
+                            <div className="flex justify-between">
+                              <span>Без НДС:</span>
+                              <span>
+                                {(
+                                  Number(order.totalPrice) -
+                                  Number(order.vatAmount)
+                                ).toFixed(2)}{' '}
+                                MDL
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>НДС (20%):</span>
+                              <span>
+                                {Number(order.vatAmount).toFixed(2)} MDL
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       {order.changeLogs.length > 0 && (
@@ -1171,9 +1210,14 @@ export default function OrdersManagement({
                   </Label>
                   <Select
                     value={orderType}
-                    onValueChange={(v) =>
-                      setOrderType(v as 'regular' | 'realization')
-                    }
+                    onValueChange={(v) => {
+                      const nextType = v as 'regular' | 'realization';
+                      setOrderType(nextType);
+                      // НДС применим только к обычным заказам
+                      if (nextType === 'realization') {
+                        setOrderHasVat(false);
+                      }
+                    }}
                   >
                     <SelectTrigger id="order-type">
                       <SelectValue />
@@ -1184,6 +1228,23 @@ export default function OrdersManagement({
                     </SelectContent>
                   </Select>
                 </div>
+              )}
+
+              {/* VAT checkbox - только для обычных заказов */}
+              {orderType === 'regular' && (
+                <label
+                  htmlFor="order-has-vat"
+                  className="flex items-center gap-2 text-sm cursor-pointer"
+                >
+                  <input
+                    id="order-has-vat"
+                    type="checkbox"
+                    className="h-4 w-4 shrink-0 rounded border-input accent-primary"
+                    checked={orderHasVat}
+                    onChange={(e) => setOrderHasVat(e.target.checked)}
+                  />
+                  Заказ с НДС (+20% к каждой позиции)
+                </label>
               )}
 
               {/* Notes */}
@@ -1396,6 +1457,8 @@ export default function OrdersManagement({
               variant="outline"
               onClick={() => {
                 setIsCreateDialogOpen(false);
+                setOrderType('regular');
+                setOrderHasVat(false);
                 setOrderNotes('');
                 setOrderAddress('');
                 setOrderDate(new Date().toISOString().split('T')[0]);

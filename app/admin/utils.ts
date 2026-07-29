@@ -86,7 +86,9 @@ export function calculateMetrics(orders: AdminOrder[], realizations: any[]) {
       continue;
     }
 
-    totalRevenue += Number(order.totalPrice);
+    // НДС не является доходом компании, поэтому в анализ чистой прибыли
+    // не включаем ту часть totalPrice, которая приходится на НДС
+    totalRevenue += Number(order.totalPrice) - Number(order.vatAmount ?? 0);
 
     for (const item of order.items) {
       const costPerUnit = Number(item.product.costPrice ?? 0);

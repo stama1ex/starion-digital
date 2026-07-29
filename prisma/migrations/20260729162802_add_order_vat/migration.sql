@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "Order" ADD COLUMN     "hasVat" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN     "vatAmount" DECIMAL(12,2) NOT NULL DEFAULT 0;
+
+-- AlterTable
+ALTER TABLE "OrderItem" ADD COLUMN     "vatAmount" DECIMAL(12,2) NOT NULL DEFAULT 0;

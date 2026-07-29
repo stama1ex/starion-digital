@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { checkSuperAdminAuth } from '../../auth-utils';
 import { Prisma } from '@prisma/client';
 import { toPlain } from '@/lib/toPlain';
+import { calculateVatAmount } from '@/lib/orders/pricing';
 
 // POST - объединить несколько заказов одного партнёра в один
 export async function POST(request: NextRequest) {
@@ -147,7 +148,17 @@ export async function POST(request: NextRequest) {
       },
     );
 
-    const totalPrice = mergedItems.reduce((s, i) => s + i.sum, 0);
+    // Если хотя бы один из объединяемых заказов был с НДС - объединённый
+    // заказ тоже считаем с НДС, чтобы не потерять уже начисленный налог
+    const mergedHasVat = sortedOrders.some((o) => o.hasVat);
+    const mergedItemsWithVat = mergedItems.map((item) => ({
+      ...item,
+      vatAmount: calculateVatAmount(item.sum, mergedHasVat),
+    }));
+
+    const baseTotal = mergedItemsWithVat.reduce((s, i) => s + i.sum, 0);
+    const vatTotal = mergedItemsWithVat.reduce((s, i) => s + i.vatAmount, 0);
+    const totalPrice = baseTotal + vatTotal;
 
     // Примечание первичного заказа: помечаем, что заказ объединён, и сохраняем исходные примечания
     const mergeTag = `Объединены заказы №${sortedOrders
@@ -178,17 +189,20 @@ export async function POST(request: NextRequest) {
         where: { id: primaryOrder.id },
         data: {
           totalPrice: new Prisma.Decimal(totalPrice),
+          hasVat: mergedHasVat,
+          vatAmount: new Prisma.Decimal(vatTotal),
           status: mergedStatus,
           notes: mergedNotes,
           address: mergedAddress,
           isMerged: true,
           customPrices: mergedCustomPrices as Prisma.InputJsonValue,
           items: {
-            create: mergedItems.map((item) => ({
+            create: mergedItemsWithVat.map((item) => ({
               productId: item.productId,
               quantity: item.quantity,
               pricePerItem: new Prisma.Decimal(item.pricePerItem),
               sum: new Prisma.Decimal(item.sum),
+              vatAmount: new Prisma.Decimal(item.vatAmount),
             })),
           },
         },

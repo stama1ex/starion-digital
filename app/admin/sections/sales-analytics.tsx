@@ -303,7 +303,8 @@ function buildChartData(
         return;
       }
 
-      const orderRevenue = Number(order.totalPrice);
+      // НДС исключаем из выручки/прибыли - это не доход компании
+      const orderRevenue = Number(order.totalPrice) - Number(order.vatAmount);
       const orderCost = order.items.reduce((sum: number, item: any) => {
         return sum + Number(item.product.costPrice ?? 0) * item.quantity;
       }, 0);

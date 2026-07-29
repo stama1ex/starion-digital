@@ -46,3 +46,13 @@ export function resolveItemPrice(
     })`,
   );
 }
+
+export const VAT_RATE = 0.2;
+
+// НДС по позиции: 20% от суммы без НДС (округлено до копеек), если у заказа
+// включён учёт НДС. Хранится отдельно от sum, чтобы sum всегда оставался
+// базовой суммой без НДС - именно она используется в анализе чистой прибыли.
+export function calculateVatAmount(baseSum: number, hasVat: boolean): number {
+  if (!hasVat) return 0;
+  return Math.round(baseSum * VAT_RATE * 100) / 100;
+}

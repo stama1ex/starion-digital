@@ -236,6 +236,7 @@
     "number": "№",
     "pcs": "шт.",
     "total": "Итого",
+    "vat_included": "в т.ч. НДС 20%",
     "status": {
       "NEW": "Новый",
       "CONFIRMED": "Подтверждён",
@@ -400,7 +401,12 @@
     "login_at": "Вход: {date}",
     "last_active": "Последняя активность: {date}",
     "end_session": "Завершить",
-    "ending_session": "Завершение..."
+    "ending_session": "Завершение...",
+    "session_label_edit": "Переименовать сессию",
+    "session_label_placeholder": "Например: Из дома, Из цеха",
+    "session_label_saved": "Название сессии сохранено",
+    "session_label_save_error": "Не удалось сохранить название сессии",
+    "cancel": "Отмена"
   },
   "Partnership": {
     "title": "Заявка на партнерство",
