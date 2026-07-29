@@ -235,6 +235,7 @@
     "number": "No.",
     "pcs": "pcs",
     "total": "Total",
+    "vat_included": "incl. VAT 20%",
     "status": {
       "NEW": "New",
       "CONFIRMED": "Confirmed",
@@ -399,7 +400,12 @@
     "login_at": "Signed in: {date}",
     "last_active": "Last active: {date}",
     "end_session": "End",
-    "ending_session": "Ending..."
+    "ending_session": "Ending...",
+    "session_label_edit": "Rename session",
+    "session_label_placeholder": "E.g. From home, From workshop",
+    "session_label_saved": "Session name saved",
+    "session_label_save_error": "Failed to save session name",
+    "cancel": "Cancel"
   },
   "Partnership": {
     "title": "Partnership Application",

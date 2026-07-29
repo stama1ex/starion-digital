@@ -23,11 +23,14 @@ interface Order {
   createdAt: string;
   status: string;
   totalPrice: number;
+  hasVat: boolean;
+  vatAmount: number;
   isRealization: boolean;
   changeLogs: OrderChangeLogEntry[];
   items: {
     quantity: number;
     sum: number;
+    vatAmount: number;
     product: { number: string; image: string | null; country: string };
   }[];
 }
@@ -182,7 +185,7 @@ export default function OrdersContent() {
                       </div>
 
                       <div className="text-sm font-semibold text-primary shrink-0">
-                        {it.sum} {t('currency_raw')}
+                        {it.sum + it.vatAmount} {t('currency_raw')}
                       </div>
                     </div>
                   ))}
@@ -194,6 +197,14 @@ export default function OrdersContent() {
                     {order.totalPrice} {t('currency_raw')}
                   </span>
                 </div>
+                {order.hasVat && (
+                  <div className="flex justify-between items-center gap-3 text-xs text-muted-foreground">
+                    <span>{t('vat_included')}</span>
+                    <span>
+                      {order.vatAmount} {t('currency_raw')}
+                    </span>
+                  </div>
+                )}
 
                 {(order.status === 'NEW' || order.status === 'CONFIRMED') &&
                   !order.isRealization && (

@@ -155,11 +155,12 @@ export type PartnerSessionInfo = {
   expiresAt: Date;
   tokenHash: string;
   userAgent: string | null;
+  label: string | null;
 };
 
 export async function listActiveSessions(partnerId: number) {
   return prisma.$queryRaw<PartnerSessionInfo[]>`
-    SELECT "id", "createdAt", "lastUsedAt", "expiresAt", "tokenHash", "userAgent"
+    SELECT "id", "createdAt", "lastUsedAt", "expiresAt", "tokenHash", "userAgent", "label"
     FROM "PartnerSession"
     WHERE "partnerId" = ${partnerId}
       AND "revokedAt" IS NULL
@@ -174,6 +175,24 @@ export async function revokeSessionById(partnerId: number, sessionId: number) {
     SET "revokedAt" = NOW()
     WHERE "id" = ${sessionId} AND "partnerId" = ${partnerId}
   `;
+}
+
+// Пользовательское название сессии для собственной идентификации устройств
+// ("Из дома", "Из цеха" и т.д.) - помогает отличать сессии с одинаковым
+// ОС/браузером. Пустая строка воспринимается как сброс названия (null).
+export async function updateSessionLabel(
+  partnerId: number,
+  sessionId: number,
+  label: string | null,
+) {
+  const result = await prisma.$executeRaw`
+    UPDATE "PartnerSession"
+    SET "label" = ${label}
+    WHERE "id" = ${sessionId}
+      AND "partnerId" = ${partnerId}
+      AND "revokedAt" IS NULL
+  `;
+  return result > 0;
 }
 
 // Отзывает все активные сессии партнёра — используется после сброса пароля,

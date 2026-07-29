@@ -7,12 +7,15 @@ import { toast } from 'sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
+  Check,
   Eye,
   EyeOff,
   Loader2,
   Monitor,
+  Pencil,
   Smartphone,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { CodeVerificationDialog } from '@/components/shared/code-verification-dialog';
@@ -24,10 +27,13 @@ interface AccountSession {
   lastUsedAt: string;
   expiresAt: string;
   isCurrent: boolean;
+  label: string | null;
   os: string;
   browser: string;
   isMobile: boolean;
 }
+
+const MAX_SESSION_LABEL_LENGTH = 50;
 
 function formatSessionDate(value: string, locale: string) {
   return new Intl.DateTimeFormat(locale, {
@@ -79,6 +85,13 @@ export default function AccountSettings() {
   const [revokingSessionId, setRevokingSessionId] = useState<number | null>(
     null,
   );
+  const [editingLabelSessionId, setEditingLabelSessionId] = useState<
+    number | null
+  >(null);
+  const [labelDraft, setLabelDraft] = useState('');
+  const [savingLabelSessionId, setSavingLabelSessionId] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -135,6 +148,41 @@ export default function AccountSettings() {
       toast.error(t('session_end_error'));
     } finally {
       setRevokingSessionId(null);
+    }
+  };
+
+  const handleStartEditLabel = (session: AccountSession) => {
+    setEditingLabelSessionId(session.id);
+    setLabelDraft(session.label ?? '');
+  };
+
+  const handleCancelEditLabel = () => {
+    setEditingLabelSessionId(null);
+    setLabelDraft('');
+  };
+
+  const handleSaveLabel = async (sessionId: number) => {
+    const trimmed = labelDraft.trim();
+    try {
+      setSavingLabelSessionId(sessionId);
+      const res = await fetch('/api/account/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: sessionId, label: trimmed || null }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId ? { ...s, label: trimmed || null } : s,
+        ),
+      );
+      setEditingLabelSessionId(null);
+      toast.success(t('session_label_saved'));
+    } catch (error) {
+      console.error('Error saving session label:', error);
+      toast.error(t('session_label_save_error'));
+    } finally {
+      setSavingLabelSessionId(null);
     }
   };
 
@@ -692,17 +740,71 @@ export default function AccountSettings() {
                       size={18}
                     />
                   )}
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm font-medium wrap-break-word">
-                        {session.os} · {session.browser}
-                      </span>
-                      {session.isCurrent && (
-                        <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
-                          {t('this_device')}
+                  <div className="min-w-0 flex-1">
+                    {editingLabelSessionId === session.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          autoFocus
+                          value={labelDraft}
+                          onChange={(e) => setLabelDraft(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveLabel(session.id);
+                            if (e.key === 'Escape') handleCancelEditLabel();
+                          }}
+                          placeholder={t('session_label_placeholder')}
+                          maxLength={MAX_SESSION_LABEL_LENGTH}
+                          className="h-8 max-w-56"
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleSaveLabel(session.id)}
+                          disabled={savingLabelSessionId === session.id}
+                          title={t('save_changes')}
+                        >
+                          {savingLabelSessionId === session.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Check size={16} />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 shrink-0"
+                          onClick={handleCancelEditLabel}
+                          disabled={savingLabelSessionId === session.id}
+                          title={t('cancel')}
+                        >
+                          <X size={16} />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium wrap-break-word">
+                          {session.label || `${session.os} · ${session.browser}`}
                         </span>
-                      )}
-                    </div>
+                        {session.isCurrent && (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/40 dark:text-green-400">
+                            {t('this_device')}
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditLabel(session)}
+                          className="text-muted-foreground hover:text-foreground shrink-0"
+                          title={t('session_label_edit')}
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      </div>
+                    )}
+                    {session.label && (
+                      <p className="text-xs text-muted-foreground wrap-break-word">
+                        {session.os} · {session.browser}
+                      </p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       {t('login_at', {
                         date: formatSessionDate(session.createdAt, locale),

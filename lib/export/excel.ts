@@ -27,7 +27,9 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  dateCell.value = `Дата: ${day}.${month}.${year}`;
+  dateCell.value = order.hasVat
+    ? `Дата: ${day}.${month}.${year} (с НДС 20%)`
+    : `Дата: ${day}.${month}.${year}`;
   dateCell.alignment = { horizontal: 'center' };
   sheet.getRow(2).height = 20;
 
@@ -103,11 +105,12 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     let typeQty = 0;
     let typeSum = 0;
 
-    // Товары этого типа
+    // Товары этого типа (сумма и цена - с учётом НДС, если он включён у заказа,
+    // чтобы итоги по типам и общий итог совпадали с order.totalPrice)
     items.forEach((item: any) => {
       const qty = item.quantity;
-      const price = Number(item.pricePerItem);
-      const sum = Number(item.sum);
+      const sum = Number(item.sum) + Number(item.vatAmount ?? 0);
+      const price = qty > 0 ? sum / qty : Number(item.pricePerItem);
 
       typeQty += qty;
       typeSum += sum;
@@ -159,6 +162,19 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     pattern: 'solid',
     fgColor: { argb: 'FFFFEB3B' },
   };
+
+  if (order.hasVat) {
+    const vatRow = sheet.addRow([
+      '',
+      '',
+      'в т.ч. НДС 20%:',
+      Number(order.vatAmount),
+    ]);
+    vatRow.font = { italic: true };
+    vatRow.getCell(3).alignment = { horizontal: 'right' };
+    vatRow.getCell(4).alignment = { horizontal: 'right' };
+    vatRow.getCell(4).numFmt = moneyFormat;
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(buffer);

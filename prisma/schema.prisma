@@ -91,7 +91,9 @@ model Price {
 model Order {
   id            Int         @id @default(autoincrement())
   partnerId     Int
-  totalPrice    Decimal     @db.Decimal(12, 2)
+  totalPrice    Decimal     @db.Decimal(12, 2) // Итоговая сумма к оплате (включает НДС, если hasVat)
+  hasVat        Boolean     @default(false) // Заказ оформлен с НДС: к каждой позиции добавлено 20%
+  vatAmount     Decimal     @default(0) @db.Decimal(12, 2) // Сумма НДС, включённая в totalPrice (не учитывается в анализе чистой прибыли)
   status        OrderStatus @default(NEW)
   isRealization Boolean     @default(false) // Флаг заказа на реализацию
   isMerged      Boolean     @default(false) // Заказ получен объединением нескольких заказов
@@ -134,8 +136,9 @@ model OrderItem {
   orderId      Int
   productId    Int
   quantity     Int
-  pricePerItem Decimal @db.Decimal(10, 2)
-  sum          Decimal @db.Decimal(12, 2)
+  pricePerItem Decimal @db.Decimal(10, 2) // Цена за единицу без НДС
+  sum          Decimal @db.Decimal(12, 2) // Сумма позиции без НДС (используется в анализе прибыли)
+  vatAmount    Decimal @default(0) @db.Decimal(12, 2) // НДС по позиции (20% от sum, если у заказа hasVat)
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
@@ -231,6 +234,7 @@ model PartnerSession {
   tokenHash  String    @unique
   bindHash   String    @unique
   userAgent  String?
+  label      String? // Название сессии от пользователя, напр. "Из дома", "Из цеха"
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime  @default(now())
   expiresAt  DateTime

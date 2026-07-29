@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkSuperAdminAuth } from '../../auth-utils';
 import { Prisma } from '@prisma/client';
+import { calculateVatAmount } from '@/lib/orders/pricing';
 
 // PATCH - обновить кастомные цены для заказа
 export async function PATCH(request: NextRequest) {
@@ -69,17 +70,23 @@ export async function PATCH(request: NextRequest) {
       }
 
       const sum = pricePerItem * item.quantity;
+      const vatAmount = calculateVatAmount(sum, order.hasVat);
 
       return {
         id: item.id,
         pricePerItem: new Prisma.Decimal(pricePerItem),
         sum: new Prisma.Decimal(sum),
+        vatAmount: new Prisma.Decimal(vatAmount),
       };
     });
 
-    // Вычисляем новую общую сумму заказа
-    const newTotalPrice = updatedItems.reduce(
+    // Вычисляем новую общую сумму заказа (с учётом НДС, если он включён)
+    const newBaseTotal = updatedItems.reduce(
       (total, item) => total + Number(item.sum),
+      0
+    );
+    const newVatTotal = updatedItems.reduce(
+      (total, item) => total + Number(item.vatAmount),
       0
     );
 
@@ -90,7 +97,8 @@ export async function PATCH(request: NextRequest) {
         where: { id: orderId },
         data: {
           customPrices: customPrices,
-          totalPrice: new Prisma.Decimal(newTotalPrice),
+          totalPrice: new Prisma.Decimal(newBaseTotal + newVatTotal),
+          vatAmount: new Prisma.Decimal(newVatTotal),
         },
       }),
       // Обновляем каждую позицию заказа
@@ -100,6 +108,7 @@ export async function PATCH(request: NextRequest) {
           data: {
             pricePerItem: item.pricePerItem,
             sum: item.sum,
+            vatAmount: item.vatAmount,
           },
         })
       ),

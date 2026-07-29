@@ -240,6 +240,7 @@
     "number": "Nr.",
     "pcs": "buc.",
     "total": "Total",
+    "vat_included": "inclusiv TVA 20%",
     "status": {
       "NEW": "Nouă",
       "CONFIRMED": "Confirmată",
@@ -404,7 +405,12 @@
     "login_at": "Intrare: {date}",
     "last_active": "Ultima activitate: {date}",
     "end_session": "Încheiați",
-    "ending_session": "Se încheie..."
+    "ending_session": "Se încheie...",
+    "session_label_edit": "Redenumiți sesiunea",
+    "session_label_placeholder": "Ex: De acasă, De la atelier",
+    "session_label_saved": "Numele sesiunii a fost salvat",
+    "session_label_save_error": "Nu s-a putut salva numele sesiunii",
+    "cancel": "Anulare"
   },
   "Partnership": {
     "title": "Cerere de parteneriat",

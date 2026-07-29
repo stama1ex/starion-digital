@@ -17,6 +17,8 @@ export async function GET() {
     select: {
       id: true,
       totalPrice: true,
+      hasVat: true,
+      vatAmount: true,
       createdAt: true,
       status: true,
       isRealization: true,
@@ -24,6 +26,7 @@ export async function GET() {
         select: {
           quantity: true,
           sum: true,
+          vatAmount: true,
           product: {
             select: { number: true, image: true, country: true },
           },
