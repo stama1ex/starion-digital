@@ -152,6 +152,25 @@ export default function OrdersManagement({
     }));
   };
 
+  const handleLoadLastOrder = () => {
+    if (!lastPartnerOrder) return;
+
+    const nextQuantities: Record<number, number> = {};
+    products.forEach((product) => {
+      nextQuantities[product.id] = 0;
+    });
+    lastPartnerOrder.items.forEach((item) => {
+      nextQuantities[item.productId] = item.quantity;
+    });
+    setQuantities(nextQuantities);
+    setOrderType(lastPartnerOrder.isRealization ? 'realization' : 'regular');
+    setOrderHasVat(lastPartnerOrder.hasVat);
+
+    toast.success(
+      `Позиции заполнены как в заказе №${lastPartnerOrder.id} от ${formatDate(lastPartnerOrder.createdAt)}`,
+    );
+  };
+
   const handleOpenEditNotes = (
     orderId: number,
     currentNotes: string | null,
@@ -469,6 +488,17 @@ export default function OrdersManagement({
   const selectedPartner = partners.find(
     (p) => p.id.toString() === selectedPartnerId,
   );
+
+  // Последний заказ выбранного партнёра — чтобы можно было быстро
+  // заполнить новый заказ теми же позициями и поправить пару вещей.
+  const lastPartnerOrder = selectedPartnerId
+    ? [...orders]
+        .filter((o) => o.partnerId === parseInt(selectedPartnerId))
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        )[0]
+    : undefined;
 
   // Фильтрация товаров
   const getFilteredProducts = () => {
@@ -1200,6 +1230,19 @@ export default function OrdersManagement({
                     {selectedPartner.phone}
                   </p>
                 )}
+                {lastPartnerOrder && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="mt-2 w-full gap-2"
+                    onClick={handleLoadLastOrder}
+                  >
+                    <History className="h-4 w-4 shrink-0" />
+                    Повторить заказ №{lastPartnerOrder.id} от{' '}
+                    {formatDate(lastPartnerOrder.createdAt)}
+                  </Button>
+                )}
               </div>
 
               {/* Order Type - реализация доступна только супер-админу */}
@@ -1304,7 +1347,9 @@ export default function OrdersManagement({
                         >
                           <span>{PRODUCT_TYPE_LABELS_PLURAL[type]}:</span>
                           <span className="font-medium">
-                            {typeData.count} шт • {typeData.sum.toFixed(2)} MDL
+                            {typeData.count} шт ×{' '}
+                            {(typeData.sum / typeData.count).toFixed(2)} MDL •{' '}
+                            {typeData.sum.toFixed(2)} MDL
                           </span>
                         </div>
                       );
