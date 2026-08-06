@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { checkAdminAuth, checkSuperAdminAuth } from '../auth-utils';
+import { checkAnyAdminAuth, checkProductAdminAuth } from '../auth-utils';
 
-// GET all products
+// GET all products - доступно любому админу (нужно и для формы заказа, и
+// для управления товарами)
 export async function GET() {
   try {
-    if (!(await checkAdminAuth())) {
+    if (!(await checkAnyAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
@@ -32,7 +33,7 @@ export async function GET() {
 // POST create product
 export async function POST(request: NextRequest) {
   try {
-    if (!(await checkSuperAdminAuth())) {
+    if (!(await checkProductAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
@@ -64,7 +65,7 @@ export async function POST(request: NextRequest) {
 // PUT update product
 export async function PUT(request: NextRequest) {
   try {
-    if (!(await checkSuperAdminAuth())) {
+    if (!(await checkProductAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }
@@ -105,7 +106,7 @@ export async function PUT(request: NextRequest) {
 // DELETE product
 export async function DELETE(request: NextRequest) {
   try {
-    if (!(await checkSuperAdminAuth())) {
+    if (!(await checkProductAdminAuth())) {
       return NextResponse.json(
         { error: 'Unauthorized - Admin only' },
         { status: 401 }

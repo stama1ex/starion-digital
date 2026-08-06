@@ -9,6 +9,7 @@ import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 export default async function AdminPage() {
   const currentPartner = await getPartnerFromSessionCookie([
     'ADMIN',
+    'PRODUCT_ADMIN',
     'SUPER_ADMIN',
   ]);
 
@@ -17,76 +18,80 @@ export default async function AdminPage() {
   }
 
   const isSuperAdmin = currentPartner.role === 'SUPER_ADMIN';
+  const isProductAdmin = currentPartner.role === 'PRODUCT_ADMIN';
 
   const [ordersRaw, partnersRaw, realizationsRaw, groupsRaw] =
     await Promise.all([
-      prisma.order.findMany({
-        select: {
-          id: true,
-          partnerId: true,
-          totalPrice: true,
-          hasVat: true,
-          vatAmount: true,
-          status: true,
-          isRealization: true,
-          isMerged: true,
-          notes: true,
-          address: true,
-          customPrices: true,
-          createdAt: true,
-          partner: {
+      // Админу по товарам заказы недоступны и не нужны - не тратим запрос
+      isProductAdmin
+        ? Promise.resolve([])
+        : prisma.order.findMany({
             select: {
               id: true,
-              name: true,
-              role: true,
-              createdAt: true,
-              login: true,
-              password: true,
-              phone: true,
-              address: true,
-            },
-          },
-          createdBy: {
-            select: {
-              id: true,
-              name: true,
-              role: true,
-            },
-          },
-          changeLogs: {
-            orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              summary: true,
-              createdAt: true,
-              changedBy: { select: { id: true, name: true, role: true } },
-            },
-          },
-          items: {
-            select: {
-              id: true,
-              quantity: true,
-              pricePerItem: true,
-              sum: true,
+              partnerId: true,
+              totalPrice: true,
+              hasVat: true,
               vatAmount: true,
-              product: {
+              status: true,
+              isRealization: true,
+              isMerged: true,
+              notes: true,
+              address: true,
+              customPrices: true,
+              createdAt: true,
+              partner: {
                 select: {
                   id: true,
-                  number: true,
-                  type: true,
-                  country: true,
-                  costPrice: true,
-                  groupId: true,
+                  name: true,
+                  role: true,
+                  createdAt: true,
+                  login: true,
+                  password: true,
+                  phone: true,
+                  address: true,
+                },
+              },
+              createdBy: {
+                select: {
+                  id: true,
+                  name: true,
+                  role: true,
+                },
+              },
+              changeLogs: {
+                orderBy: { createdAt: 'desc' },
+                select: {
+                  id: true,
+                  summary: true,
+                  createdAt: true,
+                  changedBy: { select: { id: true, name: true, role: true } },
+                },
+              },
+              items: {
+                select: {
+                  id: true,
+                  quantity: true,
+                  pricePerItem: true,
+                  sum: true,
+                  vatAmount: true,
+                  product: {
+                    select: {
+                      id: true,
+                      number: true,
+                      type: true,
+                      country: true,
+                      costPrice: true,
+                      groupId: true,
+                    },
+                  },
                 },
               },
             },
-          },
-        },
-        orderBy: { createdAt: 'desc' },
-        where: {
-          partner: { role: 'PARTNER' },
-        },
-      }),
+            orderBy: { createdAt: 'desc' },
+            where: {
+              partner: { role: 'PARTNER' },
+            },
+          }),
       prisma.partner.findMany({
         where: { role: 'PARTNER' },
         select: {
@@ -179,7 +184,7 @@ export default async function AdminPage() {
           partners={partnersPlain}
           realizations={realizations}
           groups={groupsPlain}
-          isSuperAdmin={isSuperAdmin}
+          role={currentPartner.role}
         />
       </div>
     </main>

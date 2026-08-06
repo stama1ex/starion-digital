@@ -16,14 +16,14 @@ import ProductsManagement from './sections/products-management';
 import { GroupsManagement } from './sections/groups-management';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
-import { ProductGroup } from '@prisma/client';
+import { ProductGroup, PartnerRole } from '@prisma/client';
 
 interface AdminDashboardProps {
   orders: AdminOrder[];
   partners: AdminPartner[];
   realizations: AdminRealization[];
   groups: ProductGroup[];
-  isSuperAdmin: boolean;
+  role: PartnerRole;
 }
 
 export default function AdminDashboard({
@@ -31,8 +31,13 @@ export default function AdminDashboard({
   partners,
   realizations: initialRealizations,
   groups,
-  isSuperAdmin,
+  role,
 }: AdminDashboardProps) {
+  const isSuperAdmin = role === 'SUPER_ADMIN';
+  const isProductAdmin = role === 'PRODUCT_ADMIN';
+  // Заказы доступны только этим двум ролям - ограниченному "ADMIN" и
+  // супер-админу; у PRODUCT_ADMIN (и будущих неорденных ролей) их нет
+  const canViewOrders = isSuperAdmin || role === 'ADMIN';
   const [orders, setOrders] = useState(initialOrders);
   const [realizations, setRealizations] = useState(initialRealizations);
   const [dateRange, setDateRange] = useState<DateRange>('all');
@@ -78,6 +83,10 @@ export default function AdminDashboard({
   }, [isSuperAdmin]);
 
   const handleRefreshOrders = useCallback(async () => {
+    // Админу по товарам (и будущим неорденным ролям) заказы недоступны -
+    // эндпоинты вернут 401, не тратим запрос впустую.
+    if (!canViewOrders) return;
+
     try {
       // Загружаем свежие данные без перезагрузки страницы. Реализации
       // недоступны ограниченному админу - не тратим запрос впустую.
@@ -100,7 +109,7 @@ export default function AdminDashboard({
       // Fallback: перезагружаем страницу
       window.location.reload();
     }
-  }, [isSuperAdmin]);
+  }, [canViewOrders, isSuperAdmin]);
 
   // Поллинг новых заказов: лёгкий запрос раз в 20 секунд вместо ручного
   // обновления страницы — если появился новый заказ, подтягиваем полный
@@ -110,6 +119,8 @@ export default function AdminDashboard({
   );
 
   useEffect(() => {
+    if (!canViewOrders) return;
+
     const checkForNewOrders = async () => {
       if (document.hidden) return;
       try {
@@ -135,7 +146,7 @@ export default function AdminDashboard({
 
     const interval = setInterval(checkForNewOrders, 20000);
     return () => clearInterval(interval);
-  }, [handleRefreshOrders]);
+  }, [canViewOrders, handleRefreshOrders]);
 
   const handleRefreshPendingRequests = async () => {
     try {
@@ -151,6 +162,32 @@ export default function AdminDashboard({
       console.error('Error refreshing pending requests:', error);
     }
   };
+
+  // Админ по товарам видит только разделы "Товары" и "Группы"
+  if (isProductAdmin) {
+    return (
+      <div className="space-y-6 p-4 md:p-0">
+        <Tabs defaultValue="catalog" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 gap-1 h-auto">
+            <TabsTrigger value="catalog" className="text-xs sm:text-sm py-2">
+              <span className="hidden sm:inline">🛍️ </span>Товары
+            </TabsTrigger>
+            <TabsTrigger value="groups" className="text-xs sm:text-sm py-2">
+              <span className="hidden sm:inline">🗂️ </span>Группы
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="catalog" className="space-y-4">
+            <ProductsManagement />
+          </TabsContent>
+
+          <TabsContent value="groups" className="space-y-4">
+            <GroupsManagement />
+          </TabsContent>
+        </Tabs>
+      </div>
+    );
+  }
 
   // Ограниченный админ видит только страницу "Заказы", без вкладок
   if (!isSuperAdmin) {
