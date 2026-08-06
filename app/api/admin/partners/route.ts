@@ -69,9 +69,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Через эту форму нельзя создать ещё одного супер-админа - он единственный
-    const role = data.role === 'ADMIN' ? 'ADMIN' : 'PARTNER';
-    const isAdminAccount = role === 'ADMIN';
+    // Через эту форму нельзя создать ещё одного супер-админа - он единственный.
+    // "Тип админа" определяет его функционал: ADMIN - заказы, PRODUCT_ADMIN -
+    // товары/группы. Список ролей админа расширяем здесь по мере появления новых.
+    const ADMIN_ROLES = ['ADMIN', 'PRODUCT_ADMIN'] as const;
+    const role = ADMIN_ROLES.includes(data.role) ? data.role : 'PARTNER';
+    const isAdminAccount = (ADMIN_ROLES as readonly string[]).includes(role);
 
     const hashed = await bcrypt.hash(data.password, 10);
 
@@ -84,9 +87,9 @@ export async function POST(request: NextRequest) {
         address: isAdminAccount ? null : data.address?.trim() || null,
         isVip: isAdminAccount ? false : !!data.isVip,
         role,
-        telegramChatId: isAdminAccount
-          ? data.telegramChatId?.trim() || null
-          : null,
+        // Telegram-уведомления о заказах нужны только админу с доступом к
+        // заказам - PRODUCT_ADMIN заказы не оформляет и не видит
+        telegramChatId: role === 'ADMIN' ? data.telegramChatId?.trim() || null : null,
       },
       select: {
         id: true,

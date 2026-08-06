@@ -6,7 +6,7 @@ const SESSION_COOKIE_NAME = 'session';
 const SESSION_BIND_COOKIE_NAME = 'session_bind';
 const SESSION_TTL_DAYS = 7;
 
-type SessionRole = 'SUPER_ADMIN' | 'ADMIN' | 'PARTNER';
+type SessionRole = 'SUPER_ADMIN' | 'ADMIN' | 'PRODUCT_ADMIN' | 'PARTNER';
 
 type PartnerSessionRow = {
   id: number;

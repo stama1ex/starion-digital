@@ -9,6 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -29,12 +36,14 @@ import {
   Send,
   ShieldCheck,
   Crown,
+  Package,
 } from 'lucide-react';
 import {
   usePartners,
   useCurrentUser,
   AdminAPI,
   handleApiError,
+  ADMIN_ROLE_OPTIONS,
 } from '@/lib/admin';
 import { PartnershipRequests } from './partnership-requests';
 import { useConfirm } from '@/app/providers/confirm-provider';
@@ -63,7 +72,7 @@ export default function PartnersManagement({
     phone: '',
     address: '',
     isVip: false,
-    role: 'PARTNER' as 'PARTNER' | 'ADMIN',
+    role: 'PARTNER' as 'PARTNER' | 'ADMIN' | 'PRODUCT_ADMIN',
     telegramChatId: '',
   });
 
@@ -93,13 +102,18 @@ export default function PartnersManagement({
       if (editingId) {
         // Логин/пароль/телефон/адрес/email — личные данные партнёра, их
         // редактирует только он сам в личном кабинете. Админ здесь меняет
-        // только отображаемое имя и VIP-статус, а для ограниченных админов -
+        // только отображаемое имя и VIP-статус, а для админа с заказами -
         // ещё и личный чат ТГ для уведомлений (см. api/admin/partners)
         if (editingPartner?.role === 'ADMIN') {
           await AdminAPI.updatePartner({
             id: editingId,
             name: formData.name,
             telegramChatId: formData.telegramChatId,
+          });
+        } else if (editingPartner?.role === 'PRODUCT_ADMIN') {
+          await AdminAPI.updatePartner({
+            id: editingId,
+            name: formData.name,
           });
         } else {
           await AdminAPI.updatePartner({
@@ -129,7 +143,7 @@ export default function PartnersManagement({
       toast.success(
         editingId
           ? 'Изменения сохранены'
-          : formData.role === 'ADMIN'
+          : formData.role !== 'PARTNER'
             ? 'Админ создан'
             : 'Партнёр создан',
       );
@@ -147,7 +161,10 @@ export default function PartnersManagement({
       phone: '',
       address: '',
       isVip: !!partner.isVip,
-      role: partner.role === 'ADMIN' ? 'ADMIN' : 'PARTNER',
+      role:
+        partner.role === 'ADMIN' || partner.role === 'PRODUCT_ADMIN'
+          ? partner.role
+          : 'PARTNER',
       telegramChatId: partner.telegramChatId || '',
     });
     setEditingPartner(partner);
@@ -295,7 +312,13 @@ export default function PartnersManagement({
                       {partner.role === 'ADMIN' && (
                         <Badge className="gap-1 bg-blue-500/20 text-blue-700 dark:text-blue-400">
                           <ShieldCheck size={10} />
-                          Админ
+                          Админ (заказы)
+                        </Badge>
+                      )}
+                      {partner.role === 'PRODUCT_ADMIN' && (
+                        <Badge className="gap-1 bg-green-500/20 text-green-700 dark:text-green-400">
+                          <Package size={10} />
+                          Админ (товары)
                         </Badge>
                       )}
                     </div>
@@ -308,9 +331,15 @@ export default function PartnersManagement({
                     <p className="text-sm text-muted-foreground">
                       {partner.role === 'ADMIN'
                         ? 'Телеграм для уведомлений'
-                        : 'Контакты'}
+                        : partner.role === 'PRODUCT_ADMIN'
+                          ? 'Функционал'
+                          : 'Контакты'}
                     </p>
-                    {partner.role === 'ADMIN' ? (
+                    {partner.role === 'PRODUCT_ADMIN' ? (
+                      <p className="text-sm text-muted-foreground italic">
+                        Товары и группы
+                      </p>
+                    ) : partner.role === 'ADMIN' ? (
                       partner.telegramChatId ? (
                         <p className="text-sm flex items-center gap-1">
                           <Send
@@ -419,10 +448,10 @@ export default function PartnersManagement({
           <DialogHeader>
             <DialogTitle>
               {editingId
-                ? effectiveRole === 'ADMIN'
+                ? effectiveRole !== 'PARTNER'
                   ? 'Админ'
                   : 'Партнёр'
-                : formData.role === 'ADMIN'
+                : formData.role !== 'PARTNER'
                   ? 'Добавить админа'
                   : 'Добавить партнера'}
             </DialogTitle>
@@ -482,10 +511,43 @@ export default function PartnersManagement({
                 </div>
                 <p className="border-t pt-2 text-xs text-muted-foreground">
                   Логин, пароль, телефон, адрес и email{' '}
-                  {effectiveRole === 'ADMIN'
+                  {effectiveRole !== 'PARTNER'
                     ? 'админ меняет'
                     : 'партнёр меняет'}{' '}
                   самостоятельно в личном кабинете
+                </p>
+              </div>
+            )}
+
+            {!editingId && formData.role !== 'PARTNER' && (
+              <div>
+                <label className="text-sm font-medium">Тип админа</label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      role: value as 'ADMIN' | 'PRODUCT_ADMIN',
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADMIN_ROLE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {
+                    ADMIN_ROLE_OPTIONS.find(
+                      (option) => option.value === formData.role,
+                    )?.description
+                  }
                 </p>
               </div>
             )}
@@ -498,7 +560,7 @@ export default function PartnersManagement({
                   setFormData({ ...formData, name: e.target.value })
                 }
                 placeholder={
-                  effectiveRole === 'ADMIN' ? 'Имя админа' : 'Название компании'
+                  effectiveRole !== 'PARTNER' ? 'Имя админа' : 'Название компании'
                 }
               />
             </div>

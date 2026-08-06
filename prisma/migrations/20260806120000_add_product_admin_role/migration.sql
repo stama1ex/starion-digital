@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "PartnerRole" ADD VALUE 'PRODUCT_ADMIN';

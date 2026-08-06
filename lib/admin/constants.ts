@@ -50,3 +50,16 @@ export const PRODUCT_TYPES_OPTIONS = PRODUCT_TYPES.map((type) => ({
   value: type,
   label: PRODUCT_TYPE_LABELS_PLURAL[type],
 }));
+
+// Типы (функционал) ограниченных админов - какие разделы админки им доступны.
+// Новые роли с другим набором полномочий добавляются сюда одной строкой.
+export const ADMIN_ROLE_OPTIONS = [
+  { value: 'ADMIN', label: 'Заказы', description: 'Оформление и просмотр заказов, экспорт' },
+  {
+    value: 'PRODUCT_ADMIN',
+    label: 'Товары',
+    description: 'Управление товарами и группами',
+  },
+] as const;
+
+export type AdminRoleValue = (typeof ADMIN_ROLE_OPTIONS)[number]['value'];

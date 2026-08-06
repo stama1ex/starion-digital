@@ -22,7 +22,9 @@ export default function LoginForm() {
 
   const goToDestination = (role: string) => {
     window.location.replace(
-      role === 'ADMIN' || role === 'SUPER_ADMIN' ? '/admin' : '/',
+      role === 'ADMIN' || role === 'PRODUCT_ADMIN' || role === 'SUPER_ADMIN'
+        ? '/admin'
+        : '/',
     );
   };
 
