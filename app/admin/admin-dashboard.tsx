@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Download, Loader2 } from 'lucide-react';
 import SalesAnalytics from './sections/sales-analytics';
 import TopProducts from './sections/top-products';
 import DealerAnalytics from './sections/dealer-analytics';
@@ -54,6 +56,41 @@ export default function AdminDashboard({
   const [activeTab, setActiveTab] = useState('orders');
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [exportingDb, setExportingDb] = useState(false);
+
+  const handleExportDb = async () => {
+    setExportingDb(true);
+    try {
+      const response = await fetch('/api/admin/export-db');
+
+      if (!response.ok) {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Ошибка экспорта');
+        }
+        throw new Error(`Ошибка сервера: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const date = new Date().toISOString().split('T')[0];
+      a.download = `starion-db-export-${date}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error exporting database:', error);
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast.error(`Не удалось экспортировать базу данных: ${message}`);
+    } finally {
+      setExportingDb(false);
+    }
+  };
 
   // Подсчет новых заказов
   useEffect(() => {
@@ -205,6 +242,26 @@ export default function AdminDashboard({
 
   return (
     <div className="space-y-6 p-4 md:p-0">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={handleExportDb}
+        disabled={exportingDb}
+        className="fixed bottom-0 right-4 z-50 shadow-lg bg-background"
+      >
+        {exportingDb ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Экспорт...
+          </>
+        ) : (
+          <>
+            <Download className="h-4 w-4" />
+            Экспорт БД (CSV)
+          </>
+        )}
+      </Button>
+
       <Tabs
         defaultValue="orders"
         value={activeTab}

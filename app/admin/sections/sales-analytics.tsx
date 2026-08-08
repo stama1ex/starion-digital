@@ -515,11 +515,7 @@ export default function SalesAnalytics({
               className="w-full justify-between gap-2"
               onClick={() => {
                 setIsPartnerComboboxOpen((open) => !open);
-                setPartnerSearchQuery(
-                  selectedPartnerName === 'Все партнеры'
-                    ? ''
-                    : selectedPartnerName,
-                );
+                setPartnerSearchQuery('');
               }}
             >
               <span className="truncate text-left">{selectedPartnerName}</span>
@@ -585,7 +581,7 @@ export default function SalesAnalytics({
                         className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
                         onClick={() => {
                           setSelectedPartnerId(partner.id.toString());
-                          setPartnerSearchQuery(partner.name);
+                          setPartnerSearchQuery('');
                           setIsPartnerComboboxOpen(false);
                         }}
                       >

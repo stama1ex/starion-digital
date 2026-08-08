@@ -92,16 +92,6 @@ export default function PricesManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPartnerId]);
 
-  useEffect(() => {
-    const selectedPartner = partners.find(
-      (partner) => partner.id.toString() === selectedPartnerId,
-    );
-
-    if (selectedPartner) {
-      setPartnerQuery(selectedPartner.name);
-    }
-  }, [partners, selectedPartnerId]);
-
   const filteredPartners = useMemo(() => {
     const query = partnerQuery.trim().toLowerCase();
 
@@ -433,7 +423,7 @@ export default function PricesManagement() {
               className="w-full justify-between gap-2"
               onClick={() => {
                 setIsPartnerComboboxOpen((open) => !open);
-                setPartnerQuery(selectedPartnerId ? selectedPartnerName : '');
+                setPartnerQuery('');
               }}
             >
               <span className="truncate text-left">{selectedPartnerName}</span>
@@ -470,7 +460,7 @@ export default function PricesManagement() {
                           className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
                           onClick={() => {
                             setSelectedPartnerId(partner.id.toString());
-                            setPartnerQuery(partner.name);
+                            setPartnerQuery('');
                             setIsPartnerComboboxOpen(false);
                           }}
                         >
