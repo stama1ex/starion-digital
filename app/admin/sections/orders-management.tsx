@@ -56,6 +56,7 @@ import {
 import { ProductGroup } from '@prisma/client';
 import { useConfirm } from '@/app/providers/confirm-provider';
 import { cn } from '@/lib/utils';
+import { naturalCompare } from '@/lib/naturalSort';
 
 interface OrdersManagementProps {
   orders: AdminOrder[];
@@ -752,6 +753,10 @@ export default function OrdersManagement({
                 Number(item.pricePerItem) < Number(item.product.costPrice),
             );
 
+            const sortedItems = [...order.items].sort((a, b) =>
+              naturalCompare(a.product.number, b.product.number),
+            );
+
             const creator = order.createdBy;
             const creatorLabel = !creator
               ? null
@@ -912,7 +917,7 @@ export default function OrdersManagement({
                       <div>
                         <h4 className="text-sm font-medium mb-2">Товары:</h4>
                         <div className="space-y-1">
-                          {order.items.map((item) => {
+                          {sortedItems.map((item) => {
                             const belowCost =
                               Number(item.pricePerItem) <
                               Number(item.product.costPrice);

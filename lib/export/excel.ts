@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import ExcelJS from 'exceljs';
+import { naturalCompare } from '@/lib/naturalSort';
 
 export async function createOrderExcel(order: any): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
@@ -91,6 +92,8 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   });
 
   Object.entries(itemsByType).forEach(([type, items]) => {
+    items.sort((a, b) => naturalCompare(a.product.number, b.product.number));
+
     // Заголовок типа
     const typeHeaderRow = sheet.addRow([type]);
     sheet.mergeCells(`A${typeHeaderRow.number}:D${typeHeaderRow.number}`);

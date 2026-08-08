@@ -5,6 +5,7 @@ import { prisma } from '@/lib/db';
 import { toPlain } from '@/lib/toPlain';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 import { resolveProductImages } from '@/lib/resolveProductImages';
+import { naturalCompare } from '@/lib/naturalSort';
 import KeychainsCatalogContent from './keychains-catalog-content';
 
 export const revalidate = 300;
@@ -29,7 +30,9 @@ export default async function KeychainsCatalogPage({ params }: any) {
     include: { group: true },
   });
 
-  const plainProducts = toPlain(rawProducts);
+  const plainProducts = toPlain(rawProducts).sort((a, b) =>
+    naturalCompare(a.number, b.number),
+  );
 
   // Резолвим Dropbox-картинки одним батчем на сервере, чтобы каталог не
   // дёргал /api/dropbox/temp-link на каждую карточку отдельно с клиента

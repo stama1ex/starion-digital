@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkAnyAdminAuth, checkProductAdminAuth } from '../auth-utils';
+import { naturalCompare } from '@/lib/naturalSort';
 
 // GET all products - доступно любому админу (нужно и для формы заказа, и
 // для управления товарами)
@@ -20,6 +21,7 @@ export async function GET() {
       },
       orderBy: { number: 'asc' },
     });
+    products.sort((a, b) => naturalCompare(a.number, b.number));
     return NextResponse.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
