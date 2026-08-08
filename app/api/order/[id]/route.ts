@@ -3,6 +3,7 @@ import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 import { resolveItemPrice, calculateVatAmount } from '@/lib/orders/pricing';
 import { sendEmail } from '@/lib/email/transport';
 import { toPlain } from '@/lib/toPlain';
+import { naturalCompare } from '@/lib/naturalSort';
 
 const EDITABLE_STATUSES = ['NEW', 'CONFIRMED'];
 
@@ -67,10 +68,14 @@ export async function GET(
       (order.customPrices as Record<string, unknown> | null) || {};
 
     const [allProducts, defaultPrices] = await Promise.all([
-      prisma.product.findMany({
-        where: { isHidden: false },
-        orderBy: { number: 'asc' },
-      }),
+      prisma.product
+        .findMany({
+          where: { isHidden: false },
+          orderBy: { number: 'asc' },
+        })
+        .then((products) =>
+          products.sort((a, b) => naturalCompare(a.number, b.number)),
+        ),
       prisma.defaultPrice.findMany({
         select: { type: true, groupId: true, price: true },
       }),
