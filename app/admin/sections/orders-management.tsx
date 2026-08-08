@@ -471,14 +471,12 @@ export default function OrdersManagement({
 
   const handleOpenPartnerCombobox = () => {
     setIsPartnerComboboxOpen((open) => !open);
-    setPartnerSearchQuery(
-      selectedPartnerName === 'Выберите партнёра' ? '' : selectedPartnerName,
-    );
+    setPartnerSearchQuery('');
   };
 
-  const handleSelectPartner = (partnerId: string, partnerName: string) => {
+  const handleSelectPartner = (partnerId: string) => {
     setSelectedPartnerId(partnerId);
-    setPartnerSearchQuery(partnerName);
+    setPartnerSearchQuery('');
     setIsPartnerComboboxOpen(false);
 
     const partner = partners.find((p) => p.id.toString() === partnerId);
@@ -1206,10 +1204,7 @@ export default function OrdersManagement({
                                 type="button"
                                 className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
                                 onClick={() =>
-                                  handleSelectPartner(
-                                    partner.id.toString(),
-                                    partner.name,
-                                  )
+                                  handleSelectPartner(partner.id.toString())
                                 }
                               >
                                 <span className="truncate">{partner.name}</span>
