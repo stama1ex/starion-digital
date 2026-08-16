@@ -117,7 +117,7 @@ starion-digital/
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/starion-digital.git
+git clone https://github.com/stama1ex/starion-digital.git
 cd starion-digital
 ```
 
@@ -133,14 +133,7 @@ npm install
 cp .env.example .env
 ```
 
-Fill in `.env`:
-
-```env
-DATABASE_URL="postgresql://user:password@localhost:5432/starion"
-DROPBOX_ACCESS_TOKEN="your_dropbox_token"
-TELEGRAM_BOT_TOKEN="your_telegram_bot_token"
-TELEGRAM_CHAT_ID="your_chat_id"
-```
+Fill in `.env` — see [.env.example](.env.example) for the full list of required variables (database, Dropbox, Telegram, Upstash Redis, SMTP).
 
 4. **Run database migrations**
 
@@ -274,25 +267,23 @@ Translations are managed via `next-intl` with JSON files in `/messages`.
 
 ## 🤝 Contributing
 
-We welcome contributions! Please:
+This is a private project. Changes go through feature branches and pull requests into `main`:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+2. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+3. Push the branch and open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Proprietary — all rights reserved. This is a private commercial project; no license is granted for reuse or redistribution.
 
 ---
 
 ## 📞 Contact
 
-- 🌐 Website: [https://starion-digital.com](https://starion-digital.com)
+- 🌐 Website: [https://stariondigital.com](https://stariondigital.com)
 
 ---
 
