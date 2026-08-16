@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -151,6 +151,20 @@ export default function OrdersManagement({
       ...prev,
       [productId]: Math.max(0, qty),
     }));
+  };
+
+  const handleQuantityKeyDown = (
+    e: KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const nextProduct = filteredProducts[index + 1];
+    if (nextProduct) {
+      document.getElementById(`qty-${nextProduct.id}`)?.focus();
+    } else {
+      e.currentTarget.blur();
+    }
   };
 
   const handleLoadLastOrder = () => {
@@ -1464,7 +1478,7 @@ export default function OrdersManagement({
                   </p>
                 ) : (
                   <div className="columns-2 sm:columns-3 xl:columns-4 gap-2">
-                    {filteredProducts.map((product) => (
+                    {filteredProducts.map((product, index) => (
                       <div
                         key={product.id}
                         className="break-inside-avoid mb-0 flex items-center justify-between p-1 border rounded"
@@ -1485,6 +1499,7 @@ export default function OrdersManagement({
                             handleQuantityChange(product.id, e.target.value)
                           }
                           onFocus={(e) => e.currentTarget.select()}
+                          onKeyDown={(e) => handleQuantityKeyDown(e, index)}
                           className="h-6 min-w-12 max-w-12 text-xs px-1 text-center"
                         />
                       </div>
