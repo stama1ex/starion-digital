@@ -580,14 +580,23 @@ export default function OrdersManagement({
     return { totalItems, totalSum };
   };
 
-  // Подсчет итогов по типам
+  // Подсчет итогов по типам, с разбивкой по подтипам (группам/материалам)
   const getTotalsByType = () => {
     if (!selectedPartnerId) return {};
 
     const partner = partners.find((p) => p.id === parseInt(selectedPartnerId));
     if (!partner || !partner.prices) return {};
 
-    const byType: Record<string, { count: number; sum: number }> = {};
+    type GroupTotal = {
+      groupId: number | null;
+      groupName: string;
+      count: number;
+      sum: number;
+    };
+    const byType: Record<
+      string,
+      { count: number; sum: number; byGroup: Record<string, GroupTotal> }
+    > = {};
 
     Object.entries(quantities).forEach(([productIdStr, qty]) => {
       if (qty > 0) {
@@ -595,7 +604,7 @@ export default function OrdersManagement({
         const product = products.find((p) => p.id === productId);
         if (product) {
           if (!byType[product.type]) {
-            byType[product.type] = { count: 0, sum: 0 };
+            byType[product.type] = { count: 0, sum: 0, byGroup: {} };
           }
           byType[product.type].count += qty;
 
@@ -603,10 +612,24 @@ export default function OrdersManagement({
             (p: any) =>
               p.type === product.type && p.groupId === product.groupId,
           );
-          if (priceEntry) {
-            byType[product.type].sum +=
-              qty * Number(priceEntry.price) * vatMultiplier;
+          const itemSum = priceEntry
+            ? qty * Number(priceEntry.price) * vatMultiplier
+            : 0;
+          byType[product.type].sum += itemSum;
+
+          const groupKey = String(product.groupId ?? 'none');
+          if (!byType[product.type].byGroup[groupKey]) {
+            const group = groups.find((g) => g.id === product.groupId);
+            byType[product.type].byGroup[groupKey] = {
+              groupId: product.groupId ?? null,
+              groupName:
+                (group?.translations as any)?.ru || group?.slug || 'Без группы',
+              count: 0,
+              sum: 0,
+            };
           }
+          byType[product.type].byGroup[groupKey].count += qty;
+          byType[product.type].byGroup[groupKey].sum += itemSum;
         }
       }
     });
@@ -1350,21 +1373,37 @@ export default function OrdersManagement({
               <Card className="bg-secondary">
                 <CardContent>
                   <h4 className="font-semibold mb-3">Итого по типам:</h4>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {PRODUCT_TYPES.map((type) => {
                       const typeData = totalsByType[type];
                       if (!typeData || typeData.count === 0) return null;
+                      const groupEntries = Object.values(typeData.byGroup).sort(
+                        (a, b) => a.groupName.localeCompare(b.groupName, 'ru'),
+                      );
                       return (
-                        <div
-                          key={type}
-                          className="flex justify-between text-sm"
-                        >
-                          <span>{PRODUCT_TYPE_LABELS_PLURAL[type]}:</span>
-                          <span className="font-medium">
-                            {typeData.count} шт ×{' '}
-                            {(typeData.sum / typeData.count).toFixed(2)} MDL •{' '}
-                            {typeData.sum.toFixed(2)} MDL
-                          </span>
+                        <div key={type}>
+                          <div className="flex justify-between text-sm font-semibold">
+                            <span>{PRODUCT_TYPE_LABELS_PLURAL[type]}:</span>
+                            <span>
+                              {typeData.count} шт • {typeData.sum.toFixed(2)} MDL
+                            </span>
+                          </div>
+                          {groupEntries.length > 1 && (
+                            <div className="pl-4 mt-1 space-y-1">
+                              {groupEntries.map((g) => (
+                                <div
+                                  key={g.groupId ?? 'none'}
+                                  className="flex justify-between text-xs text-muted-foreground"
+                                >
+                                  <span>{g.groupName}:</span>
+                                  <span>
+                                    {g.count} шт × {(g.sum / g.count).toFixed(2)}{' '}
+                                    MDL • {g.sum.toFixed(2)} MDL
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
