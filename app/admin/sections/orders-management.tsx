@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
+import { Fragment, useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -794,6 +794,68 @@ export default function OrdersManagement({
               naturalCompare(a.product.number, b.product.number),
             );
 
+            // Группировка товаров заказа: по типу (явно), внутри — по группе/материалу (менее явно)
+            const itemsByType = Object.keys(PRODUCT_TYPE_LABELS_PLURAL)
+              .map((type) => {
+                const typeItems = sortedItems.filter(
+                  (item) => item.product.type === type,
+                );
+                if (typeItems.length === 0) return null;
+
+                const byGroup = new Map<
+                  string,
+                  {
+                    key: string;
+                    name: string | null;
+                    items: typeof typeItems;
+                    qty: number;
+                    sum: number;
+                  }
+                >();
+                typeItems.forEach((item) => {
+                  const groupId = item.product.groupId;
+                  const key = String(groupId ?? 'none');
+                  if (!byGroup.has(key)) {
+                    const group = groups.find((g) => g.id === groupId);
+                    byGroup.set(key, {
+                      key,
+                      name: groupId
+                        ? (group?.translations as any)?.ru ||
+                          group?.slug ||
+                          null
+                        : null,
+                      items: [],
+                      qty: 0,
+                      sum: 0,
+                    });
+                  }
+                  const bucket = byGroup.get(key)!;
+                  bucket.items.push(item);
+                  bucket.qty += item.quantity;
+                  bucket.sum += Number(item.sum) + Number(item.vatAmount);
+                });
+
+                const sortedGroups = Array.from(byGroup.values()).sort(
+                  (a, b) => {
+                    if (a.name === null) return 1;
+                    if (b.name === null) return -1;
+                    return a.name.localeCompare(b.name, 'ru');
+                  },
+                );
+
+                return {
+                  type,
+                  qty: typeItems.reduce((s, item) => s + item.quantity, 0),
+                  sum: typeItems.reduce(
+                    (s, item) =>
+                      s + Number(item.sum) + Number(item.vatAmount),
+                    0,
+                  ),
+                  groups: sortedGroups,
+                };
+              })
+              .filter((t): t is NonNullable<typeof t> => t !== null);
+
             const creator = order.createdBy;
             const creatorLabel = !creator
               ? null
@@ -953,42 +1015,122 @@ export default function OrdersManagement({
 
                       <div>
                         <h4 className="text-sm font-medium mb-2">Товары:</h4>
-                        <div className="space-y-1">
-                          {sortedItems.map((item) => {
-                            const belowCost =
-                              Number(item.pricePerItem) <
-                              Number(item.product.costPrice);
-                            return (
-                              <div
-                                key={item.id}
-                                className={cn(
-                                  'text-sm flex justify-between gap-2',
-                                  belowCost && 'text-red-600 dark:text-red-400',
-                                )}
-                                title={
-                                  belowCost
-                                    ? `Цена ${Number(item.pricePerItem).toFixed(2)} MDL ниже себестоимости ${Number(item.product.costPrice).toFixed(2)} MDL`
-                                    : undefined
-                                }
-                              >
-                                <span className="flex items-center gap-1">
-                                  {belowCost && (
-                                    <TriangleAlert
-                                      size={12}
-                                      className="shrink-0"
-                                    />
-                                  )}
-                                  {item.product.number} × {item.quantity}
-                                </span>
-                                <span>
-                                  {(
-                                    Number(item.sum) + Number(item.vatAmount)
-                                  ).toFixed(2)}{' '}
-                                  MDL
-                                </span>
-                              </div>
-                            );
-                          })}
+                        <div className="overflow-x-auto rounded-md border">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b bg-secondary/60 text-xs text-muted-foreground">
+                                <th className="py-1.5 px-2 text-left font-medium">
+                                  Артикул
+                                </th>
+                                <th className="py-1.5 px-2 text-right font-medium">
+                                  Кол-во
+                                </th>
+                                <th className="py-1.5 px-2 text-right font-medium">
+                                  Цена/шт
+                                </th>
+                                <th className="py-1.5 px-2 text-right font-medium">
+                                  Сумма
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {itemsByType.map((typeBucket) => (
+                                <Fragment key={typeBucket.type}>
+                                  {/* Заголовок типа — явно */}
+                                  <tr className="bg-secondary/40">
+                                    <td colSpan={4} className="px-2 py-1.5">
+                                      <div className="flex items-baseline justify-between gap-2">
+                                        <span className="text-sm font-semibold">
+                                          {PRODUCT_TYPE_LABELS_PLURAL[
+                                            typeBucket.type
+                                          ] || typeBucket.type}
+                                        </span>
+                                        <span className="text-xs font-medium text-muted-foreground">
+                                          {typeBucket.qty} шт •{' '}
+                                          {typeBucket.sum.toFixed(2)} MDL
+                                        </span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                  {typeBucket.groups.map((group) => (
+                                    <Fragment key={group.key}>
+                                      {/* Заголовок группы/материала — менее явно */}
+                                      {group.name && (
+                                        <tr>
+                                          <td
+                                            colSpan={4}
+                                            className="px-2 pt-1.5 pb-0.5 pl-4"
+                                          >
+                                            <div className="flex items-baseline justify-between gap-2">
+                                              <span className="text-xs font-medium text-muted-foreground">
+                                                {group.name}
+                                              </span>
+                                              <span className="text-[11px] text-muted-foreground/70">
+                                                {group.qty} шт •{' '}
+                                                {group.sum.toFixed(2)} MDL
+                                              </span>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )}
+                                      {group.items.map((item) => {
+                                        const belowCost =
+                                          Number(item.pricePerItem) <
+                                          Number(item.product.costPrice);
+                                        return (
+                                          <tr
+                                            key={item.id}
+                                            className={cn(
+                                              'border-b border-border/50 last:border-0',
+                                              belowCost &&
+                                                'text-red-600 dark:text-red-400',
+                                            )}
+                                            title={
+                                              belowCost
+                                                ? `Цена ${Number(item.pricePerItem).toFixed(2)} MDL ниже себестоимости ${Number(item.product.costPrice).toFixed(2)} MDL`
+                                                : undefined
+                                            }
+                                          >
+                                            <td
+                                              className={cn(
+                                                'py-1 px-2',
+                                                group.name ? 'pl-6' : 'pl-4',
+                                              )}
+                                            >
+                                              <span className="inline-flex items-center gap-1">
+                                                {belowCost && (
+                                                  <TriangleAlert
+                                                    size={11}
+                                                    className="shrink-0"
+                                                  />
+                                                )}
+                                                {item.product.number}
+                                              </span>
+                                            </td>
+                                            <td className="py-1 px-2 text-right">
+                                              {item.quantity}
+                                            </td>
+                                            <td className="py-1 px-2 text-right text-muted-foreground">
+                                              {Number(
+                                                item.pricePerItem,
+                                              ).toFixed(2)}
+                                            </td>
+                                            <td className="py-1 px-2 text-right font-medium">
+                                              {(
+                                                Number(item.sum) +
+                                                Number(item.vatAmount)
+                                              ).toFixed(2)}{' '}
+                                              MDL
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </Fragment>
+                                  ))}
+                                </Fragment>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                         {order.hasVat && (
                           <div className="text-xs text-muted-foreground mt-2 pt-2 border-t space-y-0.5">
