@@ -57,12 +57,12 @@ export async function getAccessToken(): Promise<string> {
   return pendingTokenRequest;
 }
 
-export async function uploadToDropbox(
-  buffer: ArrayBuffer,
-  filename: string
+export async function uploadToDropboxPath(
+  buffer: ArrayBuffer | Buffer,
+  path: string,
+  mode: 'add' | 'overwrite' = 'add'
 ): Promise<string> {
   const accessToken = await getAccessToken();
-  const path = `/products/${filename}`;
 
   const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
     method: 'POST',
@@ -71,12 +71,12 @@ export async function uploadToDropbox(
       'Content-Type': 'application/octet-stream',
       'Dropbox-API-Arg': JSON.stringify({
         path,
-        mode: 'add',
-        autorename: true,
+        mode,
+        autorename: mode === 'add',
         mute: false,
       }),
     },
-    body: buffer,
+    body: buffer as BodyInit,
   });
 
   if (!res.ok) {
@@ -86,6 +86,69 @@ export async function uploadToDropbox(
   }
 
   return path;
+}
+
+export async function uploadToDropbox(
+  buffer: ArrayBuffer,
+  filename: string
+): Promise<string> {
+  return uploadToDropboxPath(buffer, `/products/${filename}`, 'add');
+}
+
+// Список файлов в папке (например /backups) — используется для ротации
+// старых резервных копий. Возвращает [], если папка ещё не создана
+// (естественно для первого запуска бэкапа).
+export async function listDropboxFolder(
+  path: string
+): Promise<{ name: string; path: string; serverModified: string }[]> {
+  const accessToken = await getAccessToken();
+
+  const res = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path }),
+  });
+
+  if (res.status === 409) {
+    return [];
+  }
+
+  if (!res.ok) {
+    const errorText = await parseDropboxError(res);
+    console.error('LIST FOLDER ERROR:', errorText);
+    throw new Error(`Dropbox list_folder failed: ${errorText}`);
+  }
+
+  const data = await res.json();
+  return (data.entries as Record<string, string>[])
+    .filter((entry) => entry['.tag'] === 'file')
+    .map((entry) => ({
+      name: entry.name,
+      path: entry.path_lower,
+      serverModified: entry.server_modified,
+    }));
+}
+
+export async function deleteDropboxFile(path: string): Promise<void> {
+  const accessToken = await getAccessToken();
+
+  const res = await fetch('https://api.dropboxapi.com/2/files/delete_v2', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ path }),
+  });
+
+  if (!res.ok) {
+    const errorText = await parseDropboxError(res);
+    console.error('DELETE FILE ERROR:', errorText);
+    throw new Error(`Dropbox delete failed: ${errorText}`);
+  }
 }
 
 export async function getTemporaryLink(

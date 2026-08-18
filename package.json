@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "seed": "ts-node prisma/seed.ts production",
-    "seed:demo": "ts-node prisma/seed.ts demo"
+    "seed:demo": "ts-node prisma/seed.ts demo",
+    "restore:backup": "ts-node scripts/restore-db-from-backup.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

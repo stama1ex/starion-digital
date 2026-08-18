@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2 } from 'lucide-react';
+import { Download, Loader2, DatabaseBackup } from 'lucide-react';
 import SalesAnalytics from './sections/sales-analytics';
 import TopProducts from './sections/top-products';
 import DealerAnalytics from './sections/dealer-analytics';
@@ -57,6 +57,33 @@ export default function AdminDashboard({
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const [exportingDb, setExportingDb] = useState(false);
+  const [runningBackup, setRunningBackup] = useState(false);
+
+  const handleRunBackup = async () => {
+    setRunningBackup(true);
+    try {
+      const response = await fetch('/api/cron/backup');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка резервного копирования');
+      }
+
+      const totalRows = Object.values(
+        data.manifest as Record<string, number>,
+      ).reduce((sum, count) => sum + count, 0);
+      toast.success(
+        `Резервная копия сохранена в Dropbox (${totalRows} записей)`,
+      );
+    } catch (error) {
+      console.error('Error running backup:', error);
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast.error(`Не удалось создать резервную копию: ${message}`);
+    } finally {
+      setRunningBackup(false);
+    }
+  };
 
   const handleExportDb = async () => {
     setExportingDb(true);
@@ -242,25 +269,47 @@ export default function AdminDashboard({
 
   return (
     <div className="space-y-6 p-4 md:p-0">
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={handleExportDb}
-        disabled={exportingDb}
-        className="fixed bottom-0 right-4 z-50 shadow-lg bg-background"
-      >
-        {exportingDb ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Экспорт...
-          </>
-        ) : (
-          <>
-            <Download className="h-4 w-4" />
-            Экспорт БД (CSV)
-          </>
-        )}
-      </Button>
+      <div className="fixed bottom-0 right-4 z-50 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRunBackup}
+          disabled={runningBackup}
+          className="shadow-lg bg-background"
+          title="Сохранить резервную копию всех данных в Dropbox прямо сейчас (помимо ежедневного автоматического бэкапа)"
+        >
+          {runningBackup ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Бэкап...
+            </>
+          ) : (
+            <>
+              <DatabaseBackup className="h-4 w-4" />
+              Бэкап сейчас
+            </>
+          )}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleExportDb}
+          disabled={exportingDb}
+          className="shadow-lg bg-background"
+        >
+          {exportingDb ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Экспорт...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              Экспорт БД (CSV)
+            </>
+          )}
+        </Button>
+      </div>
 
       <Tabs
         defaultValue="orders"
