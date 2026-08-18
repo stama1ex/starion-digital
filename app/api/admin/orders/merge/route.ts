@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const orders = await prisma.order.findMany({
-      where: { id: { in: orderIds } },
+      where: { id: { in: orderIds }, deletedAt: null },
       include: {
         items: { include: { product: true } },
         partner: true,

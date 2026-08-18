@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     const latest = await prisma.order.findFirst({
-      where: { partner: { role: 'PARTNER' } },
+      where: { partner: { role: 'PARTNER' }, deletedAt: null },
       orderBy: { createdAt: 'desc' },
       select: { id: true, createdAt: true },
     });

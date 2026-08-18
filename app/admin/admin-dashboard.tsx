@@ -5,13 +5,23 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Download, Loader2, DatabaseBackup } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import {
+  Download,
+  Loader2,
+  DatabaseBackup,
+  Check,
+  ChevronDown,
+  Search,
+  X,
+} from 'lucide-react';
 import SalesAnalytics from './sections/sales-analytics';
 import TopProducts from './sections/top-products';
 import DealerAnalytics from './sections/dealer-analytics';
 import DebtTracking from './sections/debt-tracking';
 import RealizationTracking from './sections/realization-tracking';
 import OrdersManagement from './sections/orders-management';
+import OrdersTrash from './sections/orders-trash';
 import PartnersManagement from './sections/partners-management';
 import PricesManagement from './sections/prices-management';
 import ProductsManagement from './sections/products-management';
@@ -19,6 +29,7 @@ import { GroupsManagement } from './sections/groups-management';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
 import { ProductGroup, PartnerRole } from '@prisma/client';
+import { isTestPartnerName } from '@/lib/admin';
 
 interface AdminDashboardProps {
   orders: AdminOrder[];
@@ -53,6 +64,11 @@ export default function AdminDashboard({
     to: new Date().toISOString().split('T')[0],
   });
   const [useCustomRange, setUseCustomRange] = useState(false);
+  const [analyticsSubTab, setAnalyticsSubTab] = useState('sales');
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
+  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
+  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
+  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState('orders');
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -124,6 +140,45 @@ export default function AdminDashboard({
     const count = orders.filter((order) => order.status === 'NEW').length;
     setNewOrdersCount(count);
   }, [orders]);
+
+  // Закрытие комбобокса фильтра по партнеру на вкладке "Анализ" по клику вне его
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        partnerComboboxRef.current &&
+        !partnerComboboxRef.current.contains(event.target as Node)
+      ) {
+        setIsPartnerComboboxOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Тестовые партнёры и их заказы/реализации исключаются из вкладки "Анализ" -
+  // их фиктивные суммы не должны искажать выручку, топ товаров, дилеров и долги.
+  // На вкладке "Заказы" они по-прежнему видны (с отдельной пометкой).
+  const analyticsPartners = partners.filter(
+    (partner) => !isTestPartnerName(partner.name),
+  );
+  const analyticsOrders = orders.filter(
+    (order) => !isTestPartnerName(order.partner.name),
+  );
+  const analyticsRealizations = realizations.filter(
+    (realization) => !isTestPartnerName(realization.partner.name),
+  );
+
+  const filteredAnalyticsPartners = analyticsPartners.filter((p) =>
+    p.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
+  );
+
+  const selectedAnalyticsPartnerName =
+    selectedPartnerId === 'ALL'
+      ? 'Все партнеры'
+      : analyticsPartners.find(
+          (partner) => partner.id.toString() === selectedPartnerId,
+        )?.name || 'Все партнеры';
 
   // Загрузка количества pending заявок - недоступно ограниченному админу
   useEffect(() => {
@@ -354,7 +409,7 @@ export default function AdminDashboard({
         {/* Управление заказами */}
         <TabsContent value="orders" className="space-y-4">
           <Tabs defaultValue="orders-list" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 gap-1">
+            <TabsList className="grid w-full grid-cols-3 gap-1">
               <TabsTrigger
                 value="orders-list"
                 className="text-xs sm:text-sm relative"
@@ -371,6 +426,9 @@ export default function AdminDashboard({
               </TabsTrigger>
               <TabsTrigger value="realization" className="text-xs sm:text-sm">
                 Реализ.
+              </TabsTrigger>
+              <TabsTrigger value="trash" className="text-xs sm:text-sm">
+                Корзина
               </TabsTrigger>
             </TabsList>
 
@@ -389,111 +447,20 @@ export default function AdminDashboard({
                 onRefresh={handleRefreshOrders}
               />
             </TabsContent>
+
+            <TabsContent value="trash">
+              <OrdersTrash onRestored={handleRefreshOrders} />
+            </TabsContent>
           </Tabs>
         </TabsContent>
 
         {/* Анализ */}
         <TabsContent value="analytics" className="space-y-4">
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => {
-                  setDateRange('day');
-                  setUseCustomRange(false);
-                }}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  !useCustomRange && dateRange === 'day'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                День
-              </button>
-              <button
-                onClick={() => {
-                  setDateRange('week');
-                  setUseCustomRange(false);
-                }}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  !useCustomRange && dateRange === 'week'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                Неделя
-              </button>
-              <button
-                onClick={() => {
-                  setDateRange('month');
-                  setUseCustomRange(false);
-                }}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  !useCustomRange && dateRange === 'month'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                Месяц
-              </button>
-              <button
-                onClick={() => {
-                  setDateRange('all');
-                  setUseCustomRange(false);
-                }}
-                className={`px-3 py-2 text-sm rounded cursor-pointer ${
-                  !useCustomRange && dateRange === 'all'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-foreground'
-                }`}
-              >
-                За все время
-              </button>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-              <label className="text-sm font-medium whitespace-nowrap">
-                Промежуток:
-              </label>
-              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-muted-foreground whitespace-nowrap">
-                    От:
-                  </label>
-                  <input
-                    type="date"
-                    value={customDateRange.from}
-                    onChange={(e) => {
-                      setCustomDateRange({
-                        ...customDateRange,
-                        from: e.target.value,
-                      });
-                      setUseCustomRange(true);
-                    }}
-                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-muted-foreground whitespace-nowrap">
-                    До:
-                  </label>
-                  <input
-                    type="date"
-                    value={customDateRange.to}
-                    onChange={(e) => {
-                      setCustomDateRange({
-                        ...customDateRange,
-                        to: e.target.value,
-                      });
-                      setUseCustomRange(true);
-                    }}
-                    className="px-3 py-2 border rounded bg-background text-foreground text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <Tabs defaultValue="sales" className="w-full">
+          <Tabs
+            value={analyticsSubTab}
+            onValueChange={setAnalyticsSubTab}
+            className="w-full space-y-4"
+          >
             <TabsList className="grid w-full grid-cols-4 gap-1">
               <TabsTrigger value="sales" className="text-xs sm:text-sm">
                 Продажи
@@ -509,11 +476,220 @@ export default function AdminDashboard({
               </TabsTrigger>
             </TabsList>
 
+            {/* Долги — это баланс "на сейчас" и не зависит от периода, поэтому
+                фильтр по времени для этой вкладки не нужен и не показывается. */}
+            {analyticsSubTab !== 'debt' && (
+              <div className="space-y-4">
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setDateRange('day');
+                      setUseCustomRange(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                      !useCustomRange && dateRange === 'day'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-foreground'
+                    }`}
+                  >
+                    День
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDateRange('week');
+                      setUseCustomRange(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                      !useCustomRange && dateRange === 'week'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-foreground'
+                    }`}
+                  >
+                    Неделя
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDateRange('month');
+                      setUseCustomRange(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                      !useCustomRange && dateRange === 'month'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-foreground'
+                    }`}
+                  >
+                    Месяц
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDateRange('all');
+                      setUseCustomRange(false);
+                    }}
+                    className={`px-3 py-2 text-sm rounded cursor-pointer ${
+                      !useCustomRange && dateRange === 'all'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-foreground'
+                    }`}
+                  >
+                    За все время
+                  </button>
+                </div>
+
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <label className="text-sm font-medium whitespace-nowrap">
+                      Промежуток:
+                    </label>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-muted-foreground whitespace-nowrap">
+                          От:
+                        </label>
+                        <input
+                          type="date"
+                          value={customDateRange.from}
+                          onChange={(e) => {
+                            setCustomDateRange({
+                              ...customDateRange,
+                              from: e.target.value,
+                            });
+                            setUseCustomRange(true);
+                          }}
+                          className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-muted-foreground whitespace-nowrap">
+                          До:
+                        </label>
+                        <input
+                          type="date"
+                          value={customDateRange.to}
+                          onChange={(e) => {
+                            setCustomDateRange({
+                              ...customDateRange,
+                              to: e.target.value,
+                            });
+                            setUseCustomRange(true);
+                          }}
+                          className="px-3 py-2 border rounded bg-background text-foreground text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {analyticsSubTab === 'sales' && (
+                    <div
+                      ref={partnerComboboxRef}
+                      className="relative w-full lg:w-auto lg:max-w-xs"
+                    >
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full lg:w-56 justify-between gap-2"
+                          onClick={() => {
+                            setIsPartnerComboboxOpen((open) => !open);
+                            setPartnerSearchQuery('');
+                          }}
+                        >
+                          <span className="truncate text-left">
+                            {selectedAnalyticsPartnerName}
+                          </span>
+                          <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+                        </Button>
+                        {selectedPartnerId !== 'ALL' && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedPartnerId('ALL');
+                              setPartnerSearchQuery('');
+                            }}
+                            title="Сбросить фильтр"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+
+                      {isPartnerComboboxOpen && (
+                        <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-64 rounded-md border bg-popover p-2 shadow-md">
+                          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+                            <Input
+                              value={partnerSearchQuery}
+                              onChange={(e) =>
+                                setPartnerSearchQuery(e.target.value)
+                              }
+                              placeholder="Поиск партнера..."
+                              className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
+                              autoFocus
+                            />
+                          </div>
+
+                          <div className="mt-2 max-h-72 overflow-y-auto">
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                              onClick={() => {
+                                setSelectedPartnerId('ALL');
+                                setPartnerSearchQuery('');
+                                setIsPartnerComboboxOpen(false);
+                              }}
+                            >
+                              <span className="truncate">Все партнеры</span>
+                              {selectedPartnerId === 'ALL' && (
+                                <Check className="h-4 w-4 shrink-0" />
+                              )}
+                            </button>
+
+                            {filteredAnalyticsPartners.length === 0 ? (
+                              <div className="px-3 py-4 text-sm text-muted-foreground">
+                                Партнер не найден
+                              </div>
+                            ) : (
+                              filteredAnalyticsPartners.map((partner) => {
+                                const isSelected =
+                                  partner.id.toString() === selectedPartnerId;
+
+                                return (
+                                  <button
+                                    key={partner.id}
+                                    type="button"
+                                    className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                                    onClick={() => {
+                                      setSelectedPartnerId(
+                                        partner.id.toString(),
+                                      );
+                                      setPartnerSearchQuery('');
+                                      setIsPartnerComboboxOpen(false);
+                                    }}
+                                  >
+                                    <span className="truncate">
+                                      {partner.name}
+                                    </span>
+                                    {isSelected && (
+                                      <Check className="h-4 w-4 shrink-0" />
+                                    )}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <TabsContent value="sales">
               <SalesAnalytics
-                orders={orders}
-                realizations={realizations}
-                partners={partners}
+                orders={analyticsOrders}
+                realizations={analyticsRealizations}
+                selectedPartnerId={selectedPartnerId}
                 dateRange={dateRange}
                 customDateRange={useCustomRange ? customDateRange : null}
               />
@@ -521,8 +697,8 @@ export default function AdminDashboard({
 
             <TabsContent value="products">
               <TopProducts
-                orders={orders}
-                realizations={realizations}
+                orders={analyticsOrders}
+                realizations={analyticsRealizations}
                 dateRange={dateRange}
                 customDateRange={useCustomRange ? customDateRange : null}
               />
@@ -530,8 +706,8 @@ export default function AdminDashboard({
 
             <TabsContent value="dealers">
               <DealerAnalytics
-                orders={orders}
-                realizations={realizations}
+                orders={analyticsOrders}
+                realizations={analyticsRealizations}
                 dateRange={dateRange}
                 customDateRange={useCustomRange ? customDateRange : null}
               />
@@ -539,11 +715,9 @@ export default function AdminDashboard({
 
             <TabsContent value="debt">
               <DebtTracking
-                orders={orders}
-                realizations={realizations}
-                partners={partners}
-                dateRange={dateRange}
-                customDateRange={useCustomRange ? customDateRange : null}
+                orders={analyticsOrders}
+                realizations={analyticsRealizations}
+                partners={analyticsPartners}
               />
             </TabsContent>
           </Tabs>

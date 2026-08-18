@@ -17,6 +17,7 @@ import { NoImageIcon } from './no-image-icon';
 import { useRouter } from 'next/navigation';
 import { Handshake } from 'lucide-react';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { formatMDL } from '@/lib/format-money';
 
 // Types match Prisma enums
 type ProductType = string;
@@ -123,7 +124,7 @@ function ProductCardImpl({ product, getPrice }: Props) {
       </div>
 
       {isPartner && (
-        <div className="text-sm font-bold text-primary">{price} MDL</div>
+        <div className="text-sm font-bold text-primary">{formatMDL(price)}</div>
       )}
 
       <div className="text-xs text-primary/60">
@@ -158,7 +159,7 @@ function ProductCardImpl({ product, getPrice }: Props) {
         {isPartner ? (
           <div className="flex flex-col justify-between w-full">
             <div className="text-lg font-bold text-center mb-2">
-              {total} MDL
+              {formatMDL(total)}
             </div>
 
             <div className="flex items-center gap-3 mb-4 mx-auto">

@@ -22,6 +22,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       where: {
         partner: { role: 'PARTNER' },
+        order: { deletedAt: null },
       },
     });
 

@@ -36,10 +36,12 @@ import {
   GitMerge,
   TriangleAlert,
   History,
+  FlaskConical,
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import { EditOrderDialog } from '@/components/shared/edit-order-dialog';
 import { VAT_RATE } from '@/lib/orders/pricing';
+import { formatMDL, formatMoney } from '@/lib/format-money';
 import type { AdminOrder } from '../types';
 import {
   ORDER_STATUS_LABELS,
@@ -52,6 +54,7 @@ import {
   formatDate,
   PRODUCT_TYPES,
   PRODUCT_TYPE_LABELS_PLURAL,
+  isTestPartnerName,
 } from '@/lib/admin';
 import { ProductGroup } from '@prisma/client';
 import { useConfirm } from '@/app/providers/confirm-provider';
@@ -341,7 +344,7 @@ export default function OrdersManagement({
   const handleDeleteOrder = async (orderId: number) => {
     const ok = await confirm({
       description:
-        'Вы уверены, что хотите удалить этот заказ? Это действие нельзя отменить.',
+        'Заказ будет перемещён в корзину и окончательно удалён через 7 дней. Восстановить его можно на вкладке "Корзина".',
       confirmText: 'Удалить',
       variant: 'destructive',
     });
@@ -864,6 +867,7 @@ export default function OrdersManagement({
                 : `Оформлено ${
                     creator.role === 'SUPER_ADMIN' ? 'супер админом' : 'админом'
                   }: ${creator.name}`;
+            const isTestOrder = isTestPartnerName(order.partner.name);
 
             return (
               <Card
@@ -871,6 +875,8 @@ export default function OrdersManagement({
                 className={cn(
                   'py-1 cursor-pointer hover:bg-secondary/50 transition-colors',
                   mergeMode && !mergeEligible && 'opacity-50',
+                  isTestOrder &&
+                    'border-dashed border-amber-500/60 bg-amber-500/5 dark:bg-amber-500/10',
                 )}
                 onClick={() => setExpandedOrderId(isExpanded ? null : order.id)}
               >
@@ -928,6 +934,15 @@ export default function OrdersManagement({
                             Ниже себестоимости
                           </Badge>
                         )}
+                        {isTestOrder && (
+                          <Badge
+                            className="gap-1 border border-dashed border-amber-500 bg-amber-500/15 text-xs text-amber-600 dark:text-amber-400"
+                            title="Партнёр похож на тестового - заказ не учитывается в аналитике"
+                          >
+                            <FlaskConical size={11} />
+                            Тест
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-2 truncate">
                         {order.partner.name} • {formatDate(order.createdAt)}
@@ -950,7 +965,7 @@ export default function OrdersManagement({
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Сумма</p>
                         <p className="font-semibold">
-                          {Number(order.totalPrice).toFixed(2)} MDL
+                          {formatMDL(Number(order.totalPrice))}
                         </p>
                       </div>
                     </div>
@@ -1047,7 +1062,7 @@ export default function OrdersManagement({
                                         </span>
                                         <span className="text-xs font-medium text-muted-foreground">
                                           {typeBucket.qty} шт •{' '}
-                                          {typeBucket.sum.toFixed(2)} MDL
+                                          {formatMDL(typeBucket.sum)}
                                         </span>
                                       </div>
                                     </td>
@@ -1067,7 +1082,7 @@ export default function OrdersManagement({
                                               </span>
                                               <span className="text-[11px] text-muted-foreground/70">
                                                 {group.qty} шт •{' '}
-                                                {group.sum.toFixed(2)} MDL
+                                                {formatMDL(group.sum)}
                                               </span>
                                             </div>
                                           </td>
@@ -1087,7 +1102,7 @@ export default function OrdersManagement({
                                             )}
                                             title={
                                               belowCost
-                                                ? `Цена ${Number(item.pricePerItem).toFixed(2)} MDL ниже себестоимости ${Number(item.product.costPrice).toFixed(2)} MDL`
+                                                ? `Цена ${formatMDL(Number(item.pricePerItem))} ниже себестоимости ${formatMDL(Number(item.product.costPrice))}`
                                                 : undefined
                                             }
                                           >
@@ -1111,16 +1126,15 @@ export default function OrdersManagement({
                                               {item.quantity}
                                             </td>
                                             <td className="py-1 px-2 text-right text-muted-foreground">
-                                              {Number(
-                                                item.pricePerItem,
-                                              ).toFixed(2)}
+                                              {formatMoney(
+                                                Number(item.pricePerItem),
+                                              )}
                                             </td>
                                             <td className="py-1 px-2 text-right font-medium">
-                                              {(
+                                              {formatMDL(
                                                 Number(item.sum) +
-                                                Number(item.vatAmount)
-                                              ).toFixed(2)}{' '}
-                                              MDL
+                                                  Number(item.vatAmount),
+                                              )}
                                             </td>
                                           </tr>
                                         );
@@ -1137,18 +1151,15 @@ export default function OrdersManagement({
                             <div className="flex justify-between">
                               <span>Без НДС:</span>
                               <span>
-                                {(
+                                {formatMDL(
                                   Number(order.totalPrice) -
-                                  Number(order.vatAmount)
-                                ).toFixed(2)}{' '}
-                                MDL
+                                    Number(order.vatAmount),
+                                )}
                               </span>
                             </div>
                             <div className="flex justify-between">
                               <span>НДС (20%):</span>
-                              <span>
-                                {Number(order.vatAmount).toFixed(2)} MDL
-                              </span>
+                              <span>{formatMDL(Number(order.vatAmount))}</span>
                             </div>
                           </div>
                         )}
@@ -1187,7 +1198,7 @@ export default function OrdersManagement({
                             Общая сумма:
                           </p>
                           <p className="text-xl font-bold">
-                            {Number(order.totalPrice).toFixed(2)} MDL
+                            {formatMDL(Number(order.totalPrice))}
                           </p>
                         </div>
 
@@ -1527,7 +1538,8 @@ export default function OrdersManagement({
                           <div className="flex justify-between text-sm font-semibold">
                             <span>{PRODUCT_TYPE_LABELS_PLURAL[type]}:</span>
                             <span>
-                              {typeData.count} шт • {typeData.sum.toFixed(2)} MDL
+                              {typeData.count} шт •{' '}
+                              {formatMDL(typeData.sum)}
                             </span>
                           </div>
                           {groupEntries.length > 1 && (
@@ -1539,8 +1551,9 @@ export default function OrdersManagement({
                                 >
                                   <span>{g.groupName}:</span>
                                   <span>
-                                    {g.count} шт × {(g.sum / g.count).toFixed(2)}{' '}
-                                    MDL • {g.sum.toFixed(2)} MDL
+                                    {g.count} шт ×{' '}
+                                    {formatMDL(g.sum / g.count)} •{' '}
+                                    {formatMDL(g.sum)}
                                   </span>
                                 </div>
                               ))}
@@ -1562,7 +1575,7 @@ export default function OrdersManagement({
                         Итоговая сумма
                       </p>
                       <p className="text-xl font-bold">
-                        {totalSum.toFixed(2)} MDL
+                        {formatMDL(totalSum)}
                       </p>
                     </div>
                   </div>

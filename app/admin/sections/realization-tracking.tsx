@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { AdminRealization } from '../types';
 import { useConfirm } from '@/app/providers/confirm-provider';
+import { formatMDL } from '@/lib/format-money';
 
 interface RealizationTrackingProps {
   realizations: AdminRealization[];
@@ -55,9 +56,7 @@ const statusLabels: Record<string, string> = {
   CANCELLED: 'Отменено',
 };
 
-function formatMoney(value: number) {
-  return `${value.toFixed(2)} MDL`;
-}
+const formatMoney = formatMDL;
 
 function buildPartnerGroups(realizations: AdminRealization[]) {
   const groups = new Map<number, PartnerRealizationGroup>();

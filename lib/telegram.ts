@@ -1,3 +1,5 @@
+import { formatMoney, formatMDL } from '@/lib/format-money';
+
 export async function sendToTelegram(order: {
   partner: string;
   orderId: number;
@@ -23,8 +25,8 @@ export async function sendToTelegram(order: {
     .map(
       (i) =>
         `• <b>${escape(i.number)}</b>: ${escape(i.qty)} шт × ${escape(
-          i.price
-        )} = <b>${escape(i.sum)} MDL</b>`
+          formatMoney(i.price)
+        )} = <b>${escape(formatMDL(i.sum))}</b>`
     )
     .join('\n');
 
@@ -35,7 +37,7 @@ export async function sendToTelegram(order: {
       ? `💬 Комментарий: <i>${escape(order.comment)}</i>\n\n`
       : `\n`) +
     `🛒 <b>Состав заказа:</b>\n${itemsFormatted}\n\n` +
-    `💰 <b>Итого: ${escape(order.total)} MDL</b>`;
+    `💰 <b>Итого: ${escape(formatMDL(order.total))}</b>`;
 
   const res = await fetch(
     `https://api.telegram.org/bot${botToken}/sendMessage`,

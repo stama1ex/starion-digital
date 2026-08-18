@@ -102,6 +102,7 @@ model Order {
   customPrices  Json? // Кастомные цены для конкретного заказа: {"MAGNET-1": 15, "PLATE-null": 20}
   createdById   Int? // Кто фактически оформил заказ - сам партнёр или админ от его имени (null - неизвестно/старые заказы)
   createdAt     DateTime    @default(now())
+  deletedAt     DateTime? // Мягкое удаление: заказ лежит в "Корзине" и через 7 дней удаляется окончательно (см. /api/cron/purge-trash)
 
   partner     Partner          @relation(fields: [partnerId], references: [id], onDelete: Cascade)
   createdBy   Partner?         @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
@@ -114,6 +115,7 @@ model Order {
   @@index([createdAt])
   @@index([createdById])
   @@index([partnerId, status])
+  @@index([deletedAt])
 }
 
 // История изменений позиций заказа (кто добавил/удалил/изменил количество)

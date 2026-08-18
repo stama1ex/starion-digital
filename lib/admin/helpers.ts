@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PRODUCT_TYPE_LABELS } from './constants';
+import { formatMDL } from '@/lib/format-money';
 
 /**
  * Helper functions for admin panel
@@ -9,10 +10,7 @@ export function getProductTypeLabel(type: string): string {
   return PRODUCT_TYPE_LABELS[type] || type;
 }
 
-export function formatPrice(price: number | string): string {
-  const num = typeof price === 'string' ? parseFloat(price) : price;
-  return `${num.toFixed(2)} MDL`;
-}
+export const formatPrice = formatMDL;
 
 export function formatDate(date: string | Date): string {
   const d = new Date(date);
@@ -54,6 +52,13 @@ export function filterBySearchQuery<T extends Record<string, any>>(
       return String(value).toLowerCase().includes(lowerQuery);
     })
   );
+}
+
+// Тестовые партнёры (имя содержит "test"/"тест" в любом регистре, включая
+// варианты вроде "Тестовый", "testing" и т.п.) — их заказы не должны
+// искажать аналитику и учёт, но сами заказы остаются видны в списке заказов.
+export function isTestPartnerName(name: string): boolean {
+  return /test|тест/i.test(name);
 }
 
 export function groupBy<T>(

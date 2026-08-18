@@ -10,6 +10,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
 import { Pencil, History } from 'lucide-react';
+import { formatMoney } from '@/lib/format-money';
 
 interface OrderChangeLogEntry {
   id: number;
@@ -185,7 +186,7 @@ export default function OrdersContent() {
                       </div>
 
                       <div className="text-sm font-semibold text-primary shrink-0">
-                        {it.sum + it.vatAmount} {t('currency_raw')}
+                        {formatMoney(it.sum + it.vatAmount)} {t('currency_raw')}
                       </div>
                     </div>
                   ))}
@@ -194,14 +195,14 @@ export default function OrdersContent() {
                 <div className="border-t mt-4 pt-3 flex justify-between items-center gap-3 text-sm font-semibold">
                   <span>{t('total')}:</span>
                   <span className="text-primary">
-                    {order.totalPrice} {t('currency_raw')}
+                    {formatMoney(order.totalPrice)} {t('currency_raw')}
                   </span>
                 </div>
                 {order.hasVat && (
                   <div className="flex justify-between items-center gap-3 text-xs text-muted-foreground">
                     <span>{t('vat_included')}</span>
                     <span>
-                      {order.vatAmount} {t('currency_raw')}
+                      {formatMoney(order.vatAmount)} {t('currency_raw')}
                     </span>
                   </div>
                 )}

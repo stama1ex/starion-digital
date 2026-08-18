@@ -2,6 +2,7 @@ import { prisma } from '@/lib/db';
 import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
+import { formatMoney, formatMDL } from '@/lib/format-money';
 
 export async function POST(req: Request) {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: Request) {
 
     // Формируем текст для caption
     const itemsText = items
-      .map((i) => `• ${i.number}: ${i.qty} шт × ${i.price} = ${i.sum} MDL`)
+      .map((i) => `• ${i.number}: ${i.qty} шт × ${formatMoney(i.price)} = ${formatMDL(i.sum)}`)
       .join('\n');
 
     const captionText =
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
       `👤 Покупатель: ${order.partner.name}\n` +
       (comment ? `💬 Комментарий: ${comment}\n\n` : `\n`) +
       `🛒 Состав заказа:\n${itemsText}\n\n` +
-      `💰 Итого: ${order.totalPrice} MDL`;
+      `💰 Итого: ${formatMDL(Number(order.totalPrice))}`;
 
     const excelBuffer = await createOrderExcel(order);
 

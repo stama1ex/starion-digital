@@ -3,6 +3,7 @@ import { createOrderExcel } from '@/lib/export/excel';
 import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
+import { formatMoney, formatMDL } from '@/lib/format-money';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
@@ -12,7 +13,7 @@ export async function GET() {
   const partnerId = partner.id;
 
   const orders = await prisma.order.findMany({
-    where: { partnerId },
+    where: { partnerId, deletedAt: null },
     orderBy: { createdAt: 'desc' },
     select: {
       id: true,
@@ -158,7 +159,7 @@ export async function POST(req: Request) {
     }));
 
     const itemsText = orderItems
-      .map((i) => `• ${i.number}: ${i.qty} шт × ${i.price} = ${i.sum} MDL`)
+      .map((i) => `• ${i.number}: ${i.qty} шт × ${formatMoney(i.price)} = ${formatMDL(i.sum)}`)
       .join('\n');
 
     const captionText =
@@ -168,7 +169,7 @@ export async function POST(req: Request) {
       (comment ? `💬 Комментарий: ${comment}\n` : '') +
       `[${typeLabel}]\n\n` +
       `🛒 Состав заказа:\n${itemsText}\n\n` +
-      `💰 Итого: ${total} MDL`;
+      `💰 Итого: ${formatMDL(total)}`;
 
     try {
       const excelBuffer = await createOrderExcel(order);

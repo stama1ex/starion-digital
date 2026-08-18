@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
+import ReactCountryFlag from 'react-country-flag';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, calculateMetrics, type DateRange } from '../utils';
 import {
@@ -14,9 +15,18 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Check, ChevronDown, Search, X } from 'lucide-react';
+import { PRODUCT_TYPE_LABELS_PLURAL } from '@/lib/admin';
+import { formatMDL } from '@/lib/format-money';
+
+// Расшифровка кодов стран сувениров для читаемого отображения в аналитике.
+// Пополняется по мере необходимости — остальные коды показываются как есть.
+const COUNTRY_LABELS: Record<string, string> = {
+  MD: 'Молдова',
+  RO: 'Румыния',
+  ES: 'Испания',
+  GB: 'Англия',
+  RU: 'Россия',
+};
 
 type ChartMode = 'day' | 'week' | 'month' | 'year';
 
@@ -133,6 +143,75 @@ function TimeRangeControls({
   );
 }
 
+type BreakdownRow = {
+  key: string;
+  label: string;
+  revenue: number;
+  profit: number;
+  flagCode?: string;
+};
+
+function BreakdownCard({
+  title,
+  rows,
+  totalRevenue,
+  emptyLabel,
+  barColor,
+}: {
+  title: string;
+  rows: BreakdownRow[];
+  totalRevenue: number;
+  emptyLabel: string;
+  barColor: string;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {rows.length === 0 ? (
+          <p className="text-muted-foreground">{emptyLabel}</p>
+        ) : (
+          <div className="space-y-3">
+            {rows.map((row) => {
+              const pct =
+                totalRevenue > 0 ? (row.revenue / totalRevenue) * 100 : 0;
+
+              return (
+                <div key={row.key} className="flex items-center gap-3">
+                  <span
+                    className="w-28 sm:w-36 text-sm truncate shrink-0 flex items-center gap-1.5"
+                    title={row.label}
+                  >
+                    {row.flagCode && (
+                      <ReactCountryFlag
+                        countryCode={row.flagCode}
+                        svg
+                        className="shrink-0"
+                      />
+                    )}
+                    <span className="truncate">{row.label}</span>
+                  </span>
+                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                    <div
+                      className={`h-full ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                  <span className="text-sm font-medium w-36 sm:w-44 text-right shrink-0">
+                    {formatMDL(row.revenue, 0)} ({pct.toFixed(1)}%)
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function AnalyticsChartCard({
   title,
   chartData,
@@ -160,7 +239,7 @@ function AnalyticsChartCard({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
               <YAxis />
-              <Tooltip formatter={(value) => `${value} MDL`} />
+              <Tooltip formatter={(value) => formatMDL(value as number, 0)} />
               <Legend />
               {series.map((item) => (
                 <Bar
@@ -363,7 +442,7 @@ function buildChartData(
 interface SalesAnalyticsProps {
   orders: any[];
   realizations: any[];
-  partners: any[];
+  selectedPartnerId: string;
   dateRange: DateRange;
   customDateRange?: { from: string; to: string } | null;
 }
@@ -371,13 +450,10 @@ interface SalesAnalyticsProps {
 export default function SalesAnalytics({
   orders,
   realizations,
-  partners,
+  selectedPartnerId,
   dateRange,
   customDateRange,
 }: SalesAnalyticsProps) {
-  const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
-  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
-  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [salesChartRange, setSalesChartRange] = useState<ChartRangeState>(
     () => {
       const d = new Date();
@@ -402,21 +478,6 @@ export default function SalesAnalytics({
       };
     },
   );
-  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        partnerComboboxRef.current &&
-        !partnerComboboxRef.current.contains(event.target as Node)
-      ) {
-        setIsPartnerComboboxOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Фильтрация по партнеру
   const partnerFilteredOrders =
@@ -443,19 +504,120 @@ export default function SalesAnalytics({
     customDateRange || undefined,
   );
 
-  // Фильтрация списка партнеров для поиска
-  const filteredPartners = partners.filter((p) =>
-    p.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
-  );
-
-  const selectedPartnerName =
-    selectedPartnerId === 'ALL'
-      ? 'Все партнеры'
-      : partners.find((partner) => partner.id.toString() === selectedPartnerId)
-          ?.name || 'Все партнеры';
-
   // Маппер себестоимости (в дальнейшем можно получать из БД)
   const metrics = calculateMetrics(filteredOrders, filteredRealizations);
+
+  // Разбивка выручки по типу товара и по стране сувенира — считаем так же,
+  // как оборот в KPI-блоках выше: только оплаченные обычные заказы + оплаченная
+  // часть реализаций, без НДС (item.sum/item.totalPrice уже без НДС).
+  const revenueByType = new Map<string, { revenue: number; profit: number }>();
+  const revenueByCountry = new Map<
+    string,
+    { revenue: number; profit: number }
+  >();
+
+  const addToBreakdown = (
+    map: Map<string, { revenue: number; profit: number }>,
+    key: string,
+    revenue: number,
+    profit: number,
+  ) => {
+    const existing = map.get(key) || { revenue: 0, profit: 0 };
+    existing.revenue += revenue;
+    existing.profit += profit;
+    map.set(key, existing);
+  };
+
+  const breakdownOrderIdsWithRealization = new Set(
+    filteredRealizations.map((r) => r.orderId),
+  );
+
+  filteredOrders.forEach((order) => {
+    if (breakdownOrderIdsWithRealization.has(order.id)) return;
+    if (order.status !== 'PAID') return;
+
+    order.items.forEach((item: any) => {
+      const sum = Number(item.sum);
+      const cost = Number(item.product.costPrice ?? 0) * item.quantity;
+      const profit = sum - cost;
+
+      addToBreakdown(revenueByType, item.product.type, sum, profit);
+      addToBreakdown(
+        revenueByCountry,
+        item.product.country?.toUpperCase() || 'Не указана',
+        sum,
+        profit,
+      );
+    });
+  });
+
+  filteredRealizations.forEach((realization) => {
+    const totalCost = Number(realization.totalCost);
+    const paidAmount = Number(realization.paidAmount);
+    if (paidAmount === 0) return;
+
+    const paidRatio = totalCost > 0 ? paidAmount / totalCost : 0;
+
+    realization.items.forEach((item: any) => {
+      const paidSum = Number(item.totalPrice) * paidRatio;
+      const paidQuantity = item.quantity * paidRatio;
+      const cost = Number(item.costPrice ?? 0) * paidQuantity;
+      const profit = paidSum - cost;
+
+      addToBreakdown(revenueByType, item.product.type, paidSum, profit);
+      addToBreakdown(
+        revenueByCountry,
+        item.product.country?.toUpperCase() || 'Не указана',
+        paidSum,
+        profit,
+      );
+    });
+  });
+
+  const typeRows: BreakdownRow[] = Array.from(revenueByType.entries())
+    .map(([type, stat]) => ({
+      key: type,
+      label: PRODUCT_TYPE_LABELS_PLURAL[type] || type,
+      revenue: stat.revenue,
+      profit: stat.profit,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+
+  const TOP_COUNTRIES_LIMIT = 8;
+  const sortedCountryEntries = Array.from(revenueByCountry.entries()).sort(
+    (a, b) => b[1].revenue - a[1].revenue,
+  );
+  const countryRows: BreakdownRow[] = sortedCountryEntries
+    .slice(0, TOP_COUNTRIES_LIMIT)
+    .map(([country, stat]) => ({
+      key: country,
+      label: COUNTRY_LABELS[country] || country,
+      revenue: stat.revenue,
+      profit: stat.profit,
+      flagCode: COUNTRY_LABELS[country] ? country : undefined,
+    }));
+  const restCountries = sortedCountryEntries.slice(TOP_COUNTRIES_LIMIT);
+  if (restCountries.length > 0) {
+    const restStat = restCountries.reduce(
+      (acc, [, stat]) => ({
+        revenue: acc.revenue + stat.revenue,
+        profit: acc.profit + stat.profit,
+      }),
+      { revenue: 0, profit: 0 },
+    );
+    countryRows.push({
+      key: '__rest__',
+      label: `Остальные (${restCountries.length})`,
+      revenue: restStat.revenue,
+      profit: restStat.profit,
+    });
+  }
+
+  const typeRevenueTotal = typeRows.reduce((acc, row) => acc + row.revenue, 0);
+  const countryRevenueTotal = sortedCountryEntries.reduce(
+    (acc, [, stat]) => acc + stat.revenue,
+    0,
+  );
 
   const salesChartData = useMemo(
     () =>
@@ -504,99 +666,6 @@ export default function SalesAnalytics({
 
   return (
     <div className="space-y-6">
-      {/* Фильтр по партнеру */}
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-card p-4 rounded-lg border shadow-sm">
-        <div ref={partnerComboboxRef} className="relative w-full max-w-xs">
-          <label className="text-sm font-medium mb-1 block">Партнер</label>
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-between gap-2"
-              onClick={() => {
-                setIsPartnerComboboxOpen((open) => !open);
-                setPartnerSearchQuery('');
-              }}
-            >
-              <span className="truncate text-left">{selectedPartnerName}</span>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
-            </Button>
-            {selectedPartnerId !== 'ALL' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setSelectedPartnerId('ALL');
-                  setPartnerSearchQuery('');
-                }}
-                title="Сбросить фильтр"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-
-          {isPartnerComboboxOpen && (
-            <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
-              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                <Input
-                  value={partnerSearchQuery}
-                  onChange={(e) => setPartnerSearchQuery(e.target.value)}
-                  placeholder="Поиск партнера..."
-                  className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
-                  autoFocus
-                />
-              </div>
-
-              <div className="mt-2 max-h-72 overflow-y-auto">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => {
-                    setSelectedPartnerId('ALL');
-                    setPartnerSearchQuery('');
-                    setIsPartnerComboboxOpen(false);
-                  }}
-                >
-                  <span className="truncate">Все партнеры</span>
-                  {selectedPartnerId === 'ALL' && (
-                    <Check className="h-4 w-4 shrink-0" />
-                  )}
-                </button>
-
-                {filteredPartners.length === 0 ? (
-                  <div className="px-3 py-4 text-sm text-muted-foreground">
-                    Партнер не найден
-                  </div>
-                ) : (
-                  filteredPartners.map((partner) => {
-                    const isSelected =
-                      partner.id.toString() === selectedPartnerId;
-
-                    return (
-                      <button
-                        key={partner.id}
-                        type="button"
-                        className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                        onClick={() => {
-                          setSelectedPartnerId(partner.id.toString());
-                          setPartnerSearchQuery('');
-                          setIsPartnerComboboxOpen(false);
-                        }}
-                      >
-                        <span className="truncate">{partner.name}</span>
-                        {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* === KPI блоки === */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -607,7 +676,7 @@ export default function SalesAnalytics({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.totalRevenue.toFixed(0)} MDL
+              {formatMDL(metrics.totalRevenue, 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               {filteredOrders.length} заказов + {filteredRealizations.length}{' '}
@@ -624,7 +693,7 @@ export default function SalesAnalytics({
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {metrics.totalCost.toFixed(0)} MDL
+              {formatMDL(metrics.totalCost, 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-2">Всего расходов</p>
           </CardContent>
@@ -642,7 +711,7 @@ export default function SalesAnalytics({
                 metrics.grossProfit >= 0 ? 'text-green-600' : 'text-destructive'
               }`}
             >
-              {metrics.grossProfit.toFixed(0)} MDL
+              {formatMDL(metrics.grossProfit, 0)}
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Маржа:{' '}
@@ -657,95 +726,24 @@ export default function SalesAnalytics({
         </Card>
       </div>
 
-      {/* === Таблица со статистикой по статусам === */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Статистика по статусам заказов</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-semibold">Статус</th>
-                  <th className="text-right py-3 px-4 font-semibold">
-                    Сумма (MDL)
-                  </th>
-                  <th className="text-right py-3 px-4 font-semibold">
-                    Кол-во заказов
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {(() => {
-                  // Расчет сумм по статусам (только оплаченные и подтвержденные)
-                  const statusStats = {
-                    CONFIRMED: { sum: 0, count: 0 },
-                    PAID: { sum: 0, count: 0 },
-                  };
+      {/* === Разбивка выручки по типу товара и по стране === */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <BreakdownCard
+          title={`Продажи по типам товара ${periodLabel}`}
+          rows={typeRows}
+          totalRevenue={typeRevenueTotal}
+          emptyLabel="Нет продаж за выбранный период"
+          barColor="bg-blue-500"
+        />
 
-                  filteredOrders.forEach((order) => {
-                    if (
-                      order.status === 'CONFIRMED' ||
-                      order.status === 'PAID'
-                    ) {
-                      const amount = Number(order.totalPrice);
-                      const status = order.status as 'CONFIRMED' | 'PAID';
-                      statusStats[status].sum += amount;
-                      statusStats[status].count += 1;
-                    }
-                  });
-
-                  const totalSum =
-                    statusStats.CONFIRMED.sum + statusStats.PAID.sum;
-                  const totalCount =
-                    statusStats.CONFIRMED.count + statusStats.PAID.count;
-
-                  return (
-                    <>
-                      <tr className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Подтвережденные
-                          </span>
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          {statusStats.CONFIRMED.sum.toFixed(2)}
-                        </td>
-                        <td className="text-right py-3 px-4">
-                          {statusStats.CONFIRMED.count}
-                        </td>
-                      </tr>
-                      <tr className="border-b hover:bg-muted/50">
-                        <td className="py-3 px-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Оплаченные
-                          </span>
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          {statusStats.PAID.sum.toFixed(2)}
-                        </td>
-                        <td className="text-right py-3 px-4">
-                          {statusStats.PAID.count}
-                        </td>
-                      </tr>
-                      <tr className="border-b hover:bg-muted/50 bg-muted/40">
-                        <td className="py-3 px-4 font-semibold">Всего</td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          {totalSum.toFixed(2)}
-                        </td>
-                        <td className="text-right py-3 px-4 font-semibold">
-                          {totalCount}
-                        </td>
-                      </tr>
-                    </>
-                  );
-                })()}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+        <BreakdownCard
+          title={`Продажи по странам сувениров ${periodLabel}`}
+          rows={countryRows}
+          totalRevenue={countryRevenueTotal}
+          emptyLabel="Нет продаж за выбранный период"
+          barColor="bg-emerald-500"
+        />
+      </div>
 
       <AnalyticsChartCard
         title="Динамика продаж"

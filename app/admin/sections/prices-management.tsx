@@ -10,6 +10,7 @@ import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
 import { ProductType } from '@prisma/client';
 import { usePartners, useGroups } from '@/lib/admin';
 import { useConfirm } from '@/app/providers/confirm-provider';
+import { formatMoney } from '@/lib/format-money';
 
 const PRODUCT_TYPES: ProductType[] = [
   'MAGNET',
@@ -300,7 +301,7 @@ export default function PricesManagement() {
     price: number,
   ) => {
     const ok = await confirm({
-      description: `Вы уверены, что хотите применить цену ${price} лей для этой группы ко всем партнерам?`,
+      description: `Вы уверены, что хотите применить цену ${formatMoney(price)} лей для этой группы ко всем партнерам?`,
       confirmText: 'Применить',
       variant: 'destructive',
     });

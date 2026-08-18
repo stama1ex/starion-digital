@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { filterByDateRange, type DateRange } from '../utils';
 import type { AdminOrder, AdminRealization } from '../types';
+import { formatMDL } from '@/lib/format-money';
 import {
   BarChart,
   Bar,
@@ -142,7 +143,7 @@ export default function DealerAnalytics({
                     </p>
                   </div>
                   <p className="font-bold text-lg shrink-0">
-                    {dealer.totalVolume.toFixed(0)} MDL
+                    {formatMDL(dealer.totalVolume, 0)}
                   </p>
                 </div>
               ))
@@ -167,7 +168,7 @@ export default function DealerAnalytics({
                   height={100}
                 />
                 <YAxis />
-                <Tooltip formatter={(value) => `${value} MDL`} />
+                <Tooltip formatter={(value) => formatMDL(value as number, 0)} />
                 <Legend />
                 <Bar dataKey="volume" fill="#3b82f6" name="Объём закупок" />
               </BarChart>

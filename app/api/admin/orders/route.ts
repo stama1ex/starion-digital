@@ -29,6 +29,7 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
       where: {
         partner: { role: 'PARTNER' },
+        deletedAt: null,
       },
     });
 
@@ -84,6 +85,13 @@ export async function PUT(request: NextRequest) {
 
     if (!existingOrder) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (existingOrder.deletedAt) {
+      return NextResponse.json(
+        { error: 'Order is in trash - restore it first' },
+        { status: 400 },
+      );
     }
 
     // Если это заказ на реализацию и статус меняется на PAID - запрещаем
@@ -151,7 +159,8 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE - удалить заказ
+// DELETE - переместить заказ в корзину (мягкое удаление, см. /api/admin/orders/trash
+// для восстановления/окончательного удаления и /api/cron/purge-trash для автоочистки)
 export async function DELETE(request: NextRequest) {
   try {
     if (!(await checkSuperAdminAuth())) {
@@ -171,19 +180,17 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Проверяем существование заказа
     const order = await prisma.order.findUnique({
       where: { id: Number(orderId) },
-      include: { realization: true },
     });
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Удаляем заказ (каскадно удалятся items, realization, realizationItems, realizationPayments)
-    await prisma.order.delete({
+    await prisma.order.update({
       where: { id: Number(orderId) },
+      data: { deletedAt: new Date() },
     });
 
     return NextResponse.json({ ok: true });

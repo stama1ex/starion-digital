@@ -42,6 +42,21 @@ export async function putData<T>(endpoint: string, data: any): Promise<T> {
   return res.json();
 }
 
+export async function patchData<T>(endpoint: string, data: any): Promise<T> {
+  const res = await fetch(endpoint, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `Failed to update ${endpoint}`);
+  }
+
+  return res.json();
+}
+
 export async function deleteData(endpoint: string): Promise<void> {
   const res = await fetch(endpoint, {
     method: 'DELETE',
@@ -88,6 +103,13 @@ export const AdminAPI = {
       '/api/admin/orders/merge',
       { orderIds },
     ),
+
+  // Order trash ("Корзина")
+  getTrashedOrders: () => fetchData<{ orders: any[] }>('/api/admin/orders/trash'),
+  restoreOrder: (orderId: number) =>
+    patchData('/api/admin/orders/trash', { orderId }),
+  purgeOrder: (orderId: number) =>
+    deleteData(`/api/admin/orders/trash?orderId=${orderId}`),
 
   // Prices
   getPrices: (partnerId: number) =>

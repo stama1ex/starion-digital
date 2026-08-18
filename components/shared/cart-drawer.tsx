@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { usePartner } from '@/app/providers/partner-provider';
+import { formatMDL } from '@/lib/format-money';
 
 interface CartDrawerProps {
   isOutline?: boolean;
@@ -157,7 +158,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
                       </div>
                       <div className="text-xs text-primary font-semibold">
                         {item.price} × {item.quantity} ={' '}
-                        {item.price * item.quantity} MDL
+                        {formatMDL(item.price * item.quantity)}
                       </div>
                     </div>
                   </div>
@@ -205,7 +206,7 @@ export default function CartDrawer({ isOutline = true }: CartDrawerProps) {
               </div>
               <div className="flex justify-between md:justify-center font-semibold text-primary mb-4">
                 <span>{t('total_price')}:</span>
-                <span>{totalPrice} MDL</span>
+                <span>{formatMDL(totalPrice)}</span>
               </div>
             </div>
 

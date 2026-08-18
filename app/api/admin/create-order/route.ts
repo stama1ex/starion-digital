@@ -4,6 +4,7 @@ import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 import { calculateVatAmount } from '@/lib/orders/pricing';
+import { formatMoney, formatMDL } from '@/lib/format-money';
 
 // Admin auth check helper - любой админ (ограниченный или супер-админ)
 async function checkAdminAuth() {
@@ -208,17 +209,17 @@ export async function POST(req: Request) {
     }));
 
     const itemsText = orderItems
-      .map((i) => `• ${i.number}: ${i.qty} шт × ${i.price} = ${i.sum} MDL`)
+      .map((i) => `• ${i.number}: ${i.qty} шт × ${formatMoney(i.price)} = ${formatMDL(i.sum)}`)
       .join('\n');
 
-    const vatLine = hasVat ? `\n💵 в т.ч. НДС 20%: ${totalVat.toFixed(2)} MDL` : '';
+    const vatLine = hasVat ? `\n💵 в т.ч. НДС 20%: ${formatMDL(totalVat)}` : '';
 
     const captionText =
       `📌 Новый заказ №${order.id}\n\n` +
       `👤 Покупатель: ${order.partner.name}\n` +
       `💬 Комментарий: ${adminNote}\n[${typeLabel}]\n\n` +
       `🛒 Состав заказа:\n${itemsText}\n\n` +
-      `💰 Итого: ${(total + totalVat).toFixed(2)} MDL${vatLine}`;
+      `💰 Итого: ${formatMDL(total + totalVat)}${vatLine}`;
 
     try {
       const excelBuffer = await createOrderExcel(order);

@@ -90,6 +90,7 @@ export default async function AdminPage() {
             orderBy: { createdAt: 'desc' },
             where: {
               partner: { role: 'PARTNER' },
+              deletedAt: null,
             },
           }),
       prisma.partner.findMany({
@@ -139,6 +140,7 @@ export default async function AdminPage() {
                       id: true,
                       number: true,
                       type: true,
+                      country: true,
                       groupId: true,
                     },
                   },
@@ -157,6 +159,7 @@ export default async function AdminPage() {
             orderBy: { createdAt: 'desc' },
             where: {
               partner: { role: 'PARTNER' },
+              order: { deletedAt: null },
             },
           })
         : Promise.resolve([]),

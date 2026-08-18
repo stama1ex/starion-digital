@@ -4,8 +4,8 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { filterByDateRange, type DateRange } from '../utils';
 import type { AdminOrder, AdminPartner, AdminRealization } from '../types';
+import { formatMDL } from '@/lib/format-money';
 import {
   BarChart,
   Bar,
@@ -21,27 +21,13 @@ interface DebtTrackingProps {
   orders: AdminOrder[];
   realizations: AdminRealization[];
   partners: AdminPartner[];
-  dateRange: DateRange;
-  customDateRange?: { from: string; to: string } | null;
 }
 
 export default function DebtTracking({
   orders,
   realizations,
   partners,
-  dateRange,
-  customDateRange,
 }: DebtTrackingProps) {
-  const filteredOrders = filterByDateRange(
-    orders,
-    dateRange,
-    customDateRange || undefined,
-  );
-  const filteredRealizations = filterByDateRange(
-    realizations,
-    dateRange,
-    customDateRange || undefined,
-  );
   const [chartFromDate, setChartFromDate] = useState(() => {
     const d = new Date();
     d.setMonth(d.getMonth() - 11);
@@ -64,19 +50,14 @@ export default function DebtTracking({
       .map((partner) => partner.id),
   );
 
-  const debtOrders = filteredOrders.filter((order) =>
+  // Баланс долгов — это состояние "на сейчас", а не за период, поэтому
+  // он всегда считается по полной истории заказов/реализаций (только
+  // поиск по партнёру сужает выборку), без привязки к общему фильтру
+  // периода на вкладке "Анализ".
+  const debtOrders = orders.filter((order) =>
     normalizedPartnerQuery ? matchingPartnerIds.has(order.partnerId) : true,
   );
-  const debtRealizations = filteredRealizations.filter((realization) =>
-    normalizedPartnerQuery
-      ? matchingPartnerIds.has(realization.partnerId)
-      : true,
-  );
-
-  const chartOrders = orders.filter((order) =>
-    normalizedPartnerQuery ? matchingPartnerIds.has(order.partnerId) : true,
-  );
-  const chartRealizations = realizations.filter((realization) =>
+  const debtRealizations = realizations.filter((realization) =>
     normalizedPartnerQuery
       ? matchingPartnerIds.has(realization.partnerId)
       : true,
@@ -263,7 +244,7 @@ export default function DebtTracking({
       let realizationTotal = 0;
       let realizationPaid = 0;
 
-      chartOrders.forEach((order) => {
+      debtOrders.forEach((order) => {
         const createdAt = new Date(order.createdAt);
         if (
           createdAt <= periodEnd &&
@@ -274,7 +255,7 @@ export default function DebtTracking({
         }
       });
 
-      chartRealizations.forEach((realization) => {
+      debtRealizations.forEach((realization) => {
         const createdAt = new Date(realization.createdAt);
         if (realization.status === 'CANCELLED' || createdAt > periodEnd) {
           return;
@@ -302,13 +283,16 @@ export default function DebtTracking({
     }
 
     return periods;
-  }, [chartOrders, chartRealizations, chartFromDate, chartToDate, chartMode]);
+  }, [debtOrders, debtRealizations, chartFromDate, chartToDate, chartMode]);
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>Состояние долгов</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Текущий баланс за всё время, не зависит от выбранного периода
+          </p>
         </CardHeader>
         <CardContent>
           <div className="mb-4 max-w-xs">
@@ -335,14 +319,13 @@ export default function DebtTracking({
                     <div>
                       <p className="text-muted-foreground">Обычные заказы:</p>
                       <p className="font-semibold">
-                        {b.ordersTotal.toFixed(0)} MDL
+                        {formatMDL(b.ordersTotal, 0)}
                       </p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Реализация:</p>
                       <p className="font-semibold">
-                        {(b.realizationTotal - b.realizationPaid).toFixed(0)}{' '}
-                        MDL
+                        {formatMDL(b.realizationTotal - b.realizationPaid, 0)}
                       </p>
                     </div>
                   </div>
@@ -352,7 +335,7 @@ export default function DebtTracking({
                     }`}
                   >
                     {b.balance > 0 ? 'Должен:' : 'Избыток:'}{' '}
-                    {Math.abs(b.balance).toFixed(0)} MDL
+                    {formatMDL(Math.abs(b.balance), 0)}
                   </p>
                 </div>
               ))
@@ -437,7 +420,7 @@ export default function DebtTracking({
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="period" />
               <YAxis />
-              <Tooltip formatter={(value) => `${value} MDL`} />
+              <Tooltip formatter={(value) => formatMDL(value as number, 0)} />
               <Legend />
               <Bar dataKey="orders" fill="#ef4444" name="Обычные заказы" />
               <Bar dataKey="realization" fill="#f97316" name="Реализация" />

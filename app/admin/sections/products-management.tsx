@@ -34,6 +34,7 @@ import {
 import { NoImageIcon } from '@/components/shared/no-image-icon';
 import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
 import { useConfirm } from '@/app/providers/confirm-provider';
+import { formatMDL } from '@/lib/format-money';
 
 function ProductImagePreview({ imagePath }: { imagePath: string }) {
   const { imgSrc, loading } = useDropboxImage(imagePath);
@@ -434,7 +435,7 @@ export default function ProductsManagement() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Цена:</span>
                     <span className="font-semibold">
-                      {product.costPrice} MDL
+                      {formatMDL(product.costPrice)}
                     </span>
                   </div>
                 </div>

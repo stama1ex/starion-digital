@@ -13,6 +13,7 @@ import {
 import { filterByDateRange, type DateRange } from '../utils';
 import type { AdminOrder, AdminRealization } from '../types';
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABELS_PLURAL } from '@/lib/admin';
+import { formatMDL } from '@/lib/format-money';
 import {
   BarChart,
   Bar,
@@ -209,10 +210,10 @@ export default function TopProducts({
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-green-600">
-                      {product.profit.toFixed(0)} MDL
+                      {formatMDL(product.profit, 0)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {product.totalSales.toFixed(0)} MDL выручка
+                      {formatMDL(product.totalSales, 0)} выручка
                     </p>
                   </div>
                 </div>
@@ -240,7 +241,7 @@ export default function TopProducts({
                   height={100}
                 />
                 <YAxis />
-                <Tooltip formatter={(value) => `${value} MDL`} />
+                <Tooltip formatter={(value) => formatMDL(value as number, 0)} />
                 <Legend />
                 <Bar dataKey="profit" fill="#10b981" name="Прибыль" />
                 <Bar dataKey="revenue" fill="#3b82f6" name="Выручка" />

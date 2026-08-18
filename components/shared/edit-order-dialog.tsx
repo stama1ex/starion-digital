@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Plus, Search, Trash2 } from 'lucide-react';
+import { formatMDL } from '@/lib/format-money';
 
 interface AvailableProduct {
   id: number;
@@ -242,7 +243,7 @@ export function EditOrderDialog({
                     >
                       <span className="truncate">{product.number}</span>
                       <span className="flex shrink-0 items-center gap-2 text-muted-foreground">
-                        {product.price.toFixed(2)} MDL
+                        {formatMDL(product.price)}
                         <Plus className="h-3.5 w-3.5" />
                       </span>
                     </button>
@@ -253,7 +254,7 @@ export function EditOrderDialog({
 
             <div className="flex justify-between border-t pt-3 text-sm">
               <span className="text-muted-foreground">Итого</span>
-              <span className="font-semibold">{total.toFixed(2)} MDL</span>
+              <span className="font-semibold">{formatMDL(total)}</span>
             </div>
           </div>
         )}
