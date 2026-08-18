@@ -96,18 +96,19 @@ export function GroupsManagement() {
   };
 
   const handleUpdate = async () => {
-    const generatedSlug = editTranslations.en.trim().toUpperCase();
-    if (!editingGroup || !generatedSlug || !editTranslations.ru.trim()) {
-      if (!generatedSlug)
-        toast.error('Введите название на английском (для генерации slug)');
+    if (!editingGroup || !editTranslations.ru.trim()) {
+      toast.error('Введите название на русском');
       return;
     }
 
     setUpdating(true);
     try {
+      // slug не пересчитываем и не отправляем: это стабильный идентификатор
+      // группы, используемый для фильтрации в каталоге на сайте (см.
+      // app/magnets/catalog/magnets-catalog-content-new.tsx) - смена
+      // перевода не должна ломать уже сохранённые/расшаренные ссылки
       await AdminAPI.updateGroup({
         id: editingGroup.id,
-        slug: generatedSlug,
         translations: {
           en: editTranslations.en.trim() || editTranslations.ru.trim(),
           ro: editTranslations.ro.trim() || editTranslations.ru.trim(),

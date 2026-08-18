@@ -1,14 +1,23 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
-import { Check, ChevronDown, Loader2, Search } from 'lucide-react';
+import { Combobox } from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Loader2 } from 'lucide-react';
 import { ProductType } from '@prisma/client';
-import { usePartners, useGroups } from '@/lib/admin';
+import { usePartners, useGroups, AdminAPI, handleApiError } from '@/lib/admin';
 import { useConfirm } from '@/app/providers/confirm-provider';
 import { formatMoney } from '@/lib/format-money';
 
@@ -42,8 +51,6 @@ export default function PricesManagement() {
   const { groups } = useGroups();
   const confirm = useConfirm();
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('');
-  const [partnerQuery, setPartnerQuery] = useState('');
-  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [prices, setPrices] = useState<Price[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingPrices, setSavingPrices] = useState(false);
@@ -70,22 +77,9 @@ export default function PricesManagement() {
   >({});
   const [loadingDefaultPrices, setLoadingDefaultPrices] = useState(false);
   const [savingDefaultPrices, setSavingDefaultPrices] = useState(false);
-  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        partnerComboboxRef.current &&
-        !partnerComboboxRef.current.contains(event.target as Node)
-      ) {
-        setIsPartnerComboboxOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
+  const [isCopyPricesModalOpen, setIsCopyPricesModalOpen] = useState(false);
+  const [copyFromPartnerId, setCopyFromPartnerId] = useState<string>('');
+  const [copyingPrices, setCopyingPrices] = useState(false);
   useEffect(() => {
     if (selectedPartnerId) {
       fetchPrices();
@@ -93,21 +87,39 @@ export default function PricesManagement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPartnerId]);
 
-  const filteredPartners = useMemo(() => {
-    const query = partnerQuery.trim().toLowerCase();
+  const partnerOptions = useMemo(
+    () =>
+      partners.map((partner) => ({
+        value: partner.id.toString(),
+        label: partner.name,
+      })),
+    [partners],
+  );
 
-    if (!query) {
-      return partners;
+  const selectedPartner = useMemo(
+    () => partners.find((p) => p.id.toString() === selectedPartnerId),
+    [partners, selectedPartnerId],
+  );
+
+  // Источники для копирования цен — сам текущий партнёр (цель копирования)
+  // исключён из списка, т.к. копировать сам в себя бессмысленно
+  const copySourceOptions = useMemo(
+    () => partnerOptions.filter((option) => option.value !== selectedPartnerId),
+    [partnerOptions, selectedPartnerId],
+  );
+
+  const handleSelectPartner = async (partnerId: string) => {
+    if (hasChanges) {
+      const ok = await confirm({
+        description:
+          'Есть несохранённые изменения цен. Перейти к другому партнёру и отменить их?',
+        confirmText: 'Перейти без сохранения',
+        variant: 'destructive',
+      });
+      if (!ok) return;
     }
-
-    return partners.filter((partner) =>
-      partner.name.toLowerCase().includes(query),
-    );
-  }, [partners, partnerQuery]);
-
-  const selectedPartnerName =
-    partners.find((partner) => partner.id.toString() === selectedPartnerId)
-      ?.name || 'Выберите партнера';
+    setSelectedPartnerId(partnerId);
+  };
 
   // silent — фоновое обновление (после сохранения/пресета), не блокирует
   // сетку экраном "Загрузка..." — только initial-загрузка партнёра это делает
@@ -410,6 +422,34 @@ export default function PricesManagement() {
     }
   };
 
+  const handleOpenCopyPricesModal = () => {
+    setCopyFromPartnerId('');
+    setIsCopyPricesModalOpen(true);
+  };
+
+  const handleCopyPrices = async () => {
+    if (!selectedPartnerId || !copyFromPartnerId) return;
+
+    try {
+      setCopyingPrices(true);
+      const result = await AdminAPI.copyPrices(
+        parseInt(copyFromPartnerId),
+        parseInt(selectedPartnerId),
+      );
+      const sourceName = partners.find(
+        (p) => p.id.toString() === copyFromPartnerId,
+      )?.name;
+      setIsCopyPricesModalOpen(false);
+      toast.success(`Скопировано ${result.count} цен от «${sourceName}»`);
+      await fetchPrices({ silent: true });
+    } catch (error) {
+      const message = await handleApiError(error);
+      toast.error(`Ошибка при копировании цен: ${message}`);
+    } finally {
+      setCopyingPrices(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -417,73 +457,15 @@ export default function PricesManagement() {
           <h2 className="text-2xl font-bold mb-4">
             Управление ценами партнеров
           </h2>
-          <div ref={partnerComboboxRef} className="relative w-full sm:w-80">
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full justify-between gap-2"
-              onClick={() => {
-                setIsPartnerComboboxOpen((open) => !open);
-                setPartnerQuery('');
-              }}
-            >
-              <span className="truncate text-left">{selectedPartnerName}</span>
-              <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
-            </Button>
-
-            {isPartnerComboboxOpen && (
-              <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
-                <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                  <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <Input
-                    value={partnerQuery}
-                    onChange={(e) => setPartnerQuery(e.target.value)}
-                    placeholder="Поиск партнера..."
-                    className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
-                    autoFocus
-                  />
-                </div>
-
-                <div className="mt-2 max-h-72 overflow-y-auto">
-                  {filteredPartners.length === 0 ? (
-                    <div className="px-3 py-4 text-sm text-muted-foreground">
-                      Партнер не найден
-                    </div>
-                  ) : (
-                    filteredPartners.map((partner) => {
-                      const isSelected =
-                        partner.id.toString() === selectedPartnerId;
-
-                      return (
-                        <button
-                          key={partner.id}
-                          type="button"
-                          className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                          onClick={async () => {
-                            if (hasChanges) {
-                              const ok = await confirm({
-                                description:
-                                  'Есть несохранённые изменения цен. Перейти к другому партнёру и отменить их?',
-                                confirmText: 'Перейти без сохранения',
-                                variant: 'destructive',
-                              });
-                              if (!ok) return;
-                            }
-                            setSelectedPartnerId(partner.id.toString());
-                            setPartnerQuery('');
-                            setIsPartnerComboboxOpen(false);
-                          }}
-                        >
-                          <span className="truncate">{partner.name}</span>
-                          {isSelected && <Check className="h-4 w-4 shrink-0" />}
-                        </button>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <Combobox
+            className="w-full sm:w-80"
+            options={partnerOptions}
+            value={selectedPartnerId}
+            onChange={handleSelectPartner}
+            placeholder="Выберите партнера"
+            searchPlaceholder="Поиск партнера..."
+            emptyText="Партнер не найден"
+          />
         </div>
         <div className="flex gap-2 items-center w-full sm:w-auto">
           <Button
@@ -492,6 +474,14 @@ export default function PricesManagement() {
             className="w-full sm:w-auto h-auto whitespace-normal py-2 text-center sm:h-9 sm:whitespace-nowrap"
           >
             ⚙️ Цены по умолчанию для новых партнёров
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleOpenCopyPricesModal}
+            disabled={!selectedPartnerId}
+            className="w-full sm:w-auto h-auto whitespace-normal py-2 text-center sm:h-9 sm:whitespace-nowrap"
+          >
+            📋 Скопировать цены от другого партнёра
           </Button>
           {hasChanges && (
             <Button
@@ -897,6 +887,59 @@ export default function PricesManagement() {
           </Card>
         </div>
       )}
+
+      {/* Модальное окно копирования всего прайса от другого партнёра */}
+      <Dialog
+        open={isCopyPricesModalOpen}
+        onOpenChange={setIsCopyPricesModalOpen}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Скопировать цены от другого партнёра</DialogTitle>
+            <DialogDescription>
+              Скопировать все цены другого партнёра сюда, партнёру «
+              {selectedPartner?.name}». Это ПОЛНОСТЬЮ заменит текущий прайс «
+              {selectedPartner?.name}» — все несохранённые и уже сохранённые
+              цены будут перезаписаны.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Скопировать цены от партнёра
+            </label>
+            <Combobox
+              options={copySourceOptions}
+              value={copyFromPartnerId}
+              onChange={setCopyFromPartnerId}
+              placeholder="Выберите партнера"
+              searchPlaceholder="Поиск партнера..."
+              emptyText="Партнер не найден"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCopyPricesModalOpen(false)}
+              disabled={copyingPrices}
+            >
+              Отмена
+            </Button>
+            <Button
+              onClick={handleCopyPrices}
+              disabled={copyingPrices || !copyFromPartnerId}
+            >
+              {copyingPrices ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  Копирование...
+                </>
+              ) : (
+                'Скопировать'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

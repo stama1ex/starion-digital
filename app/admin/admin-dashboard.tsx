@@ -5,16 +5,8 @@ import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-  Download,
-  Loader2,
-  DatabaseBackup,
-  Check,
-  ChevronDown,
-  Search,
-  X,
-} from 'lucide-react';
+import { Combobox } from '@/components/ui/combobox';
+import { Download, Loader2, DatabaseBackup } from 'lucide-react';
 import SalesAnalytics from './sections/sales-analytics';
 import TopProducts from './sections/top-products';
 import DealerAnalytics from './sections/dealer-analytics';
@@ -66,9 +58,6 @@ export default function AdminDashboard({
   const [useCustomRange, setUseCustomRange] = useState(false);
   const [analyticsSubTab, setAnalyticsSubTab] = useState('sales');
   const [selectedPartnerId, setSelectedPartnerId] = useState<string>('ALL');
-  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
-  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
-  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
   const [activeTab, setActiveTab] = useState('orders');
   const [newOrdersCount, setNewOrdersCount] = useState(0);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
@@ -141,21 +130,6 @@ export default function AdminDashboard({
     setNewOrdersCount(count);
   }, [orders]);
 
-  // Закрытие комбобокса фильтра по партнеру на вкладке "Анализ" по клику вне его
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        partnerComboboxRef.current &&
-        !partnerComboboxRef.current.contains(event.target as Node)
-      ) {
-        setIsPartnerComboboxOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // Тестовые партнёры и их заказы/реализации исключаются из вкладки "Анализ" -
   // их фиктивные суммы не должны искажать выручку, топ товаров, дилеров и долги.
   // На вкладке "Заказы" они по-прежнему видны (с отдельной пометкой).
@@ -169,16 +143,10 @@ export default function AdminDashboard({
     (realization) => !isTestPartnerName(realization.partner.name),
   );
 
-  const filteredAnalyticsPartners = analyticsPartners.filter((p) =>
-    p.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
-  );
-
-  const selectedAnalyticsPartnerName =
-    selectedPartnerId === 'ALL'
-      ? 'Все партнеры'
-      : analyticsPartners.find(
-          (partner) => partner.id.toString() === selectedPartnerId,
-        )?.name || 'Все партнеры';
+  const analyticsPartnerOptions = analyticsPartners.map((partner) => ({
+    value: partner.id.toString(),
+    label: partner.name,
+  }));
 
   // Загрузка количества pending заявок - недоступно ограниченному админу
   useEffect(() => {
@@ -225,8 +193,13 @@ export default function AdminDashboard({
       }
     } catch (error) {
       console.error('Error refreshing data:', error);
-      // Fallback: перезагружаем страницу
-      window.location.reload();
+      // Не перезагружаем страницу целиком - это стирало бы любые открытые
+      // диалоги/несохранённый ввод в других местах интерфейса из-за
+      // разового сетевого сбоя. Оставляем уже загруженные данные как есть,
+      // следующий поллинг/действие само повторит попытку.
+      toast.error(
+        'Не удалось обновить данные - проверьте соединение с интернетом',
+      );
     }
   }, [canViewOrders, isSuperAdmin]);
 
@@ -574,107 +547,18 @@ export default function AdminDashboard({
                   </div>
 
                   {analyticsSubTab === 'sales' && (
-                    <div
-                      ref={partnerComboboxRef}
-                      className="relative w-full lg:w-auto lg:max-w-xs"
-                    >
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full lg:w-56 justify-between gap-2"
-                          onClick={() => {
-                            setIsPartnerComboboxOpen((open) => !open);
-                            setPartnerSearchQuery('');
-                          }}
-                        >
-                          <span className="truncate text-left">
-                            {selectedAnalyticsPartnerName}
-                          </span>
-                          <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
-                        </Button>
-                        {selectedPartnerId !== 'ALL' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setSelectedPartnerId('ALL');
-                              setPartnerSearchQuery('');
-                            }}
-                            title="Сбросить фильтр"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </div>
-
-                      {isPartnerComboboxOpen && (
-                        <div className="absolute right-0 top-full z-50 mt-2 w-full min-w-64 rounded-md border bg-popover p-2 shadow-md">
-                          <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                            <Input
-                              value={partnerSearchQuery}
-                              onChange={(e) =>
-                                setPartnerSearchQuery(e.target.value)
-                              }
-                              placeholder="Поиск партнера..."
-                              className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
-                              autoFocus
-                            />
-                          </div>
-
-                          <div className="mt-2 max-h-72 overflow-y-auto">
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                              onClick={() => {
-                                setSelectedPartnerId('ALL');
-                                setPartnerSearchQuery('');
-                                setIsPartnerComboboxOpen(false);
-                              }}
-                            >
-                              <span className="truncate">Все партнеры</span>
-                              {selectedPartnerId === 'ALL' && (
-                                <Check className="h-4 w-4 shrink-0" />
-                              )}
-                            </button>
-
-                            {filteredAnalyticsPartners.length === 0 ? (
-                              <div className="px-3 py-4 text-sm text-muted-foreground">
-                                Партнер не найден
-                              </div>
-                            ) : (
-                              filteredAnalyticsPartners.map((partner) => {
-                                const isSelected =
-                                  partner.id.toString() === selectedPartnerId;
-
-                                return (
-                                  <button
-                                    key={partner.id}
-                                    type="button"
-                                    className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                                    onClick={() => {
-                                      setSelectedPartnerId(
-                                        partner.id.toString(),
-                                      );
-                                      setPartnerSearchQuery('');
-                                      setIsPartnerComboboxOpen(false);
-                                    }}
-                                  >
-                                    <span className="truncate">
-                                      {partner.name}
-                                    </span>
-                                    {isSelected && (
-                                      <Check className="h-4 w-4 shrink-0" />
-                                    )}
-                                  </button>
-                                );
-                              })
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    <Combobox
+                      className="w-full lg:w-auto"
+                      triggerClassName="lg:w-56"
+                      options={analyticsPartnerOptions}
+                      value={selectedPartnerId}
+                      onChange={setSelectedPartnerId}
+                      placeholder="Все партнеры"
+                      searchPlaceholder="Поиск партнера..."
+                      emptyText="Партнер не найден"
+                      clearable
+                      onClear={() => setSelectedPartnerId('ALL')}
+                    />
                   )}
                 </div>
               </div>

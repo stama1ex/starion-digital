@@ -115,6 +115,11 @@ export const AdminAPI = {
   getPrices: (partnerId: number) =>
     fetchData<any[]>(`/api/admin/prices?partnerId=${partnerId}`),
   updatePrices: (data: any) => putData('/api/admin/prices', data),
+  copyPrices: (fromPartnerId: number, toPartnerId: number) =>
+    postData<{ ok: boolean; count: number }>('/api/admin/prices/copy', {
+      fromPartnerId,
+      toPartnerId,
+    }),
 
   // Current user
   getCurrentUser: () => fetchData<any>('/api/me'),

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { Fragment, useState, useEffect, useRef, type KeyboardEvent } from 'react';
+import { Fragment, useState, useEffect, type KeyboardEvent } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -28,9 +29,6 @@ import {
   Download,
   Pencil,
   DollarSign,
-  Check,
-  ChevronDown,
-  Search,
   Phone,
   MapPin,
   GitMerge,
@@ -92,8 +90,6 @@ export default function OrdersManagement({
   );
   const [orderHasVat, setOrderHasVat] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [partnerSearchQuery, setPartnerSearchQuery] = useState('');
-  const [isPartnerComboboxOpen, setIsPartnerComboboxOpen] = useState(false);
   const [orderPartnerSearchQuery, setOrderPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
@@ -118,8 +114,6 @@ export default function OrdersManagement({
   const [editingItemsOrderId, setEditingItemsOrderId] = useState<number | null>(
     null,
   );
-  const partnerComboboxRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
@@ -133,20 +127,6 @@ export default function OrdersManagement({
       setQuantities(initialQuantities);
     }
   }, [isCreateDialogOpen, products]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        partnerComboboxRef.current &&
-        !partnerComboboxRef.current.contains(event.target as Node)
-      ) {
-        setIsPartnerComboboxOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleQuantityChange = (productId: number, value: string) => {
     const qty = parseInt(value) || 0;
@@ -264,6 +244,18 @@ export default function OrdersManagement({
       return;
     }
 
+    const missingPriceIds = getMissingPriceProductIds();
+    if (missingPriceIds.length > 0) {
+      const names = missingPriceIds
+        .map((id) => products.find((p) => p.id === id)?.number)
+        .filter(Boolean)
+        .join(', ');
+      toast.error(
+        `У партнёра нет цены для: ${names}. Уберите эти товары или сначала задайте им цену на вкладке "Цены".`,
+      );
+      return;
+    }
+
     const requestData = {
       partnerId: parseInt(selectedPartnerId),
       orderType,
@@ -297,7 +289,6 @@ export default function OrdersManagement({
       setIsCreateDialogOpen(false);
       setOrderType('regular');
       setOrderHasVat(false);
-      setPartnerSearchQuery('');
       setProductSearchQuery('');
       setOrderNotes('');
       setOrderAddress('');
@@ -481,24 +472,13 @@ export default function OrdersManagement({
       .length,
   };
 
-  // Фильтрация партнеров по поиску
-  const filteredPartners = partners.filter((partner) =>
-    partner.name.toLowerCase().includes(partnerSearchQuery.toLowerCase()),
-  );
-
-  const selectedPartnerName =
-    partners.find((partner) => partner.id.toString() === selectedPartnerId)
-      ?.name || 'Выберите партнёра';
-
-  const handleOpenPartnerCombobox = () => {
-    setIsPartnerComboboxOpen((open) => !open);
-    setPartnerSearchQuery('');
-  };
+  const partnerOptions = partners.map((partner) => ({
+    value: partner.id.toString(),
+    label: partner.name,
+  }));
 
   const handleSelectPartner = (partnerId: string) => {
     setSelectedPartnerId(partnerId);
-    setPartnerSearchQuery('');
-    setIsPartnerComboboxOpen(false);
 
     const partner = partners.find((p) => p.id.toString() === partnerId);
     setOrderAddress(partner?.address || '');
@@ -641,6 +621,30 @@ export default function OrdersManagement({
     });
 
     return byType;
+  };
+
+  // Есть ли цена у выбранного партнёра для товара (по типу+группе). Пока
+  // партнёр не выбран, ничего не считаем "отсутствующим" - нечего сверять.
+  const hasPriceForProduct = (product: any) => {
+    if (!selectedPartnerId) return true;
+    const partner = partners.find((p) => p.id === parseInt(selectedPartnerId));
+    if (!partner || !partner.prices) return true;
+    return partner.prices.some(
+      (p: any) => p.type === product.type && p.groupId === product.groupId,
+    );
+  };
+
+  // Товары с введённым количеством, для которых у партнёра нет цены -
+  // раньше это молча давало 0 в сумме и заказ отклонялся сервером только
+  // при отправке, без понятной причины.
+  const getMissingPriceProductIds = () => {
+    return Object.entries(quantities)
+      .filter(([, qty]) => qty > 0)
+      .map(([productIdStr]) => parseInt(productIdStr))
+      .filter((productId) => {
+        const product = products.find((p) => p.id === productId);
+        return product ? !hasPriceForProduct(product) : false;
+      });
   };
 
   const { totalItems, totalSum } = getTotals();
@@ -1358,65 +1362,14 @@ export default function OrdersManagement({
                 <Label htmlFor="partner-search" className="mb-2">
                   Партнёр
                 </Label>
-                <div ref={partnerComboboxRef} className="relative">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-full justify-between gap-2"
-                    onClick={handleOpenPartnerCombobox}
-                  >
-                    <span className="truncate text-left">
-                      {selectedPartnerName}
-                    </span>
-                    <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
-                  </Button>
-
-                  {isPartnerComboboxOpen && (
-                    <div className="absolute left-0 top-full z-50 mt-2 w-full rounded-md border bg-popover p-2 shadow-md">
-                      <div className="flex items-center gap-2 rounded-md border px-3 py-2">
-                        <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <Input
-                          value={partnerSearchQuery}
-                          onChange={(e) =>
-                            setPartnerSearchQuery(e.target.value)
-                          }
-                          placeholder="Поиск партнёра..."
-                          className="h-8 border-0 p-0 shadow-none focus-visible:ring-0"
-                          autoFocus
-                        />
-                      </div>
-
-                      <div className="mt-2 max-h-72 overflow-y-auto">
-                        {filteredPartners.length === 0 ? (
-                          <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-                            Партнёры не найдены
-                          </div>
-                        ) : (
-                          filteredPartners.map((partner) => {
-                            const isSelected =
-                              partner.id.toString() === selectedPartnerId;
-
-                            return (
-                              <button
-                                key={partner.id}
-                                type="button"
-                                className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                                onClick={() =>
-                                  handleSelectPartner(partner.id.toString())
-                                }
-                              >
-                                <span className="truncate">{partner.name}</span>
-                                {isSelected && (
-                                  <Check className="h-4 w-4 shrink-0" />
-                                )}
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <Combobox
+                  options={partnerOptions}
+                  value={selectedPartnerId}
+                  onChange={handleSelectPartner}
+                  placeholder="Выберите партнёра"
+                  searchPlaceholder="Поиск партнёра..."
+                  emptyText="Партнёры не найдены"
+                />
                 {selectedPartner?.phone && (
                   <p className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                     <Phone className="h-3 w-3 shrink-0" />
@@ -1675,32 +1628,48 @@ export default function OrdersManagement({
                   </p>
                 ) : (
                   <div className="columns-2 sm:columns-3 xl:columns-4 gap-2">
-                    {filteredProducts.map((product, index) => (
-                      <div
-                        key={product.id}
-                        className="break-inside-avoid mb-0 flex items-center justify-between p-1 border rounded"
-                      >
-                        <label
-                          htmlFor={`qty-${product.id}`}
-                          className="text-xs font-medium truncate pl-1"
-                          title={product.number}
-                        >
-                          {product.number}
-                        </label>
-                        <Input
-                          id={`qty-${product.id}`}
-                          type="number"
-                          min="0"
-                          value={quantities[product.id] || 0}
-                          onChange={(e) =>
-                            handleQuantityChange(product.id, e.target.value)
+                    {filteredProducts.map((product, index) => {
+                      const noPrice = !hasPriceForProduct(product);
+                      return (
+                        <div
+                          key={product.id}
+                          className={cn(
+                            'break-inside-avoid mb-0 flex items-center justify-between p-1 border rounded',
+                            noPrice &&
+                              'border-amber-500/60 bg-amber-500/5 dark:bg-amber-500/10',
+                          )}
+                          title={
+                            noPrice
+                              ? `У партнёра нет цены на "${product.number}"`
+                              : undefined
                           }
-                          onFocus={(e) => e.currentTarget.select()}
-                          onKeyDown={(e) => handleQuantityKeyDown(e, index)}
-                          className="h-6 min-w-12 max-w-12 text-xs px-1 text-center"
-                        />
-                      </div>
-                    ))}
+                        >
+                          <label
+                            htmlFor={`qty-${product.id}`}
+                            className={cn(
+                              'text-xs font-medium truncate pl-1',
+                              noPrice && 'text-amber-600 dark:text-amber-500',
+                            )}
+                            title={product.number}
+                          >
+                            {noPrice && '⚠ '}
+                            {product.number}
+                          </label>
+                          <Input
+                            id={`qty-${product.id}`}
+                            type="number"
+                            min="0"
+                            value={quantities[product.id] || 0}
+                            onChange={(e) =>
+                              handleQuantityChange(product.id, e.target.value)
+                            }
+                            onFocus={(e) => e.currentTarget.select()}
+                            onKeyDown={(e) => handleQuantityKeyDown(e, index)}
+                            className="h-6 min-w-12 max-w-12 text-xs px-1 text-center"
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -1722,7 +1691,6 @@ export default function OrdersManagement({
                 setSelectedGroupId('all');
                 setSelectedTypeFilter('ALL');
                 setProductSearchQuery('');
-                setPartnerSearchQuery('');
               }}
             >
               Отмена
