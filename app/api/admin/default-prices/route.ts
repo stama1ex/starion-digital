@@ -37,23 +37,28 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    const groupId = data.groupId ?? null;
 
-    // Prisma не принимает null в качестве части составного уникального ключа
-    // (type_groupId), поэтому для товаров без группы ищем обычным фильтром
-    // и обновляем/создаём по id вместо upsert по составному ключу.
-    const existing = await prisma.defaultPrice.findFirst({
-      where: { type: data.type, groupId },
+    if (data.groupId === undefined || data.groupId === null) {
+      return NextResponse.json(
+        { error: 'groupId is required' },
+        { status: 400 },
+      );
+    }
+
+    const price = await prisma.defaultPrice.upsert({
+      where: {
+        type_groupId: {
+          type: data.type,
+          groupId: data.groupId,
+        },
+      },
+      update: { price: data.price },
+      create: {
+        type: data.type,
+        groupId: data.groupId,
+        price: data.price,
+      },
     });
-
-    const price = existing
-      ? await prisma.defaultPrice.update({
-          where: { id: existing.id },
-          data: { price: data.price },
-        })
-      : await prisma.defaultPrice.create({
-          data: { type: data.type, groupId, price: data.price },
-        });
 
     return NextResponse.json(price);
   } catch (error) {

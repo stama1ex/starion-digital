@@ -797,7 +797,8 @@ export default function OrdersManagement({
 
             const hasMarginIssue = order.items.some(
               (item) =>
-                Number(item.pricePerItem) < Number(item.product.costPrice),
+                Number(item.pricePerItem) <
+                Number(item.product.group?.costPrice ?? 0),
             );
 
             const sortedItems = [...order.items].sort((a, b) =>
@@ -1098,7 +1099,7 @@ export default function OrdersManagement({
                                       {group.items.map((item) => {
                                         const belowCost =
                                           Number(item.pricePerItem) <
-                                          Number(item.product.costPrice);
+                                          Number(item.product.group?.costPrice ?? 0);
                                         return (
                                           <tr
                                             key={item.id}
@@ -1109,7 +1110,7 @@ export default function OrdersManagement({
                                             )}
                                             title={
                                               belowCost
-                                                ? `Цена ${formatMDL(Number(item.pricePerItem))} ниже себестоимости ${formatMDL(Number(item.product.costPrice))}`
+                                                ? `Цена ${formatMDL(Number(item.pricePerItem))} ниже себестоимости ${formatMDL(Number(item.product.group?.costPrice ?? 0))}`
                                                 : undefined
                                             }
                                           >

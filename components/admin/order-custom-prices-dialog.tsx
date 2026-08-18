@@ -60,8 +60,7 @@ export function OrderCustomPricesDialog({
       // Получаем все уникальные комбинации type-groupId из товаров заказа
       const uniqueCombinations = new Set<string>();
       order.items.forEach((item: any) => {
-        const groupId = item.product.groupId ?? null;
-        const key = `${item.product.type}-${groupId}`;
+        const key = `${item.product.type}-${item.product.groupId}`;
         uniqueCombinations.add(key);
       });
 
@@ -72,10 +71,9 @@ export function OrderCustomPricesDialog({
           initialPrices[key] = order.customPrices[key];
         } else {
           // Иначе берем текущую цену из первого товара с этой комбинацией
-          const item = order.items.find((i: any) => {
-            const groupId = i.product.groupId ?? null;
-            return `${i.product.type}-${groupId}` === key;
-          });
+          const item = order.items.find(
+            (i: any) => `${i.product.type}-${i.product.groupId}` === key,
+          );
           if (item) {
             initialPrices[key] = Number(item.pricePerItem);
           }
@@ -137,14 +135,11 @@ export function OrderCustomPricesDialog({
   };
 
   // Проверяем, есть ли в заказе товары данного типа и группы
-  const hasProductsOfTypeAndGroup = (
-    type: ProductType,
-    groupId: number | null,
-  ) => {
-    return order?.items?.some((item: any) => {
-      const itemGroupId = item.product.groupId ?? null;
-      return item.product.type === type && itemGroupId === groupId;
-    });
+  const hasProductsOfTypeAndGroup = (type: ProductType, groupId: number) => {
+    return order?.items?.some(
+      (item: any) =>
+        item.product.type === type && item.product.groupId === groupId,
+    );
   };
 
   if (!order) return null;
@@ -174,10 +169,9 @@ export function OrderCustomPricesDialog({
             const relevantGroups = typeGroups.filter((g) =>
               hasProductsOfTypeAndGroup(type, g.id),
             );
-            const hasNoGroupProducts = hasProductsOfTypeAndGroup(type, null);
 
             // Если нет товаров этого типа в заказе, пропускаем
-            if (relevantGroups.length === 0 && !hasNoGroupProducts) {
+            if (relevantGroups.length === 0) {
               return null;
             }
 
@@ -213,30 +207,6 @@ export function OrderCustomPricesDialog({
                         </div>
                       </div>
                     ))}
-
-                    {/* Без группы */}
-                    {hasNoGroupProducts && (
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">
-                          Без группы
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={getPrice(type, null)}
-                            onChange={(e) =>
-                              handlePriceChange(type, null, e.target.value)
-                            }
-                            placeholder="0.00"
-                          />
-                          <span className="text-sm text-muted-foreground whitespace-nowrap">
-                            MDL
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>

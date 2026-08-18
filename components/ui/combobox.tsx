@@ -49,7 +49,31 @@ export function Combobox({
   const [query, setQuery] = React.useState('');
   const [highlightedIndex, setHighlightedIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  // Колбэк-реф вместо useRef+useEffect([open]): Radix монтирует содержимое
+  // попапа не синхронно с обновлением open (на кадр позже), поэтому эффект
+  // на [open] застаёт listboxRef.current ещё пустым и не успевает навесить
+  // обработчик. Колбэк-реф вызывается ровно в момент реального монтирования
+  // div в DOM, независимо от таймингов Radix.
+  const [listboxEl, setListboxEl] = React.useState<HTMLDivElement | null>(
+    null,
+  );
   const listboxId = React.useId();
+
+  // Когда попап открыт поверх Dialog, скролл-лок диалога перехватывает
+  // wheel-события над списком (react-remove-scroll внутри Radix Dialog) -
+  // React-овый onWheel вешается как passive и preventDefault там не
+  // работает, поэтому скроллим список вручную нативным листенером.
+  React.useEffect(() => {
+    if (!listboxEl) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      listboxEl.scrollTop += event.deltaY;
+    };
+
+    listboxEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => listboxEl.removeEventListener('wheel', handleWheel);
+  }, [listboxEl]);
 
   const filtered = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -155,6 +179,7 @@ export function Combobox({
           </div>
 
           <div
+            ref={setListboxEl}
             id={listboxId}
             role="listbox"
             aria-label={placeholder}

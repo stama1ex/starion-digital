@@ -385,7 +385,7 @@ function buildChartData(
       // НДС исключаем из выручки/прибыли - это не доход компании
       const orderRevenue = Number(order.totalPrice) - Number(order.vatAmount);
       const orderCost = order.items.reduce((sum: number, item: any) => {
-        return sum + Number(item.product.costPrice ?? 0) * item.quantity;
+        return sum + Number(item.product.group?.costPrice ?? 0) * item.quantity;
       }, 0);
 
       revenue += orderRevenue;
@@ -538,7 +538,7 @@ export default function SalesAnalytics({
 
     order.items.forEach((item: any) => {
       const sum = Number(item.sum);
-      const cost = Number(item.product.costPrice ?? 0) * item.quantity;
+      const cost = Number(item.product.group?.costPrice ?? 0) * item.quantity;
       const profit = sum - cost;
 
       addToBreakdown(revenueByType, item.product.type, sum, profit);

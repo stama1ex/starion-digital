@@ -28,11 +28,14 @@ async function seedGroups() {
   // Удаляем старые группы
   await prisma.productGroup.deleteMany();
 
+  // Себестоимость общая для всей группы (все товары одного материала стоят
+  // одинаково в производстве)
   const groups = await prisma.productGroup.createMany({
     data: [
       {
         slug: 'MARBLE',
         type: 'MAGNET',
+        costPrice: 7,
         translations: {
           en: 'Marble',
           ro: 'Marmură',
@@ -42,6 +45,7 @@ async function seedGroups() {
       {
         slug: 'WOOD',
         type: 'MAGNET',
+        costPrice: 5.6,
         translations: {
           en: 'Wooden',
           ro: 'Lemn',
@@ -51,6 +55,7 @@ async function seedGroups() {
       {
         slug: 'MARBLE',
         type: 'PLATE',
+        costPrice: 40,
         translations: {
           en: 'Marble',
           ro: 'Marmură',
@@ -60,6 +65,7 @@ async function seedGroups() {
       {
         slug: 'WOOD',
         type: 'PLATE',
+        costPrice: 46,
         translations: {
           en: 'Wooden',
           ro: 'Lemn',
@@ -77,14 +83,6 @@ async function seedProducts() {
   const magnets = loadJSON('magnets.json');
   const plates = loadJSON('plates.json');
 
-  // Карта себестоимостей по типу и материалу (в лей)
-  const COST_PRICES: Record<string, number> = {
-    MAGNET_MARBLE: 7,
-    MAGNET_WOOD: 5.6,
-    PLATE_MARBLE: 40,
-    PLATE_WOOD: 46,
-  };
-
   // Получаем ID групп из БД
   const groups = await prisma.productGroup.findMany();
   const groupMap: Record<string, number> = {};
@@ -100,8 +98,6 @@ async function seedProducts() {
   };
 
   const products = [...magnets, ...plates].map((item: any) => {
-    const key = `${item.type}_${item.material}`;
-    const costPrice = COST_PRICES[key] || 0;
     const groupName = materialToGroup[item.material];
     const groupKey = `${item.type}_${groupName}`;
     const groupId = groupMap[groupKey] || null;
@@ -112,7 +108,6 @@ async function seedProducts() {
       country: item.country.toUpperCase(),
       image: item.image.replace('public/', ''),
       groupId,
-      costPrice,
     };
   });
 
@@ -373,15 +368,6 @@ async function seedPartners() {
     if (pricesToInsert.length) {
       await prisma.price.createMany({ data: pricesToInsert as any });
     }
-
-    await prisma.price.create({
-      data: {
-        partnerId: partner.id,
-        type: 'KEYCHAIN',
-        groupId: null,
-        price: 25,
-      },
-    });
   }
 
   console.log('Dynamic prices seeded successfully');
@@ -450,12 +436,14 @@ async function seedDemoOrders(
       // Создаём реализацию только если это заказ на реализацию и статус CONFIRMED или PAID
       if (isRealization && (status === 'CONFIRMED' || status === 'PAID')) {
         const realizationItems = order.items.map((item: any) => {
-          const product = products.find((p) => p.id === item.productId);
           return {
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.pricePerItem,
-            costPrice: product?.costPrice || Math.random() * 50 + 5,
+            // Демо-данные: себестоимость товара теперь на группе, а не
+            // на товаре, а тут под рукой только plain-объекты без неё -
+            // для рандомных демо-реализаций достаточно случайного значения
+            costPrice: Math.random() * 50 + 5,
             totalPrice: Number(item.sum),
           };
         });
@@ -748,15 +736,6 @@ async function seedProductionPartners() {
     if (pricesToInsert.length) {
       await prisma.price.createMany({ data: pricesToInsert as any });
     }
-
-    await prisma.price.create({
-      data: {
-        partnerId: partner.id,
-        type: 'KEYCHAIN',
-        groupId: null,
-        price: 25,
-      },
-    });
   }
 
   console.log('✓ Base prices created for all partners');

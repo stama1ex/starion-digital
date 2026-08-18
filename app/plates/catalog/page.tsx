@@ -28,7 +28,7 @@ export default async function PlatesCatalogPage({ params }: any) {
 
   // ❗ Берём товары с группами
   const rawProducts = await prisma.product.findMany({
-    where: { type: 'PLATE', isHidden: false },
+    where: { type: 'PLATE', isHidden: false, groupId: { not: null } },
     orderBy: { number: 'asc' },
     include: { group: true },
   });

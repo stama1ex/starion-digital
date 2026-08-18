@@ -47,37 +47,30 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
-    const groupId = data.groupId || null;
 
-    // Prisma не принимает null в качестве части составного уникального ключа
-    // (partnerId_type_groupId), поэтому для товаров без группы ищем обычным
-    // фильтром и обновляем/создаём по id.
-    const existing = await prisma.price.findFirst({
+    if (data.groupId === undefined || data.groupId === null) {
+      return NextResponse.json(
+        { error: 'groupId is required' },
+        { status: 400 }
+      );
+    }
+
+    const price = await prisma.price.upsert({
       where: {
-        partnerId: data.partnerId,
-        type: data.type,
-        groupId,
-      },
-    });
-
-    let price;
-    if (existing) {
-      price = await prisma.price.update({
-        where: { id: existing.id },
-        data: {
-          price: data.price,
-        },
-      });
-    } else {
-      price = await prisma.price.create({
-        data: {
+        partnerId_type_groupId: {
           partnerId: data.partnerId,
           type: data.type,
-          groupId,
-          price: data.price,
+          groupId: data.groupId,
         },
-      });
-    }
+      },
+      update: { price: data.price },
+      create: {
+        partnerId: data.partnerId,
+        type: data.type,
+        groupId: data.groupId,
+        price: data.price,
+      },
+    });
     return NextResponse.json(price);
   } catch (error) {
     console.error('Error saving price:', error);

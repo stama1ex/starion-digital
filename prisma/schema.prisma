@@ -30,14 +30,13 @@ model Partner {
 }
 
 model Product {
-  id        Int         @id @default(autoincrement())
-  type      ProductType
-  number    String      @unique
-  country   String
-  image     String
-  groupId   Int? // Необязательная связь с группой
-  costPrice Decimal     @default(0) @db.Decimal(10, 2) // Себестоимость
-  isHidden  Boolean     @default(false) // Скрыт с публичного сайта, но остаётся в админке
+  id       Int         @id @default(autoincrement())
+  type     ProductType
+  number   String      @unique
+  country  String
+  image    String
+  groupId  Int? // Товар без группы скрыт с публичного каталога (см. страницы /magnets, /plates и т.д.) и не может получить цену - себестоимость и цены живут на группе (ProductGroup.costPrice, Price)
+  isHidden Boolean     @default(false) // Скрыт с публичного сайта, но остаётся в админке
 
   group            ProductGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
   items            OrderItem[]
@@ -47,12 +46,14 @@ model Product {
   @@index([groupId])
 }
 
-// Группы товаров - гибкая система группировки
+// Группы товаров - гибкая система группировки. Себестоимость общая для всей
+// группы (например, все мраморные магниты стоят одинаково в производстве).
 model ProductGroup {
   id           Int         @id @default(autoincrement())
   slug         String // WOOD, MARBLE, GLASS, etc.
   translations Json // {"en": "Wood", "ro": "Lemn", "ru": "Дерево"}
   type         ProductType // К какому типу товара относится группа
+  costPrice    Decimal     @default(0) @db.Decimal(10, 2) // Себестоимость товаров этой группы
   createdAt    DateTime    @default(now())
 
   products      Product[]
@@ -67,10 +68,10 @@ model ProductGroup {
 model DefaultPrice {
   id      Int         @id @default(autoincrement())
   type    ProductType
-  groupId Int? // Необязательная связь с группой (может быть цена на тип без группы)
+  groupId Int // Группа обязательна - товаров без группы больше не бывает
   price   Decimal     @db.Decimal(10, 2)
 
-  group ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group ProductGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([type, groupId])
 }
@@ -79,11 +80,11 @@ model Price {
   id        Int         @id @default(autoincrement())
   partnerId Int
   type      ProductType
-  groupId   Int? // Необязательная связь с группой (может быть цена на тип без группы)
+  groupId   Int // Группа обязательна - товаров без группы больше не бывает
   price     Decimal     @db.Decimal(10, 2)
 
-  partner Partner       @relation(fields: [partnerId], references: [id])
-  group   ProductGroup? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  partner Partner      @relation(fields: [partnerId], references: [id])
+  group   ProductGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([partnerId, type, groupId]) // У одного партнёра только одна цена на каждую комбинацию
 }

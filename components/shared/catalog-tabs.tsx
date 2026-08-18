@@ -52,40 +52,29 @@ export default function CatalogTabs({
 
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Переводы для "Все остальные"
-  const allOthersTranslations: Record<string, string> = {
-    en: 'All Others',
-    ro: 'Toate Celelalte',
-    ru: 'Все остальные',
-  };
-
   // Уникальные группы + товары по группам одним проходом
-  const { uniqueGroups, groupedProducts, ungroupedProducts } = useMemo(() => {
+  const { uniqueGroups, groupedProducts } = useMemo(() => {
     const seen = new Set<number>();
     const groups: ProductGroup[] = [];
     const byGroup = new Map<number, ProductDTO[]>();
-    const ungrouped: ProductDTO[] = [];
 
     for (const p of products) {
-      if (p.group) {
-        if (!seen.has(p.group.id)) {
-          seen.add(p.group.id);
-          groups.push(p.group);
-        }
-        const list = byGroup.get(p.group.id);
-        if (list) {
-          list.push(p);
-        } else {
-          byGroup.set(p.group.id, [p]);
-        }
+      if (!p.group) continue;
+      if (!seen.has(p.group.id)) {
+        seen.add(p.group.id);
+        groups.push(p.group);
+      }
+      const list = byGroup.get(p.group.id);
+      if (list) {
+        list.push(p);
       } else {
-        ungrouped.push(p);
+        byGroup.set(p.group.id, [p]);
       }
     }
 
     groups.sort((a, b) => a.id - b.id); // Сортируем по ID, чтобы новые группы были в конце
 
-    return { uniqueGroups: groups, groupedProducts: byGroup, ungroupedProducts: ungrouped };
+    return { uniqueGroups: groups, groupedProducts: byGroup };
   }, [products]);
 
   const [activeGroup, setActiveGroup] = useState<string>(
@@ -113,12 +102,6 @@ export default function CatalogTabs({
     return result;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [uniqueGroups, groupedProducts, searchQuery]);
-
-  const filteredUngrouped = useMemo(
-    () => filterProducts(ungroupedProducts),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [ungroupedProducts, searchQuery],
-  );
 
   // Функция для получения перевода группы
   const getGroupName = (group: ProductGroup) => {
@@ -158,11 +141,6 @@ export default function CatalogTabs({
                 {getGroupName(group)}
               </TabsTrigger>
             ))}
-            {ungroupedProducts.length > 0 && (
-              <TabsTrigger value="all" className="px-6">
-                {allOthersTranslations[locale] || allOthersTranslations.ru}
-              </TabsTrigger>
-            )}
           </TabsList>
         </Tabs>
 
@@ -195,18 +173,6 @@ export default function CatalogTabs({
           </div>
         );
       })}
-
-      {ungroupedProducts.length > 0 && (
-        <div className={activeGroup === 'all' ? 'block' : 'hidden'}>
-          <Catalog
-            titleKey={titleKey}
-            products={filteredUngrouped}
-            modelUrls={modelUrls}
-            prices={prices}
-            hideTitle
-          />
-        </div>
-      )}
     </>
   );
 }

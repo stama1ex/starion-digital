@@ -25,7 +25,7 @@ export default async function KeychainsCatalogPage({ params }: any) {
   await getTranslations({ locale, namespace: 'Catalog' });
 
   const rawProducts = await prisma.product.findMany({
-    where: { type: 'KEYCHAIN', isHidden: false },
+    where: { type: 'KEYCHAIN', isHidden: false, groupId: { not: null } },
     orderBy: { number: 'asc' },
     include: { group: true },
   });

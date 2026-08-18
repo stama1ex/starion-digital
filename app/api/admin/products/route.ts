@@ -43,14 +43,28 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await request.json();
+
+    if (!data.number || !String(data.number).trim()) {
+      return NextResponse.json(
+        { error: 'Артикул товара обязателен' },
+        { status: 400 }
+      );
+    }
+
+    if (!data.groupId) {
+      return NextResponse.json(
+        { error: 'Группа обязательна - товар без группы не получит цену' },
+        { status: 400 }
+      );
+    }
+
     const product = await prisma.product.create({
       data: {
         number: data.number,
         type: data.type,
         country: data.country,
         image: data.imageUrl || data.image || 'public/default.avif',
-        groupId: data.groupId ? parseInt(data.groupId) : null,
-        costPrice: data.costPrice,
+        groupId: parseInt(data.groupId),
         isHidden: data.isHidden ?? false,
       },
     });
@@ -76,12 +90,18 @@ export async function PUT(request: NextRequest) {
 
     const data = await request.json();
 
+    if (!data.number || !String(data.number).trim()) {
+      return NextResponse.json(
+        { error: 'Артикул товара обязателен' },
+        { status: 400 }
+      );
+    }
+
     const updateData: any = {
       number: data.number,
       type: data.type,
       country: data.country,
       groupId: data.groupId ? parseInt(data.groupId) : null,
-      costPrice: data.costPrice,
       isHidden: !!data.isHidden,
     };
 

@@ -249,7 +249,7 @@ export default function PricesManagement() {
 
       // Получаем все группы для данного типа товара
       const typeGroups = groups.filter((g) => g.type === type);
-      const groupIds = [...typeGroups.map((g) => g.id), null]; // включаем null для "Без группы"
+      const groupIds = typeGroups.map((g) => g.id);
 
       // Для каждого партнера применяем цены
       const promises = partners.map((partner) =>
@@ -563,37 +563,6 @@ export default function PricesManagement() {
                           />
                         </div>
                       ))}
-                  {/* Цена для товаров без группы */}
-                  <div key={`${type}-null`} className="space-y-2">
-                    <div className="flex items-center justify-between gap-1">
-                      <label className="text-sm font-medium">Без группы</label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() =>
-                          setShowGroupPresetModal({
-                            type,
-                            groupId: null,
-                            groupName: 'Без группы',
-                          })
-                        }
-                        className="h-7 sm:h-6 px-2 text-xs shrink-0"
-                        title="Применить цену ко всем партнерам"
-                      >
-                        📋
-                      </Button>
-                    </div>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={getPrice(type, null)}
-                      onChange={(e) =>
-                        handlePriceChange(type, null, e.target.value)
-                      }
-                      placeholder="0.00"
-                      disabled={!selectedPartnerId}
-                    />
-                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -643,26 +612,6 @@ export default function PricesManagement() {
                         />
                       </div>
                     ))}
-                {/* Цена для товаров без группы */}
-                <div
-                  key={`preset-${showPresetModal}-null`}
-                  className="space-y-2"
-                >
-                  <label className="text-sm font-medium">Без группы</label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={getPresetPrice(showPresetModal, null)}
-                    onChange={(e) =>
-                      handlePresetPriceChange(
-                        showPresetModal,
-                        null,
-                        e.target.value,
-                      )
-                    }
-                    placeholder="0.00"
-                  />
-                </div>
               </div>
 
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-4 border-t">
@@ -834,24 +783,6 @@ export default function PricesManagement() {
                                   />
                                 </div>
                               ))}
-                          <div className="space-y-2">
-                            <label className="text-sm font-medium">
-                              Без группы
-                            </label>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              value={getDefaultPrice(type, null)}
-                              onChange={(e) =>
-                                handleDefaultPriceChange(
-                                  type,
-                                  null,
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="0.00"
-                            />
-                          </div>
                         </div>
                       </CardContent>
                     </Card>

@@ -28,7 +28,7 @@ export default async function MagnetsCatalogPage({ params }: any) {
 
   // ❗ Берём товары с группами
   const rawProducts = await prisma.product.findMany({
-    where: { type: 'MAGNET', isHidden: false },
+    where: { type: 'MAGNET', isHidden: false, groupId: { not: null } },
     orderBy: { number: 'asc' },
     include: { group: true },
   });

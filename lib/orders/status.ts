@@ -16,7 +16,7 @@ export async function applyRealizationConfirmSideEffect(
       quantity: number;
       pricePerItem: Prisma.Decimal | number;
       sum: Prisma.Decimal | number;
-      product: { costPrice: Prisma.Decimal | number };
+      product: { group: { costPrice: Prisma.Decimal | number } | null };
     }[];
   },
   existingRealization: { id: number; status: string } | null,
@@ -32,7 +32,7 @@ export async function applyRealizationConfirmSideEffect(
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.pricePerItem,
-            costPrice: item.product.costPrice,
+            costPrice: item.product.group?.costPrice ?? 0,
             totalPrice: item.sum,
           })),
         },

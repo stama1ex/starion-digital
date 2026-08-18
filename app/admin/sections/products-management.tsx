@@ -102,7 +102,6 @@ export default function ProductsManagement() {
     type: 'MAGNET' as ProductType,
     country: 'MD',
     groupId: '',
-    costPrice: '',
     image: '',
     isHidden: false,
   });
@@ -165,16 +164,17 @@ export default function ProductsManagement() {
   };
 
   const handleSave = async () => {
-    const costPrice = parseFloat(formData.costPrice);
-    if (!Number.isFinite(costPrice) || costPrice < 0) {
-      toast.error('Укажите корректную себестоимость (число, не меньше 0)');
+    if (!formData.number.trim()) {
+      toast.error('Укажите артикул товара');
       return;
     }
-
-    const groupId =
-      formData.groupId && formData.groupId !== 'NONE'
-        ? parseInt(formData.groupId)
-        : null;
+    if (!formData.groupId) {
+      toast.error(
+        'Выберите группу товара - без группы товар не получит цену и не появится в каталоге',
+      );
+      return;
+    }
+    const groupId = parseInt(formData.groupId);
 
     const body = {
       ...(editingId && { id: editingId }),
@@ -182,7 +182,6 @@ export default function ProductsManagement() {
       type: formData.type,
       country: formData.country,
       groupId,
-      costPrice,
       imageUrl: formData.image,
       isHidden: formData.isHidden,
     };
@@ -206,7 +205,6 @@ export default function ProductsManagement() {
                   country: formData.country,
                   groupId,
                   group: newGroup,
-                  costPrice: body.costPrice,
                   image: formData.image,
                   isHidden: formData.isHidden,
                 }
@@ -237,8 +235,7 @@ export default function ProductsManagement() {
       number: product.number,
       type: product.type,
       country: product.country,
-      groupId: product.groupId ? product.groupId.toString() : 'NONE',
-      costPrice: product.costPrice.toString(),
+      groupId: product.groupId ? product.groupId.toString() : '',
       image: product.image,
       isHidden: !!product.isHidden,
     });
@@ -262,7 +259,6 @@ export default function ProductsManagement() {
         type: product.type,
         country: product.country,
         groupId: product.groupId,
-        costPrice: parseFloat(product.costPrice),
         imageUrl: product.image,
         isHidden: nextIsHidden,
       });
@@ -305,7 +301,6 @@ export default function ProductsManagement() {
       type: 'MAGNET',
       country: 'MD',
       groupId: '',
-      costPrice: '',
       image: '',
       isHidden: false,
     });
@@ -459,7 +454,9 @@ export default function ProductsManagement() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">Цена:</span>
                     <span className="font-semibold">
-                      {formatMDL(product.costPrice)}
+                      {product.group
+                        ? formatMDL(product.group.costPrice)
+                        : '—'}
                     </span>
                   </div>
                 </div>
@@ -535,7 +532,14 @@ export default function ProductsManagement() {
               <Select
                 value={formData.type || ''}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, type: value as ProductType })
+                  // Группа привязана к типу - при смене типа старый выбор
+                  // группы может не подходить, сбрасываем, чтобы не уйти
+                  // с "чужой" группой незаметно для админа
+                  setFormData({
+                    ...formData,
+                    type: value as ProductType,
+                    groupId: '',
+                  })
                 }
               >
                 <SelectTrigger>
@@ -551,9 +555,7 @@ export default function ProductsManagement() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium">
-                Группа (необязательно)
-              </label>
+              <label className="text-sm font-medium">Группа</label>
               <Select
                 value={formData.groupId || ''}
                 onValueChange={(value) =>
@@ -561,10 +563,9 @@ export default function ProductsManagement() {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Выберите группу или оставьте пустым" />
+                  <SelectValue placeholder="Выберите группу" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NONE">Без группы</SelectItem>
                   {groups
                     .filter((g) => g.type === formData.type)
                     .map((group) => (
@@ -574,6 +575,13 @@ export default function ProductsManagement() {
                     ))}
                 </SelectContent>
               </Select>
+              {groups.filter((g) => g.type === formData.type).length ===
+                0 && (
+                <p className="text-xs text-destructive mt-1">
+                  Для этого типа ещё нет ни одной группы - создайте её на
+                  вкладке &quot;Группы&quot;
+                </p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Страна</label>
@@ -583,18 +591,6 @@ export default function ProductsManagement() {
                   setFormData({ ...formData, country: e.target.value })
                 }
                 placeholder="MD"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Себестоимость (MDL)</label>
-              <Input
-                type="number"
-                step="0.1"
-                value={formData.costPrice || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, costPrice: e.target.value })
-                }
-                placeholder="0.00"
               />
             </div>
             <div className="flex items-center gap-2">

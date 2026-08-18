@@ -40,11 +40,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { slug, type, translations } = await req.json();
+    const { slug, type, translations, costPrice } = await req.json();
 
     if (!slug || !type || !translations) {
       return NextResponse.json(
         { error: 'Slug, type, and translations are required' },
+        { status: 400 }
+      );
+    }
+
+    const parsedCostPrice =
+      typeof costPrice === 'number' ? costPrice : parseFloat(costPrice);
+    if (!Number.isFinite(parsedCostPrice) || parsedCostPrice < 0) {
+      return NextResponse.json(
+        { error: 'costPrice must be a valid non-negative number' },
         { status: 400 }
       );
     }
@@ -54,6 +63,7 @@ export async function POST(req: NextRequest) {
         slug,
         type,
         translations,
+        costPrice: parsedCostPrice,
       },
     });
 
@@ -80,7 +90,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id, slug, translations } = await req.json();
+    const { id, slug, translations, costPrice } = await req.json();
 
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
@@ -89,6 +99,17 @@ export async function PUT(req: NextRequest) {
     const updateData: any = {};
     if (slug !== undefined) updateData.slug = slug;
     if (translations !== undefined) updateData.translations = translations;
+    if (costPrice !== undefined) {
+      const parsedCostPrice =
+        typeof costPrice === 'number' ? costPrice : parseFloat(costPrice);
+      if (!Number.isFinite(parsedCostPrice) || parsedCostPrice < 0) {
+        return NextResponse.json(
+          { error: 'costPrice must be a valid non-negative number' },
+          { status: 400 }
+        );
+      }
+      updateData.costPrice = parsedCostPrice;
+    }
 
     const group = await prisma.productGroup.update({
       where: { id },

@@ -95,7 +95,7 @@ export default function TopProducts({
         } as ProductStat);
 
       const sum = Number(item.sum);
-      const costPerUnit = Number(item.product.costPrice ?? 0);
+      const costPerUnit = Number(item.product.group?.costPrice ?? 0);
       const costTotal = costPerUnit * item.quantity;
 
       existing.totalSales += sum;

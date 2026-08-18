@@ -30,6 +30,7 @@ import {
   groupBy,
 } from '@/lib/admin';
 import { useConfirm } from '@/app/providers/confirm-provider';
+import { formatMDL } from '@/lib/format-money';
 
 interface ProductGroup {
   id: number;
@@ -37,6 +38,7 @@ interface ProductGroup {
   slug?: string | null;
   translations?: any;
   type: string;
+  costPrice: number | string;
   _count?: {
     products: number;
   };
@@ -52,12 +54,14 @@ export function GroupsManagement() {
     ru: '',
   });
   const [newGroupType, setNewGroupType] = useState<string>('MAGNET');
+  const [newGroupCostPrice, setNewGroupCostPrice] = useState('');
   const [editingGroup, setEditingGroup] = useState<ProductGroup | null>(null);
   const [editTranslations, setEditTranslations] = useState({
     en: '',
     ro: '',
     ru: '',
   });
+  const [editCostPrice, setEditCostPrice] = useState('');
   const [creating, setCreating] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -71,6 +75,11 @@ export function GroupsManagement() {
       toast.error('Введите название на русском');
       return;
     }
+    const costPrice = parseFloat(newGroupCostPrice);
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      toast.error('Укажите корректную себестоимость (число, не меньше 0)');
+      return;
+    }
 
     setCreating(true);
     try {
@@ -82,9 +91,11 @@ export function GroupsManagement() {
           ro: newGroupTranslations.ro.trim() || newGroupTranslations.ru.trim(),
           ru: newGroupTranslations.ru.trim(),
         },
+        costPrice,
       });
 
       setNewGroupTranslations({ en: '', ro: '', ru: '' });
+      setNewGroupCostPrice('');
       setIsCreateDialogOpen(false);
       refetch();
     } catch (error: any) {
@@ -98,6 +109,11 @@ export function GroupsManagement() {
   const handleUpdate = async () => {
     if (!editingGroup || !editTranslations.ru.trim()) {
       toast.error('Введите название на русском');
+      return;
+    }
+    const costPrice = parseFloat(editCostPrice);
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      toast.error('Укажите корректную себестоимость (число, не меньше 0)');
       return;
     }
 
@@ -114,10 +130,12 @@ export function GroupsManagement() {
           ro: editTranslations.ro.trim() || editTranslations.ru.trim(),
           ru: editTranslations.ru.trim(),
         },
+        costPrice,
       });
 
       setEditingGroup(null);
       setEditTranslations({ en: '', ro: '', ru: '' });
+      setEditCostPrice('');
       refetch();
     } catch (error: any) {
       const message = await handleApiError(error);
@@ -218,6 +236,17 @@ export function GroupsManagement() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div>
+              <Label className="mb-2">Себестоимость (MDL)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={newGroupCostPrice}
+                onChange={(e) => setNewGroupCostPrice(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button
@@ -295,6 +324,15 @@ export function GroupsManagement() {
                               }
                             />
                           </div>
+                          <div>
+                            <Label>Себестоимость (MDL)</Label>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              value={editCostPrice}
+                              onChange={(e) => setEditCostPrice(e.target.value)}
+                            />
+                          </div>
                         </div>
                         <div className="flex gap-2">
                           <Button
@@ -315,6 +353,7 @@ export function GroupsManagement() {
                             onClick={() => {
                               setEditingGroup(null);
                               setEditTranslations({ en: '', ro: '', ru: '' });
+                              setEditCostPrice('');
                             }}
                           >
                             Отмена
@@ -329,6 +368,9 @@ export function GroupsManagement() {
                           </p>
                           <p className="text-sm text-muted-foreground">
                             Товаров: {group._count?.products || 0}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Себестоимость: {formatMDL(group.costPrice)}
                           </p>
                           {group.translations && (
                             <p className="text-xs text-muted-foreground mt-1 truncate">
@@ -349,6 +391,7 @@ export function GroupsManagement() {
                                 ro: trans?.ro || '',
                                 ru: trans?.ru || group.slug,
                               });
+                              setEditCostPrice(group.costPrice.toString());
                             }}
                           >
                             <Pencil className="h-4 w-4" />

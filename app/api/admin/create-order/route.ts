@@ -99,6 +99,7 @@ export async function POST(req: Request) {
     const productIds = items.map((i) => i.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
+      include: { group: true },
     });
 
     if (products.length !== items.length) {
@@ -183,7 +184,7 @@ export async function POST(req: Request) {
                     productId: item.productId,
                     quantity: item.quantity,
                     unitPrice: item.pricePerItem,
-                    costPrice: product?.costPrice || 0,
+                    costPrice: product?.group?.costPrice || 0,
                     totalPrice: item.sum,
                   };
                 }),

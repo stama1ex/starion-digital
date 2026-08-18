@@ -110,7 +110,7 @@ export async function PUT(request: NextRequest) {
         partner: true,
         items: {
           include: {
-            product: true,
+            product: { include: { group: true } },
           },
         },
       },

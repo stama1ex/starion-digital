@@ -91,7 +91,7 @@ export function calculateMetrics(orders: AdminOrder[], realizations: any[]) {
     totalRevenue += Number(order.totalPrice) - Number(order.vatAmount ?? 0);
 
     for (const item of order.items) {
-      const costPerUnit = Number(item.product.costPrice ?? 0);
+      const costPerUnit = Number(item.product.group?.costPrice ?? 0);
       totalCost += costPerUnit * item.quantity;
     }
   }
