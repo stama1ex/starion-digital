@@ -190,16 +190,23 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
           ? `Итого (${group.name}):`
           : 'Итого (без группы):';
         const groupSubtotalRow = sheet.addRow([
-          '',
-          groupQty,
           groupLabel,
+          groupQty,
+          '',
           groupSum,
         ]);
         groupSubtotalRow.font = { italic: true, size: 10 };
+        groupSubtotalRow.getCell(1).alignment = { horizontal: 'left' };
         groupSubtotalRow.getCell(2).alignment = { horizontal: 'center' };
-        groupSubtotalRow.getCell(3).alignment = { horizontal: 'right' };
         groupSubtotalRow.getCell(4).alignment = { horizontal: 'right' };
         groupSubtotalRow.getCell(4).numFmt = moneyFormat;
+        groupSubtotalRow.eachCell({ includeEmpty: true }, (cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFF5F5F5' },
+          };
+        });
       }
     });
 
