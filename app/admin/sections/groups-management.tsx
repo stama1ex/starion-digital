@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import {
   useGroups,
   AdminAPI,
@@ -58,6 +58,8 @@ export function GroupsManagement() {
     ro: '',
     ru: '',
   });
+  const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
   const handleCreate = async () => {
     const generatedSlug = newGroupTranslations.en.trim().toUpperCase();
@@ -70,6 +72,7 @@ export function GroupsManagement() {
       return;
     }
 
+    setCreating(true);
     try {
       await AdminAPI.createGroup({
         type: newGroupType,
@@ -87,6 +90,8 @@ export function GroupsManagement() {
     } catch (error: any) {
       const message = await handleApiError(error);
       toast.error('Ошибка: ' + message);
+    } finally {
+      setCreating(false);
     }
   };
 
@@ -98,6 +103,7 @@ export function GroupsManagement() {
       return;
     }
 
+    setUpdating(true);
     try {
       await AdminAPI.updateGroup({
         id: editingGroup.id,
@@ -115,6 +121,8 @@ export function GroupsManagement() {
     } catch (error: any) {
       const message = await handleApiError(error);
       toast.error('Ошибка: ' + message);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -214,11 +222,16 @@ export function GroupsManagement() {
             <Button
               variant="outline"
               onClick={() => setIsCreateDialogOpen(false)}
+              disabled={creating}
             >
               Отмена
             </Button>
-            <Button onClick={handleCreate}>
-              <Plus className="h-4 w-4 mr-2" />
+            <Button onClick={handleCreate} disabled={creating}>
+              {creating ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4 mr-2" />
+              )}
               Создать
             </Button>
           </DialogFooter>
@@ -283,12 +296,21 @@ export function GroupsManagement() {
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={handleUpdate}>
+                          <Button
+                            size="sm"
+                            onClick={handleUpdate}
+                            disabled={updating}
+                            className="gap-2"
+                          >
+                            {updating && (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            )}
                             Сохранить
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
+                            disabled={updating}
                             onClick={() => {
                               setEditingGroup(null);
                               setEditTranslations({ en: '', ro: '', ru: '' });

@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   Crown,
   Package,
+  Loader2,
 } from 'lucide-react';
 import {
   usePartners,
@@ -65,6 +66,7 @@ export default function PartnersManagement({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingPartner, setEditingPartner] = useState<any | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     login: '',
@@ -92,12 +94,13 @@ export default function PartnersManagement({
         return;
       }
 
-      if (formData.password.length < 4) {
-        toast.error('Пароль должен быть минимум 4 символа');
+      if (formData.password.length < 8) {
+        toast.error('Пароль должен быть минимум 8 символов');
         return;
       }
     }
 
+    setSaving(true);
     try {
       if (editingId) {
         // Логин/пароль/телефон/адрес/email — личные данные партнёра, их
@@ -150,6 +153,8 @@ export default function PartnersManagement({
     } catch (error) {
       const message = await handleApiError(error);
       toast.error(`Ошибка: ${message}`);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -179,7 +184,8 @@ export default function PartnersManagement({
     }
 
     const ok = await confirm({
-      description: 'Вы уверены? Это удалит партнёра из системы.',
+      description:
+        'Вы уверены? Партнёр будет удалён из системы вместе со ВСЕМИ его заказами и реализациями - безвозвратно, в обход корзины. Это действие нельзя отменить.',
       confirmText: 'Удалить',
       variant: 'destructive',
     });
@@ -689,10 +695,17 @@ export default function PartnersManagement({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={saving}
+            >
               Отмена
             </Button>
-            <Button onClick={handleSave}>Сохранить</Button>
+            <Button onClick={handleSave} disabled={saving} className="gap-2">
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              Сохранить
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

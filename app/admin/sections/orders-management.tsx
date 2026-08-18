@@ -462,11 +462,14 @@ export default function OrdersManagement({
       ? orders
       : orders.filter((order) => order.status === filter);
 
-  const visibleOrders = filteredOrders.filter((order) =>
-    order.partner.name
-      .toLowerCase()
-      .includes(orderPartnerSearchQuery.toLowerCase()),
-  );
+  const visibleOrders = filteredOrders.filter((order) => {
+    const query = orderPartnerSearchQuery.trim().toLowerCase();
+    if (!query) return true;
+    return (
+      order.partner.name.toLowerCase().includes(query) ||
+      order.id.toString() === query.replace(/^#/, '')
+    );
+  });
 
   // Группируем по статусам для статистики
   const stats = {
@@ -748,7 +751,7 @@ export default function OrdersManagement({
           <Input
             value={orderPartnerSearchQuery}
             onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
-            placeholder="Поиск по партнёру..."
+            placeholder="Поиск по партнёру или №заказа..."
           />
         </div>
 

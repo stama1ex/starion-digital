@@ -459,7 +459,16 @@ export default function PricesManagement() {
                           key={partner.id}
                           type="button"
                           className="flex w-full items-center justify-between rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground"
-                          onClick={() => {
+                          onClick={async () => {
+                            if (hasChanges) {
+                              const ok = await confirm({
+                                description:
+                                  'Есть несохранённые изменения цен. Перейти к другому партнёру и отменить их?',
+                                confirmText: 'Перейти без сохранения',
+                                variant: 'destructive',
+                              });
+                              if (!ok) return;
+                            }
                             setSelectedPartnerId(partner.id.toString());
                             setPartnerQuery('');
                             setIsPartnerComboboxOpen(false);

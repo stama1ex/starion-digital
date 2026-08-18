@@ -334,16 +334,13 @@ export default function AdminDashboard({
           title="Сохранить резервную копию всех данных в Dropbox прямо сейчас (помимо ежедневного автоматического бэкапа)"
         >
           {runningBackup ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Бэкап...
-            </>
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <>
-              <DatabaseBackup className="h-4 w-4" />
-              Бэкап сейчас
-            </>
+            <DatabaseBackup className="h-4 w-4" />
           )}
+          <span className="hidden sm:inline">
+            {runningBackup ? 'Бэкап...' : 'Бэкап сейчас'}
+          </span>
         </Button>
         <Button
           variant="outline"
@@ -351,18 +348,16 @@ export default function AdminDashboard({
           onClick={handleExportDb}
           disabled={exportingDb}
           className="shadow-lg bg-background"
+          title="Экспортировать все бизнес-данные в CSV (архивом)"
         >
           {exportingDb ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Экспорт...
-            </>
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <>
-              <Download className="h-4 w-4" />
-              Экспорт БД (CSV)
-            </>
+            <Download className="h-4 w-4" />
           )}
+          <span className="hidden sm:inline">
+            {exportingDb ? 'Экспорт...' : 'Экспорт БД (CSV)'}
+          </span>
         </Button>
       </div>
 

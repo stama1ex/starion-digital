@@ -250,6 +250,11 @@ export function EditOrderDialog({
                   ))
                 )}
               </div>
+              {filteredAvailable.length > 30 && (
+                <p className="text-xs text-muted-foreground">
+                  Показано 30 из {filteredAvailable.length} - уточните поиск
+                </p>
+              )}
             </div>
 
             <div className="flex justify-between border-t pt-3 text-sm">

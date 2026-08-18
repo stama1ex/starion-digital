@@ -21,7 +21,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Trash2, Edit2, Plus, Upload, X, Eye, EyeOff } from 'lucide-react';
+import {
+  Trash2,
+  Edit2,
+  Plus,
+  Upload,
+  X,
+  Eye,
+  EyeOff,
+  Loader2,
+} from 'lucide-react';
 import { ProductType } from '@prisma/client';
 import {
   useProducts,
@@ -87,6 +96,7 @@ export default function ProductsManagement() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     number: '',
     type: 'MAGNET' as ProductType,
@@ -155,6 +165,12 @@ export default function ProductsManagement() {
   };
 
   const handleSave = async () => {
+    const costPrice = parseFloat(formData.costPrice);
+    if (!Number.isFinite(costPrice) || costPrice < 0) {
+      toast.error('Укажите корректную себестоимость (число, не меньше 0)');
+      return;
+    }
+
     const groupId =
       formData.groupId && formData.groupId !== 'NONE'
         ? parseInt(formData.groupId)
@@ -166,11 +182,12 @@ export default function ProductsManagement() {
       type: formData.type,
       country: formData.country,
       groupId,
-      costPrice: parseFloat(formData.costPrice),
+      costPrice,
       imageUrl: formData.image,
       isHidden: formData.isHidden,
     };
 
+    setSaving(true);
     try {
       if (editingId) {
         // Оптимистично обновляем список сразу — group подтягиваем из уже
@@ -210,6 +227,8 @@ export default function ProductsManagement() {
       await mutateProducts();
       const message = await handleApiError(error);
       toast.error('Ошибка при сохранении товара: ' + message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -394,6 +413,11 @@ export default function ProductsManagement() {
         </Select>
       </div>
 
+      {filteredProducts.length === 0 ? (
+        <p className="text-muted-foreground text-center py-8">
+          Товары не найдены
+        </p>
+      ) : (
       <div className="grid gap-2">
         {filteredProducts.map((product) => (
           <Card
@@ -486,6 +510,7 @@ export default function ProductsManagement() {
           </Card>
         ))}
       </div>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
@@ -641,10 +666,17 @@ export default function ProductsManagement() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDialogOpen(false)}
+              disabled={saving}
+            >
               Отмена
             </Button>
-            <Button onClick={handleSave}>Сохранить</Button>
+            <Button onClick={handleSave} disabled={saving} className="gap-2">
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              Сохранить
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
