@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
                 number: true,
                 country: true,
                 type: true,
+                groupId: true,
+                group: {
+                  select: {
+                    slug: true,
+                    translations: true,
+                  },
+                },
               },
             },
           },

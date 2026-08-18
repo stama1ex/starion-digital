@@ -91,9 +91,17 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     itemsByType[type].push(item);
   });
 
-  Object.entries(itemsByType).forEach(([type, items]) => {
-    items.sort((a, b) => naturalCompare(a.product.number, b.product.number));
+  // Название группы/материала товара (как в развёртке заказа в админке)
+  const getGroupName = (item: any): string | null => {
+    if (!item.product.groupId) return null;
+    const translations = item.product.group?.translations as
+      | { ru?: string }
+      | null
+      | undefined;
+    return translations?.ru || item.product.group?.slug || null;
+  };
 
+  Object.entries(itemsByType).forEach(([type, items]) => {
     // Заголовок типа
     const typeHeaderRow = sheet.addRow([type]);
     sheet.mergeCells(`A${typeHeaderRow.number}:D${typeHeaderRow.number}`);
@@ -105,36 +113,94 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     };
     typeHeaderRow.getCell(1).alignment = { horizontal: 'left' };
 
+    // Группируем товары этого типа по группе/материалу
+    const byGroup = new Map<string, { name: string | null; items: any[] }>();
+    items.forEach((item: any) => {
+      const key = String(item.product.groupId ?? 'none');
+      if (!byGroup.has(key)) {
+        byGroup.set(key, { name: getGroupName(item), items: [] });
+      }
+      byGroup.get(key)!.items.push(item);
+    });
+
+    const sortedGroups = Array.from(byGroup.values()).sort((a, b) => {
+      if (a.name === null) return 1;
+      if (b.name === null) return -1;
+      return a.name.localeCompare(b.name, 'ru');
+    });
+
+    // Разбивку по группам показываем только если групп больше одной —
+    // иначе она дублирует итог по типу
+    const showGroupBreakdown = sortedGroups.length > 1;
+
     let typeQty = 0;
     let typeSum = 0;
 
-    // Товары этого типа (сумма и цена - с учётом НДС, если он включён у заказа,
-    // чтобы итоги по типам и общий итог совпадали с order.totalPrice)
-    items.forEach((item: any) => {
-      const qty = item.quantity;
-      const sum = Number(item.sum) + Number(item.vatAmount ?? 0);
-      const price = qty > 0 ? sum / qty : Number(item.pricePerItem);
+    sortedGroups.forEach((group) => {
+      group.items.sort((a, b) =>
+        naturalCompare(a.product.number, b.product.number),
+      );
 
-      typeQty += qty;
-      typeSum += sum;
+      if (showGroupBreakdown) {
+        const groupHeaderRow = sheet.addRow([
+          group.name ? `  ${group.name}` : '  Без группы',
+        ]);
+        sheet.mergeCells(`A${groupHeaderRow.number}:D${groupHeaderRow.number}`);
+        groupHeaderRow.font = { italic: true, size: 10, color: { argb: 'FF666666' } };
+        groupHeaderRow.getCell(1).alignment = { horizontal: 'left', indent: 1 };
+      }
 
-      const row = sheet.addRow([item.product.number, qty, price, sum]);
+      let groupQty = 0;
+      let groupSum = 0;
 
-      row.eachCell((cell) => {
-        cell.border = {
-          top: { style: 'thin' },
-          left: { style: 'thin' },
-          bottom: { style: 'thin' },
-          right: { style: 'thin' },
-        };
+      // Товары этой группы (сумма и цена - с учётом НДС, если он включён у
+      // заказа, чтобы итоги по группам/типам и общий итог совпадали с
+      // order.totalPrice)
+      group.items.forEach((item: any) => {
+        const qty = item.quantity;
+        const sum = Number(item.sum) + Number(item.vatAmount ?? 0);
+        const price = qty > 0 ? sum / qty : Number(item.pricePerItem);
+
+        typeQty += qty;
+        typeSum += sum;
+        groupQty += qty;
+        groupSum += sum;
+
+        const row = sheet.addRow([item.product.number, qty, price, sum]);
+
+        row.eachCell((cell) => {
+          cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' },
+          };
+        });
+
+        row.getCell(1).alignment = { horizontal: 'left' };
+        row.getCell(2).alignment = { horizontal: 'center' };
+        row.getCell(3).alignment = { horizontal: 'right' };
+        row.getCell(4).alignment = { horizontal: 'right' };
+        row.getCell(3).numFmt = moneyFormat;
+        row.getCell(4).numFmt = moneyFormat;
       });
 
-      row.getCell(1).alignment = { horizontal: 'left' };
-      row.getCell(2).alignment = { horizontal: 'center' };
-      row.getCell(3).alignment = { horizontal: 'right' };
-      row.getCell(4).alignment = { horizontal: 'right' };
-      row.getCell(3).numFmt = moneyFormat;
-      row.getCell(4).numFmt = moneyFormat;
+      if (showGroupBreakdown) {
+        const groupLabel = group.name
+          ? `Итого (${group.name}):`
+          : 'Итого (без группы):';
+        const groupSubtotalRow = sheet.addRow([
+          '',
+          groupQty,
+          groupLabel,
+          groupSum,
+        ]);
+        groupSubtotalRow.font = { italic: true, size: 10 };
+        groupSubtotalRow.getCell(2).alignment = { horizontal: 'center' };
+        groupSubtotalRow.getCell(3).alignment = { horizontal: 'right' };
+        groupSubtotalRow.getCell(4).alignment = { horizontal: 'right' };
+        groupSubtotalRow.getCell(4).numFmt = moneyFormat;
+      }
     });
 
     // Промежуточный итог по типу

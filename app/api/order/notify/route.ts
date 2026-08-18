@@ -19,7 +19,7 @@ export async function POST(req: Request) {
         partner: true,
         items: {
           include: {
-            product: true,
+            product: { include: { group: true } },
           },
         },
       },
