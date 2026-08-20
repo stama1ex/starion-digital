@@ -69,9 +69,48 @@ function OrderItemImage({ imagePath }: { imagePath: string | null }) {
 }
 
 const MONTHS: Record<string, string[]> = {
-  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
-  ru: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
-  ro: ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'],
+  en: [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+  ],
+  ru: [
+    'января',
+    'февраля',
+    'марта',
+    'апреля',
+    'мая',
+    'июня',
+    'июля',
+    'августа',
+    'сентября',
+    'октября',
+    'ноября',
+    'декабря',
+  ],
+  ro: [
+    'ianuarie',
+    'februarie',
+    'martie',
+    'aprilie',
+    'mai',
+    'iunie',
+    'iulie',
+    'august',
+    'septembrie',
+    'octombrie',
+    'noiembrie',
+    'decembrie',
+  ],
 };
 
 function formatDate(date: string, locale: string) {
@@ -159,10 +198,12 @@ export default function OrdersContent() {
                         'bg-yellow-500/20 text-yellow-600',
                       order.status === 'CONFIRMED' &&
                         'bg-blue-500/20 text-blue-600',
+                      order.status === 'SHIPPED' &&
+                        'bg-indigo-500/20 text-purple-600',
                       order.status === 'PAID' &&
                         'bg-green-500/20 text-green-600',
                       order.status === 'CANCELLED' &&
-                        'bg-red-500/20 text-red-600'
+                        'bg-red-500/20 text-red-600',
                     )}
                   >
                     {t(`status.${order.status}`)}

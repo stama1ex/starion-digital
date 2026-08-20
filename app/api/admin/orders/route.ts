@@ -65,7 +65,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Проверяем что статус валидный
-    const validStatuses = ['NEW', 'CONFIRMED', 'PAID', 'CANCELLED'];
+    const validStatuses = ['NEW', 'CONFIRMED', 'SHIPPED', 'PAID', 'CANCELLED'];
     if (!validStatuses.includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }

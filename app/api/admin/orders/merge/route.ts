@@ -66,11 +66,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (orders.some((o) => o.status === 'PAID' || o.status === 'CANCELLED')) {
+    if (orders.some((o) => o.status !== 'NEW' && o.status !== 'CONFIRMED')) {
       return NextResponse.json(
         {
           error:
-            'Можно объединять только новые или подтверждённые заказы (не оплаченные и не отменённые)',
+            'Можно объединять только новые или подтверждённые заказы (не отправленные, не оплаченные и не отменённые)',
         },
         { status: 400 },
       );

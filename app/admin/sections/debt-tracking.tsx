@@ -107,10 +107,11 @@ export default function DebtTracking({
     debtRealizations.map((realization) => realization.orderId),
   );
 
-  // Считаем CONFIRMED заказы. Если это заказ на реализацию и у него нет
-  // отдельной записи Realization, учитываем его как долг по реализации.
+  // Считаем CONFIRMED и SHIPPED заказы (отправленные, но ещё не оплаченные).
+  // Если это заказ на реализацию и у него нет отдельной записи Realization,
+  // учитываем его как долг по реализации.
   debtOrders.forEach((order) => {
-    if (order.status !== 'CONFIRMED') {
+    if (order.status !== 'CONFIRMED' && order.status !== 'SHIPPED') {
       return;
     }
 
@@ -248,7 +249,7 @@ export default function DebtTracking({
         const createdAt = new Date(order.createdAt);
         if (
           createdAt <= periodEnd &&
-          order.status === 'CONFIRMED' &&
+          (order.status === 'CONFIRMED' || order.status === 'SHIPPED') &&
           !(order as any).isRealization
         ) {
           ordersDebt += Number(order.totalPrice);

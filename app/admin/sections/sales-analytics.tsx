@@ -374,7 +374,11 @@ function buildChartData(
         return;
       }
 
-      if (order.status === 'CONFIRMED' || order.status === 'PAID') {
+      if (
+        order.status === 'CONFIRMED' ||
+        order.status === 'SHIPPED' ||
+        order.status === 'PAID'
+      ) {
         incomingSales += Number(order.totalPrice);
       }
 
@@ -780,8 +784,8 @@ export default function SalesAnalytics({
             setIncomingChartRange((prev) => ({ ...prev, mode: value })),
         }}
         series={[
-          { dataKey: 'incomingSales', fill: '#f59e0b', name: 'Поступления' },
-          { dataKey: 'revenue', fill: '#3b82f6', name: 'Оплачено' },
+          { dataKey: 'incomingSales', fill: '#f59e0b', name: 'Заказы' },
+          { dataKey: 'revenue', fill: '#3b82f6', name: 'Выручка' },
         ]}
       />
     </div>

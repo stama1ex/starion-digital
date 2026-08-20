@@ -35,6 +35,7 @@ import {
   TriangleAlert,
   History,
   FlaskConical,
+  StickyNote,
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
 import { EditOrderDialog } from '@/components/shared/edit-order-dialog';
@@ -467,6 +468,7 @@ export default function OrdersManagement({
     NEW: orders.filter((o) => (o.status as string) === 'NEW').length,
     CONFIRMED: orders.filter((o) => (o.status as string) === 'CONFIRMED')
       .length,
+    SHIPPED: orders.filter((o) => (o.status as string) === 'SHIPPED').length,
     PAID: orders.filter((o) => (o.status as string) === 'PAID').length,
     CANCELLED: orders.filter((o) => (o.status as string) === 'CANCELLED')
       .length,
@@ -735,6 +737,14 @@ export default function OrdersManagement({
         <Card className="flex-1 min-w-37.5 px-3 py-1">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
+              Отправленные
+            </span>
+            <span className="text-2xl font-bold">{stats.SHIPPED}</span>
+          </div>
+        </Card>
+        <Card className="flex-1 min-w-37.5 px-3 py-1">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-muted-foreground">
               Оплаченные
             </span>
             <span className="text-2xl font-bold">{stats.PAID}</span>
@@ -770,6 +780,7 @@ export default function OrdersManagement({
             <SelectItem value="ALL">Все заказы</SelectItem>
             <SelectItem value="NEW">Новые</SelectItem>
             <SelectItem value="CONFIRMED">Подтверждённые</SelectItem>
+            <SelectItem value="SHIPPED">Отправленные</SelectItem>
             <SelectItem value="PAID">Оплаченные</SelectItem>
             <SelectItem value="CANCELLED">Отменённые</SelectItem>
           </SelectContent>
@@ -858,8 +869,7 @@ export default function OrdersManagement({
                   type,
                   qty: typeItems.reduce((s, item) => s + item.quantity, 0),
                   sum: typeItems.reduce(
-                    (s, item) =>
-                      s + Number(item.sum) + Number(item.vatAmount),
+                    (s, item) => s + Number(item.sum) + Number(item.vatAmount),
                     0,
                   ),
                   groups: sortedGroups,
@@ -901,16 +911,15 @@ export default function OrdersManagement({
                         title={
                           mergeEligible
                             ? undefined
-                            : 'Нельзя выбрать: другой партнёр, заказ на реализацию, оплачен или отменён'
+                            : 'Нельзя выбрать: другой партнёр, заказ на реализацию, отправлен, оплачен или отменён'
                         }
                       />
                     )}
-                    {/* Левая часть: номер, партнер, дата */}
+                    {/* Левая часть: партнёр, номер, дата, примечание */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold">
-                          Заказ #{order.id}
-                          {order.isMerged && ' (объединено)'}
+                          {order.partner.name}
                         </span>
                         <Badge
                           className={`${
@@ -952,12 +961,20 @@ export default function OrdersManagement({
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-2 truncate">
-                        {order.partner.name} • {formatDate(order.createdAt)}
+                      <p className="text-xs text-muted-foreground truncate">
+                        Заказ #{order.id}
+                        {order.isMerged && ' (объединено)'} •{' '}
+                        {formatDate(order.createdAt)}
                       </p>
                       {creatorLabel && (
                         <p className="text-xs text-muted-foreground truncate">
                           {creatorLabel}
+                        </p>
+                      )}
+                      {order.notes && (
+                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                          <StickyNote className="h-3 w-3 shrink-0" />
+                          {order.notes}
                         </p>
                       )}
                     </div>
@@ -1099,7 +1116,9 @@ export default function OrdersManagement({
                                       {group.items.map((item) => {
                                         const belowCost =
                                           Number(item.pricePerItem) <
-                                          Number(item.product.group?.costPrice ?? 0);
+                                          Number(
+                                            item.product.group?.costPrice ?? 0,
+                                          );
                                         return (
                                           <tr
                                             key={item.id}
@@ -1281,6 +1300,9 @@ export default function OrdersManagement({
                                     <SelectItem value="NEW">Новый</SelectItem>
                                     <SelectItem value="CONFIRMED">
                                       Подтверждён
+                                    </SelectItem>
+                                    <SelectItem value="SHIPPED">
+                                      Отправлен
                                     </SelectItem>
                                     {/* PAID доступен только для обычных заказов вручную */}
                                     {!(order as any).isRealization && (
@@ -1495,8 +1517,7 @@ export default function OrdersManagement({
                           <div className="flex justify-between text-sm font-semibold">
                             <span>{PRODUCT_TYPE_LABELS_PLURAL[type]}:</span>
                             <span>
-                              {typeData.count} шт •{' '}
-                              {formatMDL(typeData.sum)}
+                              {typeData.count} шт • {formatMDL(typeData.sum)}
                             </span>
                           </div>
                           {groupEntries.length > 1 && (
@@ -1508,9 +1529,8 @@ export default function OrdersManagement({
                                 >
                                   <span>{g.groupName}:</span>
                                   <span>
-                                    {g.count} шт ×{' '}
-                                    {formatMDL(g.sum / g.count)} •{' '}
-                                    {formatMDL(g.sum)}
+                                    {g.count} шт × {formatMDL(g.sum / g.count)}{' '}
+                                    • {formatMDL(g.sum)}
                                   </span>
                                 </div>
                               ))}
@@ -1531,9 +1551,7 @@ export default function OrdersManagement({
                       <p className="text-sm text-muted-foreground">
                         Итоговая сумма
                       </p>
-                      <p className="text-xl font-bold">
-                        {formatMDL(totalSum)}
-                      </p>
+                      <p className="text-xl font-bold">{formatMDL(totalSum)}</p>
                     </div>
                   </div>
                 </CardContent>

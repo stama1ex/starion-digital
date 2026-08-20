@@ -387,14 +387,14 @@ async function seedDemoOrders(
   let ordersCreated = 0;
   const orderCount = Math.floor(Math.random() * 50) + 50; // 50-100 заказов
 
-  const statuses = ['NEW', 'CONFIRMED', 'PAID', 'CANCELLED'];
+  const statuses = ['NEW', 'CONFIRMED', 'SHIPPED', 'PAID', 'CANCELLED'];
 
   for (let i = 0; i < orderCount; i++) {
     const partnerId = getRandomItem(PARTNER_IDS);
     const itemsCount = Math.floor(Math.random() * 5) + 1;
     const isRealization = Math.random() < 0.3; // 30% шанс заказа на реализацию
     const status = isRealization
-      ? getRandomItem(['NEW', 'CONFIRMED', 'PAID', 'CANCELLED'])
+      ? getRandomItem(['NEW', 'CONFIRMED', 'SHIPPED', 'PAID', 'CANCELLED'])
       : getRandomItem(statuses);
 
     const items: any[] = [];
@@ -433,8 +433,11 @@ async function seedDemoOrders(
 
       ordersCreated++;
 
-      // Создаём реализацию только если это заказ на реализацию и статус CONFIRMED или PAID
-      if (isRealization && (status === 'CONFIRMED' || status === 'PAID')) {
+      // Создаём реализацию только если это заказ на реализацию и статус CONFIRMED, SHIPPED или PAID
+      if (
+        isRealization &&
+        (status === 'CONFIRMED' || status === 'SHIPPED' || status === 'PAID')
+      ) {
         const realizationItems = order.items.map((item: any) => {
           return {
             productId: item.productId,

@@ -244,6 +244,7 @@
     "status": {
       "NEW": "Nouă",
       "CONFIRMED": "Confirmată",
+      "SHIPPED": "Expediată",
       "PAID": "Plătită",
       "CANCELLED": "Anulată"
     },
