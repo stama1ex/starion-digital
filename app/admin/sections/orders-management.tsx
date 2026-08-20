@@ -1077,7 +1077,7 @@ export default function OrdersManagement({
                         </p>
                       )}
                       {order.notes && (
-                        <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                        <p className="text-xs font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-500/15 rounded px-1.5 py-0.5 truncate flex items-center gap-1 mt-1 w-fit max-w-full">
                           <StickyNote className="h-3 w-3 shrink-0" />
                           {order.notes}
                         </p>
