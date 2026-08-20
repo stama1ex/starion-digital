@@ -78,6 +78,15 @@ export default function OrdersManagement({
 }: OrdersManagementProps) {
   const [orders, setOrders] = useState(initialOrders);
   const [filter, setFilter] = useState<OrderStatusType | 'ALL'>('ALL');
+  const [orderKindFilter, setOrderKindFilter] = useState<
+    'ALL' | 'REGULAR' | 'REALIZATION'
+  >('ALL');
+  const [vatFilter, setVatFilter] = useState<'ALL' | 'WITH_VAT' | 'NO_VAT'>(
+    'ALL',
+  );
+  const [notesFilter, setNotesFilter] = useState<
+    'ALL' | 'WITH_NOTES' | 'NO_NOTES'
+  >('ALL');
   const [updating, setUpdating] = useState<number | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -449,10 +458,30 @@ export default function OrdersManagement({
     }
   };
 
-  const filteredOrders =
-    filter === 'ALL'
-      ? orders
-      : orders.filter((order) => order.status === filter);
+  const filteredOrders = orders.filter((order) => {
+    if (filter !== 'ALL' && order.status !== filter) return false;
+
+    if (
+      orderKindFilter === 'REGULAR' &&
+      (order as any).isRealization
+    ) {
+      return false;
+    }
+    if (
+      orderKindFilter === 'REALIZATION' &&
+      !(order as any).isRealization
+    ) {
+      return false;
+    }
+
+    if (vatFilter === 'WITH_VAT' && !order.hasVat) return false;
+    if (vatFilter === 'NO_VAT' && order.hasVat) return false;
+
+    if (notesFilter === 'WITH_NOTES' && !order.notes) return false;
+    if (notesFilter === 'NO_NOTES' && order.notes) return false;
+
+    return true;
+  });
 
   const visibleOrders = filteredOrders.filter((order) => {
     const query = orderPartnerSearchQuery.trim().toLowerCase();
@@ -462,6 +491,21 @@ export default function OrdersManagement({
       order.id.toString() === query.replace(/^#/, '')
     );
   });
+
+  const hasActiveFilters =
+    filter !== 'ALL' ||
+    orderKindFilter !== 'ALL' ||
+    vatFilter !== 'ALL' ||
+    notesFilter !== 'ALL' ||
+    orderPartnerSearchQuery.trim() !== '';
+
+  const resetFilters = () => {
+    setFilter('ALL');
+    setOrderKindFilter('ALL');
+    setVatFilter('ALL');
+    setNotesFilter('ALL');
+    setOrderPartnerSearchQuery('');
+  };
 
   // Группируем по статусам для статистики
   const stats = {
@@ -760,31 +804,92 @@ export default function OrdersManagement({
         </Card>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-2 sm:justify-between">
-        <div className="w-full sm:flex-1 sm:max-w-xs">
+      <div className="flex flex-wrap items-center gap-2 justify-between">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={filter}
+            onValueChange={(v) => setFilter(v as OrderStatusType | 'ALL')}
+          >
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue placeholder="Фильтр по статусу" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Все статусы</SelectItem>
+              <SelectItem value="NEW">Новые</SelectItem>
+              <SelectItem value="CONFIRMED">Подтверждённые</SelectItem>
+              <SelectItem value="SHIPPED">Отправленные</SelectItem>
+              <SelectItem value="PAID">Оплаченные</SelectItem>
+              <SelectItem value="CANCELLED">Отменённые</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={orderKindFilter}
+            onValueChange={(v) =>
+              setOrderKindFilter(v as 'ALL' | 'REGULAR' | 'REALIZATION')
+            }
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Тип заказа" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Обычные и реализация</SelectItem>
+              <SelectItem value="REGULAR">Обычные</SelectItem>
+              <SelectItem value="REALIZATION">На реализацию</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={vatFilter}
+            onValueChange={(v) =>
+              setVatFilter(v as 'ALL' | 'WITH_VAT' | 'NO_VAT')
+            }
+          >
+            <SelectTrigger className="w-full sm:w-40">
+              <SelectValue placeholder="НДС" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">С НДС и без</SelectItem>
+              <SelectItem value="WITH_VAT">С НДС</SelectItem>
+              <SelectItem value="NO_VAT">Без НДС</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={notesFilter}
+            onValueChange={(v) =>
+              setNotesFilter(v as 'ALL' | 'WITH_NOTES' | 'NO_NOTES')
+            }
+          >
+            <SelectTrigger className="w-full sm:w-48">
+              <SelectValue placeholder="Примечания" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">С примечаниями и без</SelectItem>
+              <SelectItem value="WITH_NOTES">С примечаниями</SelectItem>
+              <SelectItem value="NO_NOTES">Без примечаний</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={resetFilters}
+              className="text-muted-foreground"
+            >
+              Сбросить фильтры
+            </Button>
+          )}
           <Input
             value={orderPartnerSearchQuery}
             onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
             placeholder="Поиск по партнёру или №заказа..."
+            className="w-full sm:w-64"
           />
         </div>
-
-        <Select
-          value={filter}
-          onValueChange={(v) => setFilter(v as OrderStatusType | 'ALL')}
-        >
-          <SelectTrigger className="w-full sm:w-64">
-            <SelectValue placeholder="Фильтр по статусу" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Все заказы</SelectItem>
-            <SelectItem value="NEW">Новые</SelectItem>
-            <SelectItem value="CONFIRMED">Подтверждённые</SelectItem>
-            <SelectItem value="SHIPPED">Отправленные</SelectItem>
-            <SelectItem value="PAID">Оплаченные</SelectItem>
-            <SelectItem value="CANCELLED">Отменённые</SelectItem>
-          </SelectContent>
-        </Select>
       </div>
 
       <div className="space-y-2">
