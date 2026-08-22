@@ -51,10 +51,32 @@ export default function PartnershipContent() {
     const res = await fetch('/api/partnership-requests/check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ login: formData.login, email: formData.email }),
+      body: JSON.stringify({
+        login: formData.login,
+        email: formData.email.trim() || undefined,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t('error_submit'));
+  };
+
+  const submitRequest = async (emailToken?: string) => {
+    try {
+      const res = await fetch('/api/partnership-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, emailToken }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setSent(true);
+      } else {
+        toast.error(result.error || t('error_submit'));
+      }
+    } catch (error) {
+      console.error('Error submitting request:', error);
+      toast.error(t('error_network'));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,6 +85,14 @@ export default function PartnershipContent() {
     try {
       setSending(true);
       await checkAvailability();
+
+      // Email необязателен - без него отправляем заявку сразу, без кода
+      // подтверждения (это и есть быстрый путь регистрации)
+      if (!formData.email.trim()) {
+        await submitRequest();
+        return;
+      }
+
       await requestCode();
       setCodeDialogOpen(true);
       toast.success(t('code_sent'));
@@ -89,23 +119,7 @@ export default function PartnershipContent() {
     }
 
     setCodeDialogOpen(false);
-
-    try {
-      const res = await fetch('/api/partnership-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, emailToken: confirmData.token }),
-      });
-      const result = await res.json();
-      if (res.ok) {
-        setSent(true);
-      } else {
-        toast.error(result.error || t('error_submit'));
-      }
-    } catch (error) {
-      console.error('Error submitting request:', error);
-      toast.error(t('error_network'));
-    }
+    await submitRequest(confirmData.token);
   };
 
   const handleResendCode = async () => {
@@ -186,12 +200,11 @@ export default function PartnershipContent() {
             <div>
               <Label htmlFor="email" className="flex items-center gap-2 mb-2">
                 <Mail className="w-4 h-4" />
-                {t('email_label')} *
+                {t('email_label')}
               </Label>
               <Input
                 id="email"
                 type="email"
-                required
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })

@@ -298,7 +298,9 @@
     "no_access": "Access restricted to partners",
     "login": "Log in",
     "logout": "Log out",
-    "admin_panel": "Admin Panel"
+    "admin_panel": "Admin Panel",
+    "hide_admin_panel_title": "Hide the \"Admin Panel\" heading",
+    "show_admin_panel_title": "Show the \"Admin Panel\" heading"
   },
   "CodeVerificationDialog": {
     "title": "Email verification",
@@ -413,7 +415,7 @@
     "description": "Fill out the form and we will contact you to discuss cooperation terms",
     "phone_label": "Phone Number",
     "phone_placeholder": "+XXX XXX XXX XX",
-    "email_label": "Email",
+    "email_label": "Email (optional)",
     "email_placeholder": "you@example.com",
     "address_label": "Address (optional)",
     "address_placeholder": "City, street, house",

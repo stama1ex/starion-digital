@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma';
 // занять логин/email, пока пользователь вводил код).
 export async function checkPartnershipAvailability(
   login: string,
-  email: string,
+  email: string | null,
 ): Promise<string | null> {
   const existingPartner = await prisma.partner.findUnique({
     where: { login },
@@ -16,11 +16,13 @@ export async function checkPartnershipAvailability(
     return 'Этот логин уже используется';
   }
 
-  const existingPartnerByEmail = await prisma.partner.findUnique({
-    where: { email },
-  });
-  if (existingPartnerByEmail) {
-    return 'Этот email уже используется другим аккаунтом';
+  if (email) {
+    const existingPartnerByEmail = await prisma.partner.findUnique({
+      where: { email },
+    });
+    if (existingPartnerByEmail) {
+      return 'Этот email уже используется другим аккаунтом';
+    }
   }
 
   const existingRequest = await prisma.partnershipRequest.findFirst({
@@ -30,11 +32,13 @@ export async function checkPartnershipAvailability(
     return 'Заявка с этим логином уже подана';
   }
 
-  const existingRequestByEmail = await prisma.partnershipRequest.findFirst({
-    where: { email, status: 'PENDING' },
-  });
-  if (existingRequestByEmail) {
-    return 'Заявка с этим email уже подана';
+  if (email) {
+    const existingRequestByEmail = await prisma.partnershipRequest.findFirst({
+      where: { email, status: 'PENDING' },
+    });
+    if (existingRequestByEmail) {
+      return 'Заявка с этим email уже подана';
+    }
   }
 
   return null;

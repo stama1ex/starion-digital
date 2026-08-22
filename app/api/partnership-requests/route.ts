@@ -9,22 +9,18 @@ export async function POST(request: NextRequest) {
     const { phone, address, login, password, message, emailToken } =
       await request.json();
 
-    if (!emailToken) {
-      return NextResponse.json(
-        { error: 'Необходимо подтвердить email' },
-        { status: 400 }
-      );
-    }
-
-    let email: string;
-    try {
-      email = verifyEmailTicket(emailToken);
-    } catch (err) {
-      console.error('Email verification failed:', err);
-      return NextResponse.json(
-        { error: 'Не удалось подтвердить email' },
-        { status: 400 }
-      );
+    // Email необязателен - но если указан, должен быть подтверждён кодом
+    let email: string | null = null;
+    if (emailToken) {
+      try {
+        email = verifyEmailTicket(emailToken);
+      } catch (err) {
+        console.error('Email verification failed:', err);
+        return NextResponse.json(
+          { error: 'Не удалось подтвердить email' },
+          { status: 400 }
+        );
+      }
     }
 
     // Получаем IP адрес пользователя

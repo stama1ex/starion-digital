@@ -25,16 +25,16 @@ export async function POST(request: NextRequest) {
     }
 
     const { login, email } = await request.json();
-    if (!login || !email) {
+    if (!login) {
       return NextResponse.json(
-        { error: 'Укажите логин и email' },
+        { error: 'Укажите логин' },
         { status: 400 },
       );
     }
 
     const error = await checkPartnershipAvailability(
       login,
-      normalizeEmail(email),
+      email ? normalizeEmail(email) : null,
     );
 
     if (error) {

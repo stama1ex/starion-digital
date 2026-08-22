@@ -303,7 +303,9 @@
     "no_access": "Acces doar pentru parteneri",
     "login": "Autentificare",
     "logout": "Deconectare",
-    "admin_panel": "Panou de administrare"
+    "admin_panel": "Panou de administrare",
+    "hide_admin_panel_title": "Ascundeți titlul \"Panou de administrare\"",
+    "show_admin_panel_title": "Afișați titlul \"Panou de administrare\""
   },
   "CodeVerificationDialog": {
     "title": "Confirmare prin email",
@@ -418,7 +420,7 @@
     "description": "Completați formularul și vă vom contacta pentru a discuta condițiile de cooperare",
     "phone_label": "Număr de telefon",
     "phone_placeholder": "+XXX XXX XXX XX",
-    "email_label": "Email",
+    "email_label": "Email (opțional)",
     "email_placeholder": "you@example.com",
     "address_label": "Adresă (opțional)",
     "address_placeholder": "Oraș, stradă, casă",
