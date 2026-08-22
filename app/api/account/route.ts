@@ -17,6 +17,7 @@ export async function GET() {
     emailVerified: partner.emailVerified,
     address: partner.address,
     role: partner.role,
+    showAdminPanelTitle: partner.showAdminPanelTitle,
   });
 }
 
@@ -29,6 +30,7 @@ interface UpdateAccountBody {
   email?: string;
   emailToken?: string; // подтверждение ТЕКУЩЕГО (уже сохранённого) email
   newEmailToken?: string; // подтверждение НОВОГО email — только при смене email
+  showAdminPanelTitle?: boolean; // просто UI-настройка, без подтверждения
 }
 
 // Проверяет билет подтверждения и сверяет с ожидаемым адресом.
@@ -66,6 +68,7 @@ export async function PATCH(req: Request) {
       email,
       emailToken,
       newEmailToken,
+      showAdminPanelTitle,
     } = body;
 
     const updateData: {
@@ -75,6 +78,7 @@ export async function PATCH(req: Request) {
       email?: string | null;
       emailVerified?: boolean;
       address?: string | null;
+      showAdminPanelTitle?: boolean;
     } = {};
 
     const touchesAccount =
@@ -200,6 +204,10 @@ export async function PATCH(req: Request) {
 
     if (address !== undefined) {
       updateData.address = address.trim() || null;
+    }
+
+    if (showAdminPanelTitle !== undefined) {
+      updateData.showAdminPanelTitle = showAdminPanelTitle;
     }
 
     if (Object.keys(updateData).length === 0) {

@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Globe, Menu, ShieldCheck, User } from 'lucide-react';
+import { Eye, EyeOff, Globe, Menu, ShieldCheck, User } from 'lucide-react';
 import * as React from 'react';
 import { ThemeToggleButton } from './theme-toggle-button';
 import ReactCountryFlag from 'react-country-flag';
@@ -63,7 +63,13 @@ export const Header: React.FC<Props> = ({ className }) => {
   const tPartner = useTranslations('PartnerUI');
 
   const setLocale = useLocaleStore((state) => state.setLocale);
-  const { isPartner, isAdmin, hasEmail } = usePartner();
+  const {
+    isPartner,
+    isAdmin,
+    hasEmail,
+    showAdminPanelTitle,
+    toggleAdminPanelTitle,
+  } = usePartner();
 
   React.useEffect(() => setMounted(true), []);
   if (!mounted) return <HeaderSkeleton />;
@@ -243,12 +249,32 @@ export const Header: React.FC<Props> = ({ className }) => {
                 {isPartner && (
                   <>
                     {isAdmin ? (
-                      <Link href="/admin">
-                        <Button className="w-full mt-2 gap-2 bg-primary text-primary-foreground shadow-md hover:opacity-90">
+                      <div className="mt-2 flex h-9 w-full items-center overflow-hidden rounded-md bg-primary text-primary-foreground shadow-md">
+                        <Link
+                          href="/admin"
+                          className="flex h-full flex-1 items-center justify-center gap-2 text-sm font-medium hover:opacity-90"
+                        >
                           <ShieldCheck size={16} />
                           {tPartner('admin_panel')}
-                        </Button>
-                      </Link>
+                        </Link>
+                        <span className="h-4 w-px bg-primary-foreground/25" />
+                        <button
+                          type="button"
+                          onClick={toggleAdminPanelTitle}
+                          title={
+                            showAdminPanelTitle
+                              ? tPartner('hide_admin_panel_title')
+                              : tPartner('show_admin_panel_title')
+                          }
+                          className="flex h-full items-center pl-2 pr-3 hover:opacity-90"
+                        >
+                          {showAdminPanelTitle ? (
+                            <EyeOff size={16} />
+                          ) : (
+                            <Eye size={16} />
+                          )}
+                        </button>
+                      </div>
                     ) : (
                       <Link href="/my-orders">
                         <Button variant="outline" className="w-full mt-2">
@@ -407,12 +433,32 @@ export const Header: React.FC<Props> = ({ className }) => {
           {isPartner && (
             <>
               {isAdmin ? (
-                <Link href="/admin">
-                  <Button className="gap-2 bg-primary text-primary-foreground shadow-md hover:opacity-90">
+                <div className="inline-flex h-9 items-center overflow-hidden rounded-md bg-primary text-primary-foreground shadow-md">
+                  <Link
+                    href="/admin"
+                    className="flex h-full items-center gap-2 pl-4 pr-2 text-sm font-medium hover:opacity-90"
+                  >
                     <ShieldCheck size={18} />
                     {tPartner('admin_panel')}
-                  </Button>
-                </Link>
+                  </Link>
+                  <span className="h-4 w-px bg-primary-foreground/25" />
+                  <button
+                    type="button"
+                    onClick={toggleAdminPanelTitle}
+                    title={
+                      showAdminPanelTitle
+                        ? tPartner('hide_admin_panel_title')
+                        : tPartner('show_admin_panel_title')
+                    }
+                    className="flex h-full items-center pl-1.5 pr-3 hover:opacity-90 cursor-pointer"
+                  >
+                    {showAdminPanelTitle ? (
+                      <EyeOff size={16} />
+                    ) : (
+                      <Eye size={16} />
+                    )}
+                  </button>
+                </div>
               ) : (
                 <>
                   <CartDrawer />

@@ -14,6 +14,7 @@ export async function GET() {
       isVip: partner.isVip,
       role: partner.role,
       hasEmail: !!partner.email,
+      showAdminPanelTitle: partner.showAdminPanelTitle,
     });
   } catch (error) {
     console.error('Error checking partner session:', error);

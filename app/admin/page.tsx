@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import AdminDashboard from './admin-dashboard';
+import AdminPanelTitle from './admin-panel-title';
 import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import { toPlain } from '@/lib/toPlain';
-import { Title } from '@/components/shared/title';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 
 export default async function AdminPage() {
@@ -176,12 +176,7 @@ export default async function AdminPage() {
   return (
     <main className="min-h-screen bg-background p-2">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-center w-full h-full">
-          <Title
-            text="Админ панель"
-            className="text-[28px] md:text-6xl font-extrabold leading-tight animate-gradient-flow text-center"
-          />
-        </div>
+        <AdminPanelTitle initialVisible={currentPartner.showAdminPanelTitle} />
         <AdminDashboard
           orders={ordersPlain}
           partners={partnersPlain}

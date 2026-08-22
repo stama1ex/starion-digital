@@ -8,18 +8,19 @@ generator client {
 }
 
 model Partner {
-  id             Int         @id @default(autoincrement())
-  name           String
-  login          String      @unique
-  password       String
-  phone          String?
-  email          String?     @unique
-  emailVerified  Boolean     @default(false) // Подтверждён кодом на email
-  address        String?
-  isVip          Boolean     @default(false) // Доступ к запросу на реализацию
-  role           PartnerRole @default(PARTNER)
-  telegramChatId String? // Личный чат ТГ для уведомлений о заказах (для обычных админов)
-  createdAt      DateTime    @default(now())
+  id                  Int         @id @default(autoincrement())
+  name                String
+  login               String      @unique
+  password            String
+  phone               String?
+  email               String?     @unique
+  emailVerified       Boolean     @default(false) // Подтверждён кодом на email
+  address             String?
+  isVip               Boolean     @default(false) // Доступ к запросу на реализацию
+  role                PartnerRole @default(PARTNER)
+  telegramChatId      String? // Личный чат ТГ для уведомлений о заказах (для обычных админов)
+  showAdminPanelTitle Boolean     @default(true) // Показывать крупный заголовок "Админ панель" (можно скрыть в настройках профиля, чтобы освободить место на экране)
+  createdAt           DateTime    @default(now())
 
   prices          Price[]
   orders          Order[]

@@ -9,6 +9,8 @@ interface PartnerCtx {
   isVip: boolean;
   isAdmin: boolean;
   hasEmail: boolean;
+  showAdminPanelTitle: boolean;
+  toggleAdminPanelTitle: () => void;
 }
 
 const PartnerContext = createContext<PartnerCtx>({
@@ -18,6 +20,8 @@ const PartnerContext = createContext<PartnerCtx>({
   isVip: false,
   isAdmin: false,
   hasEmail: true,
+  showAdminPanelTitle: true,
+  toggleAdminPanelTitle: () => {},
 });
 
 export function PartnerProvider({ children }: { children: React.ReactNode }) {
@@ -27,6 +31,7 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
   const [isVip, setIsVip] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [hasEmail, setHasEmail] = useState(true);
+  const [showAdminPanelTitle, setShowAdminPanelTitle] = useState(true);
 
   useEffect(() => {
     async function checkAuth() {
@@ -42,6 +47,7 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
             data.role === 'SUPER_ADMIN',
         );
         setHasEmail(!!data.hasEmail);
+        setShowAdminPanelTitle(data.showAdminPanelTitle ?? true);
       } finally {
         setLoading(false);
       }
@@ -49,9 +55,36 @@ export function PartnerProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
+  // Мгновенно переключает видимость на экране и сохраняет настройку в
+  // фоне - без ожидания ответа сервера и без перезагрузки страницы
+  const toggleAdminPanelTitle = async () => {
+    const next = !showAdminPanelTitle;
+    setShowAdminPanelTitle(next);
+    try {
+      const res = await fetch('/api/account', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showAdminPanelTitle: next }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch (error) {
+      console.error('Error saving admin panel title preference:', error);
+      setShowAdminPanelTitle(!next);
+    }
+  };
+
   return (
     <PartnerContext.Provider
-      value={{ isPartner, loading, address, isVip, isAdmin, hasEmail }}
+      value={{
+        isPartner,
+        loading,
+        address,
+        isVip,
+        isAdmin,
+        hasEmail,
+        showAdminPanelTitle,
+        toggleAdminPanelTitle,
+      }}
     >
       {children}
     </PartnerContext.Provider>
