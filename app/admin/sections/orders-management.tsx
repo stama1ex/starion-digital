@@ -87,6 +87,7 @@ export default function OrdersManagement({
   const [notesFilter, setNotesFilter] = useState<
     'ALL' | 'WITH_NOTES' | 'NO_NOTES'
   >('ALL');
+  const [showCreator, setShowCreator] = useState(false);
   const [updating, setUpdating] = useState<number | null>(null);
   const [expandedOrderId, setExpandedOrderId] = useState<number | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -461,16 +462,10 @@ export default function OrdersManagement({
   const filteredOrders = orders.filter((order) => {
     if (filter !== 'ALL' && order.status !== filter) return false;
 
-    if (
-      orderKindFilter === 'REGULAR' &&
-      (order as any).isRealization
-    ) {
+    if (orderKindFilter === 'REGULAR' && (order as any).isRealization) {
       return false;
     }
-    if (
-      orderKindFilter === 'REALIZATION' &&
-      !(order as any).isRealization
-    ) {
+    if (orderKindFilter === 'REALIZATION' && !(order as any).isRealization) {
       return false;
     }
 
@@ -810,8 +805,8 @@ export default function OrdersManagement({
             value={filter}
             onValueChange={(v) => setFilter(v as OrderStatusType | 'ALL')}
           >
-            <SelectTrigger className="w-full sm:w-56">
-              <SelectValue placeholder="Фильтр по статусу" />
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Статусы" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="ALL">Все статусы</SelectItem>
@@ -870,6 +865,16 @@ export default function OrdersManagement({
               <SelectItem value="NO_NOTES">Без примечаний</SelectItem>
             </SelectContent>
           </Select>
+
+          <label className="flex items-center gap-1.5 text-sm whitespace-nowrap cursor-pointer">
+            <input
+              type="checkbox"
+              checked={showCreator}
+              onChange={(e) => setShowCreator(e.target.checked)}
+              className="h-4 w-4 shrink-0 rounded border-input accent-primary"
+            />
+            Показать кто оформил заказ
+          </label>
         </div>
 
         <div className="flex items-center gap-2">
@@ -1071,7 +1076,7 @@ export default function OrdersManagement({
                         {order.isMerged && ' (объединено)'} •{' '}
                         {formatDate(order.createdAt)}
                       </p>
-                      {creatorLabel && (
+                      {showCreator && creatorLabel && (
                         <p className="text-xs text-muted-foreground truncate">
                           {creatorLabel}
                         </p>

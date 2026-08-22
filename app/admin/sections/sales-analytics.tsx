@@ -770,7 +770,7 @@ export default function SalesAnalytics({
       />
 
       <AnalyticsChartCard
-        title="Поступления продаж"
+        title="Поступления заказов"
         chartData={incomingChartData}
         controls={{
           fromDate: incomingChartRange.fromDate,
@@ -784,8 +784,8 @@ export default function SalesAnalytics({
             setIncomingChartRange((prev) => ({ ...prev, mode: value })),
         }}
         series={[
-          { dataKey: 'incomingSales', fill: '#f59e0b', name: 'Заказы' },
           { dataKey: 'revenue', fill: '#3b82f6', name: 'Выручка' },
+          { dataKey: 'incomingSales', fill: '#f59e0b', name: 'Заказы' },
         ]}
       />
     </div>
