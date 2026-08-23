@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     };
 
     if (login) {
-      const existing = await prisma.partner.findUnique({ where: { login } });
+      const existing = await prisma.partner.findFirst({
+        where: { login: { equals: login, mode: 'insensitive' } },
+      });
       if (existing && existing.id !== partner.id) {
         return Response.json(
           { error: 'Этот логин уже используется' },

@@ -57,9 +57,11 @@ export async function PUT(request: NextRequest) {
     }
 
     if (action === 'approve') {
-      // Проверяем уникальность логина
-      const existingPartner = await prisma.partner.findUnique({
-        where: { login: partnershipRequest.login },
+      // Проверяем уникальность логина (без учёта регистра)
+      const existingPartner = await prisma.partner.findFirst({
+        where: {
+          login: { equals: partnershipRequest.login, mode: 'insensitive' },
+        },
       });
 
       if (existingPartner) {

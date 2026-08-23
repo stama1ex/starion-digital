@@ -9,8 +9,8 @@ export async function checkPartnershipAvailability(
   login: string,
   email: string | null,
 ): Promise<string | null> {
-  const existingPartner = await prisma.partner.findUnique({
-    where: { login },
+  const existingPartner = await prisma.partner.findFirst({
+    where: { login: { equals: login, mode: 'insensitive' } },
   });
   if (existingPartner) {
     return 'Этот логин уже используется';
@@ -26,7 +26,10 @@ export async function checkPartnershipAvailability(
   }
 
   const existingRequest = await prisma.partnershipRequest.findFirst({
-    where: { login, status: 'PENDING' },
+    where: {
+      login: { equals: login, mode: 'insensitive' },
+      status: 'PENDING',
+    },
   });
   if (existingRequest) {
     return 'Заявка с этим логином уже подана';

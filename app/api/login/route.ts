@@ -36,10 +36,14 @@ export async function POST(req: Request) {
       return new Response('Missing credentials', { status: 400 });
     }
 
-    // Идентификатор может быть либо логином, либо привязанным email
+    // Идентификатор может быть либо логином (без учёта регистра), либо
+    // привязанным email
     const partner = await prisma.partner.findFirst({
       where: {
-        OR: [{ login }, { email: normalizeEmail(login) }],
+        OR: [
+          { login: { equals: login, mode: 'insensitive' } },
+          { email: normalizeEmail(login) },
+        ],
       },
     });
 

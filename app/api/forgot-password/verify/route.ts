@@ -31,7 +31,12 @@ export async function POST(request: NextRequest) {
 
     const trimmed = identifier.trim();
     const partner = await prisma.partner.findFirst({
-      where: { OR: [{ login: trimmed }, { email: normalizeEmail(trimmed) }] },
+      where: {
+        OR: [
+          { login: { equals: trimmed, mode: 'insensitive' } },
+          { email: normalizeEmail(trimmed) },
+        ],
+      },
     });
 
     // Единое сообщение об ошибке для всех случаев ниже (аккаунт не найден,

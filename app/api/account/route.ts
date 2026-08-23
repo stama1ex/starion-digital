@@ -179,8 +179,8 @@ export async function PATCH(req: Request) {
       }
 
       if (newLogin) {
-        const existing = await prisma.partner.findUnique({
-          where: { login: newLogin },
+        const existing = await prisma.partner.findFirst({
+          where: { login: { equals: newLogin, mode: 'insensitive' } },
         });
         if (existing && existing.id !== partner.id) {
           return new Response('Login already exists', { status: 400 });

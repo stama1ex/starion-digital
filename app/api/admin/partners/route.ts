@@ -70,6 +70,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Логин уникален без учёта регистра - иначе "Vita" и "vita" считались
+    // бы разными аккаунтами при входе (см. api/login), но проходили бы
+    // мимо обычного case-sensitive unique-констрейнта в БД
+    const existingLogin = await prisma.partner.findFirst({
+      where: { login: { equals: data.login, mode: 'insensitive' } },
+    });
+    if (existingLogin) {
+      return NextResponse.json(
+        { error: 'Партнер с таким логином уже существует' },
+        { status: 400 },
+      );
+    }
+
     // Через эту форму нельзя создать ещё одного супер-админа - он единственный.
     // "Тип админа" определяет его функционал: ADMIN - заказы, PRODUCT_ADMIN -
     // товары/группы. Список ролей админа расширяем здесь по мере появления новых.
