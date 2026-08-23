@@ -248,20 +248,19 @@ export default function OrdersContent() {
                   </div>
                 )}
 
-                {(order.status === 'NEW' || order.status === 'CONFIRMED') &&
-                  !order.isRealization && (
-                    <div className="mt-3 flex justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => setEditingOrderId(order.id)}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                        {t('edit')}
-                      </Button>
-                    </div>
-                  )}
+                {order.status === 'NEW' && !order.isRealization && (
+                  <div className="mt-3 flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      onClick={() => setEditingOrderId(order.id)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {t('edit')}
+                    </Button>
+                  </div>
+                )}
 
                 {order.changeLogs.length > 0 && (
                   <div className="mt-3 space-y-1.5 border-t pt-3">

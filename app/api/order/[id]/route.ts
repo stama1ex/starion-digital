@@ -5,7 +5,11 @@ import { sendEmail } from '@/lib/email/transport';
 import { toPlain } from '@/lib/toPlain';
 import { naturalCompare } from '@/lib/naturalSort';
 
-const EDITABLE_STATUSES = ['NEW', 'CONFIRMED'];
+// Партнёр может редактировать позиции только пока заказ ещё НЕ подтверждён -
+// после подтверждения он уже в работе. Админ (и супер-админ) действует по
+// более широким правилам и может править ещё и подтверждённые заказы.
+const PARTNER_EDITABLE_STATUSES = ['NEW'];
+const ADMIN_EDITABLE_STATUSES = ['NEW', 'CONFIRMED'];
 
 async function loadOrderForEdit(orderId: number) {
   return prisma.order.findUnique({
@@ -32,12 +36,20 @@ function checkEditPermission(
   return { allowed: isOwner || isSuperAdmin, isOwner };
 }
 
-function getEditBlockReason(order: { isRealization: boolean; status: string }) {
+function getEditBlockReason(
+  order: { isRealization: boolean; status: string },
+  isOwner: boolean,
+) {
   if (order.isRealization) {
     return 'Заказы на реализацию нельзя редактировать';
   }
-  if (!EDITABLE_STATUSES.includes(order.status)) {
-    return 'Редактирование доступно только для новых или подтверждённых заказов';
+  const allowedStatuses = isOwner
+    ? PARTNER_EDITABLE_STATUSES
+    : ADMIN_EDITABLE_STATUSES;
+  if (!allowedStatuses.includes(order.status)) {
+    return isOwner
+      ? 'Редактирование доступно только для новых заказов'
+      : 'Редактирование доступно только для новых или подтверждённых заказов';
   }
   return null;
 }
@@ -60,10 +72,10 @@ export async function GET(
     const order = await loadOrderForEdit(orderId);
     if (!order) return new Response('Order not found', { status: 404 });
 
-    const { allowed } = checkEditPermission(caller, order);
+    const { allowed, isOwner } = checkEditPermission(caller, order);
     if (!allowed) return new Response('Forbidden', { status: 403 });
 
-    const reason = getEditBlockReason(order);
+    const reason = getEditBlockReason(order, isOwner);
     const customPrices =
       (order.customPrices as Record<string, unknown> | null) || {};
 
@@ -164,7 +176,7 @@ export async function PATCH(
         throw new Error('__FORBIDDEN__');
       }
 
-      const blockReason = getEditBlockReason(order);
+      const blockReason = getEditBlockReason(order, isOwner);
       if (blockReason) {
         throw new Error(blockReason);
       }
