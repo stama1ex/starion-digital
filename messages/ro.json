@@ -296,7 +296,9 @@
     "code_sent": "Codul de confirmare a fost trimis pe email",
     "code_description": "Am trimis un cod de confirmare pe email-ul asociat contului. Introduceți-l pentru a finaliza autentificarea.",
     "invalid_code": "Cod de confirmare incorect",
-    "forgot_password": "Ați uitat parola?"
+    "forgot_password": "Ați uitat parola?",
+    "show_password": "Afișați parola",
+    "hide_password": "Ascundeți parola"
   },
   "PartnerUI": {
     "logout_success": "V-ați deconectat cu succes",

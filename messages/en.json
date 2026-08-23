@@ -291,7 +291,9 @@
     "code_sent": "Verification code sent to your email",
     "code_description": "We sent a verification code to the email linked to your account. Enter it to complete sign-in.",
     "invalid_code": "Invalid verification code",
-    "forgot_password": "Forgot password?"
+    "forgot_password": "Forgot password?",
+    "show_password": "Show password",
+    "hide_password": "Hide password"
   },
   "PartnerUI": {
     "logout_success": "You have successfully logged out",

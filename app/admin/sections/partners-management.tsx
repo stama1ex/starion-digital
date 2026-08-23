@@ -98,15 +98,24 @@ export default function PartnersManagement({
         toast.error('Пароль должен быть минимум 8 символов');
         return;
       }
+    } else if (
+      editingPartner?.role === 'PARTNER' &&
+      formData.password &&
+      formData.password.length < 8
+    ) {
+      toast.error('Пароль должен быть минимум 8 символов');
+      return;
     }
 
     setSaving(true);
     try {
       if (editingId) {
-        // Логин/пароль/телефон/адрес/email — личные данные партнёра, их
-        // редактирует только он сам в личном кабинете. Админ здесь меняет
-        // только отображаемое имя и VIP-статус, а для админа с заказами -
-        // ещё и личный чат ТГ для уведомлений (см. api/admin/partners)
+        // Логин/телефон/адрес/email — личные данные партнёра, их редактирует
+        // только он сам в личном кабинете. Админ здесь меняет отображаемое
+        // имя, VIP-статус и (для партнёра) может сбросить пароль - например
+        // если партнёр не привязал email и не может восстановить его сам
+        // (см. api/admin/partners). Для админа с заказами - ещё и личный
+        // чат ТГ для уведомлений
         if (editingPartner?.role === 'ADMIN') {
           await AdminAPI.updatePartner({
             id: editingId,
@@ -123,6 +132,7 @@ export default function PartnersManagement({
             id: editingId,
             name: formData.name,
             isVip: formData.isVip,
+            newPassword: formData.password || undefined,
           });
         }
       } else {
@@ -634,6 +644,37 @@ export default function PartnersManagement({
                   </>
                 )}
               </>
+            )}
+
+            {editingId && editingPartner?.role === 'PARTNER' && (
+              <div>
+                <label className="text-sm font-medium">
+                  Новый пароль (необязательно)
+                </label>
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password || ''}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    placeholder="Оставьте пустым, чтобы не менять"
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 p-2 sm:right-3 sm:p-0 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Партнёр сам меняет свой пароль в личном кабинете - этим
+                  полем пользуйтесь только если он не может войти и сбросить
+                  его сам (например, без привязанного email).
+                </p>
+              </div>
             )}
 
             {effectiveRole === 'ADMIN' && (

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkAdminAuth, checkSuperAdminAuth } from '../auth-utils';
 import bcrypt from 'bcryptjs';
+import { revokeAllSessions } from '@/lib/auth/session';
 
 // GET all partners (без пароля!) - доступно любому админу (нужно для формы
 // создания заказа ограниченным админом)
@@ -188,13 +189,13 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Логин, пароль, телефон, адрес и email — личные данные партнёра, он
-    // сам управляет ими в личном кабинете (включая сброс пароля через
-    // подтверждение по email). Админ со страницы управления партнёрами
-    // может редактировать только отображаемое имя и VIP-статус — это не
-    // даёт админу возможности перехватить или подменить учётные данные
-    // партнёра. У ограниченных админов вместо VIP-статуса редактируется
-    // их личный чат ТГ для уведомлений о заказах.
+    // Логин, телефон, адрес и email — личные данные партнёра, он сам
+    // управляет ими в личном кабинете. Админ со страницы управления
+    // партнёрами может редактировать отображаемое имя, VIP-статус и (для
+    // партнёра) сбросить пароль — это нужно, когда партнёр не может войти
+    // и восстановить доступ сам (например, нет привязанного email). У
+    // ограниченных админов вместо VIP-статуса редактируется их личный чат
+    // ТГ для уведомлений о заказах.
     const updateData: any = {};
 
     if (data.name && data.name.trim()) {
@@ -203,6 +204,16 @@ export async function PUT(request: NextRequest) {
 
     if (target.role === 'PARTNER' && data.isVip !== undefined) {
       updateData.isVip = !!data.isVip;
+    }
+
+    if (target.role === 'PARTNER' && data.newPassword) {
+      if (data.newPassword.length < 8) {
+        return NextResponse.json(
+          { error: 'Пароль должен содержать минимум 8 символов' },
+          { status: 400 },
+        );
+      }
+      updateData.password = await bcrypt.hash(data.newPassword, 10);
     }
 
     if (target.role === 'ADMIN' && data.telegramChatId !== undefined) {
@@ -233,6 +244,13 @@ export async function PUT(request: NextRequest) {
         createdAt: true,
       },
     });
+
+    // Пароль сменён админом - отзываем все текущие сессии партнёра, как и
+    // при самостоятельном сбросе пароля через email, чтобы вход требовал
+    // новый пароль везде
+    if (updateData.password) {
+      await revokeAllSessions(partner.id);
+    }
 
     return NextResponse.json(partner);
   } catch (error: any) {
