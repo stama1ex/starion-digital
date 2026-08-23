@@ -1437,6 +1437,23 @@ export default function OrdersManagement({
                             </Button>
                           )}
 
+                          {/* Кнопка экспорта - на десктопе она уже есть на
+                          свёрнутой карточке (по ховеру), тут нужна только
+                          на мобильных, где ховера нет */}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full gap-2 md:hidden"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleExportOrder(order);
+                            }}
+                            title="Экспорт в Excel"
+                          >
+                            <Download className="h-4 w-4" />
+                            Экспортировать
+                          </Button>
+
                           {/* Кнопка удаления для отмененных заказов */}
                           {canManage && order.status === 'CANCELLED' && (
                             <Button
