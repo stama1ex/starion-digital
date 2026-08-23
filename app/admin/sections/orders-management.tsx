@@ -1001,7 +1001,7 @@ export default function OrdersManagement({
               <Card
                 key={order.id}
                 className={cn(
-                  'py-1 cursor-pointer hover:bg-secondary/50 transition-colors',
+                  'group py-1 cursor-pointer hover:bg-secondary/50 transition-colors',
                   mergeMode && !mergeEligible && 'opacity-50',
                   isTestOrder &&
                     'border-dashed border-amber-500/60 bg-amber-500/5 dark:bg-amber-500/10',
@@ -1031,17 +1031,63 @@ export default function OrdersManagement({
                         <span className="font-semibold">
                           {order.partner.name}
                         </span>
-                        <Badge
-                          className={`${
-                            ORDER_STATUS_COLORS[
+                        {canManage &&
+                        !(
+                          (order as any).isRealization &&
+                          order.status === 'PAID'
+                        ) ? (
+                          <Select
+                            value={order.status}
+                            onValueChange={(value) =>
+                              handleStatusChange(
+                                order.id,
+                                value as OrderStatusType,
+                              )
+                            }
+                            disabled={updating === order.id}
+                          >
+                            <SelectTrigger
+                              onClick={(e) => e.stopPropagation()}
+                              className="data-[size=default]:h-auto data-[size=sm]:h-auto w-fit gap-0 border-0 bg-transparent p-0 shadow-none dark:bg-transparent dark:hover:bg-transparent focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 [&>svg]:hidden"
+                            >
+                              <Badge
+                                className={`${
+                                  ORDER_STATUS_COLORS[
+                                    order.status as OrderStatusType
+                                  ] || 'bg-gray-500'
+                                } text-xs cursor-pointer`}
+                              >
+                                {ORDER_STATUS_LABELS[
+                                  order.status as OrderStatusType
+                                ] || order.status}
+                              </Badge>
+                            </SelectTrigger>
+                            <SelectContent onClick={(e) => e.stopPropagation()}>
+                              <SelectItem value="NEW">Новый</SelectItem>
+                              <SelectItem value="CONFIRMED">
+                                Подтверждён
+                              </SelectItem>
+                              <SelectItem value="SHIPPED">Отправлен</SelectItem>
+                              {/* PAID доступен только для обычных заказов вручную */}
+                              {!(order as any).isRealization && (
+                                <SelectItem value="PAID">Оплачен</SelectItem>
+                              )}
+                              <SelectItem value="CANCELLED">Отменён</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge
+                            className={`${
+                              ORDER_STATUS_COLORS[
+                                order.status as OrderStatusType
+                              ] || 'bg-gray-500'
+                            } text-xs`}
+                          >
+                            {ORDER_STATUS_LABELS[
                               order.status as OrderStatusType
-                            ] || 'bg-gray-500'
-                          } text-xs`}
-                        >
-                          {ORDER_STATUS_LABELS[
-                            order.status as OrderStatusType
-                          ] || order.status}
-                        </Badge>
+                            ] || order.status}
+                          </Badge>
+                        )}
                         {(order as any).isRealization && (
                           <Badge className="bg-transparent border border-purple-400 text-xs text-purple-400">
                             На реализацию
@@ -1088,6 +1134,20 @@ export default function OrdersManagement({
                         </p>
                       )}
                     </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="hidden gap-2 opacity-0 transition-opacity group-hover:opacity-100 md:inline-flex"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportOrder(order);
+                      }}
+                      title="Экспорт в Excel"
+                    >
+                      <Download className="h-4 w-4" />
+                      Экспортировать
+                    </Button>
 
                     <div className="flex flex-col md:flex-row gap-3 md:gap-6 items-center">
                       {/* Центр: количество товаров */}
@@ -1348,15 +1408,15 @@ export default function OrdersManagement({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="w-full sm:w-auto"
+                                className="w-full gap-2 sm:w-auto"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setEditingItemsOrderId(order.id);
                                 }}
                                 title="Редактировать товары в заказе"
                               >
-                                <Pencil className="h-4 w-4 sm:mr-0 mr-2" />
-                                <span className="sm:hidden">Товары</span>
+                                <Pencil className="h-4 w-4" />
+                                Изменить заказ
                               </Button>
                             )}
 
@@ -1365,83 +1425,17 @@ export default function OrdersManagement({
                             <Button
                               variant="outline"
                               size="sm"
-                              className="w-full sm:w-auto"
+                              className="w-full gap-2 sm:w-auto"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleOpenEditPrices(order);
                               }}
                               title="Редактировать цены для этого заказа"
                             >
-                              <DollarSign className="h-4 w-4 sm:mr-0 mr-2" />
-                              <span className="sm:hidden">Цены</span>
+                              <DollarSign className="h-4 w-4" />
+                              Изменить цены
                             </Button>
                           )}
-
-                          {canManage &&
-                            ((order as any).isRealization &&
-                            order.status === 'PAID' ? (
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">
-                                  Заказ полностью оплачен
-                                </span>
-                              </div>
-                            ) : (
-                              <div
-                                className="flex items-center gap-2"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <label className="text-sm font-medium whitespace-nowrap">
-                                  Статус:
-                                </label>
-                                <Select
-                                  value={order.status}
-                                  onValueChange={(value) =>
-                                    handleStatusChange(
-                                      order.id,
-                                      value as OrderStatusType,
-                                    )
-                                  }
-                                  disabled={updating === order.id}
-                                >
-                                  <SelectTrigger className="w-full sm:w-40">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="NEW">Новый</SelectItem>
-                                    <SelectItem value="CONFIRMED">
-                                      Подтверждён
-                                    </SelectItem>
-                                    <SelectItem value="SHIPPED">
-                                      Отправлен
-                                    </SelectItem>
-                                    {/* PAID доступен только для обычных заказов вручную */}
-                                    {!(order as any).isRealization && (
-                                      <SelectItem value="PAID">
-                                        Оплачен
-                                      </SelectItem>
-                                    )}
-                                    <SelectItem value="CANCELLED">
-                                      Отменён
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            ))}
-
-                          {/* Кнопка экспорта */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full sm:w-auto"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleExportOrder(order);
-                            }}
-                            title="Экспорт в Excel"
-                          >
-                            <Download className="h-4 w-4 sm:mr-0 mr-2" />
-                            <span className="sm:hidden">Экспорт</span>
-                          </Button>
 
                           {/* Кнопка удаления для отмененных заказов */}
                           {canManage && order.status === 'CANCELLED' && (
