@@ -8,9 +8,11 @@ import {
 } from '@/lib/dropbox';
 
 const BACKUP_FOLDER = '/backups';
-// Ежедневный бэкап -> ~месяц истории. Старые копии за пределами этого
-// количества удаляются, чтобы не копить объём в Dropbox бесконечно.
-const RETENTION_COUNT = 30;
+const BACKUP_FILENAME = 'starion-backup.zip';
+// Держим только последнюю копию - глубокая история бэкапов не нужна.
+// Retention-очистка ниже удаляет всё, кроме только что загруженного файла
+// (в т.ч. подчищает старые датированные файлы от предыдущей схемы имён).
+const RETENTION_COUNT = 1;
 
 // Разрешаем запуск двум способам:
 // 1) Vercel Cron — шлёт заголовок Authorization: Bearer <CRON_SECRET>
@@ -35,11 +37,10 @@ export async function GET(req: NextRequest) {
   try {
     const { buffer, manifest } = await createBackupZip();
 
-    const date = new Date().toISOString().slice(0, 10);
-    const path = `${BACKUP_FOLDER}/starion-backup-${date}.zip`;
+    const path = `${BACKUP_FOLDER}/${BACKUP_FILENAME}`;
 
-    // overwrite: повторный запуск в тот же день (ручной + крон) не плодит
-    // дубликаты и не путает ротацию
+    // overwrite: фиксированное имя файла - каждый запуск просто заменяет
+    // предыдущую копию
     await uploadToDropboxPath(buffer, path, 'overwrite');
 
     const existing = await listDropboxFolder(BACKUP_FOLDER);
