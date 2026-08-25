@@ -591,7 +591,7 @@ export default function RealizationTracking({
       </Dialog>
 
       <Dialog open={isHistoryDialogOpen} onOpenChange={setIsHistoryDialogOpen}>
-        <DialogContent className="max-h-[80vh] max-w-lg flex flex-col overflow-hidden">
+        <DialogContent className="max-h-[90vh] sm:max-h-[80vh] max-w-lg flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               История платежей{' '}

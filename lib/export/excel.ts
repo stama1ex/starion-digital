@@ -17,9 +17,9 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
   sheet.mergeCells('A1:D1');
   const titleCell = sheet.getCell('A1');
   titleCell.value = `Заказ №${order.id} - ${order.partner.name}`;
-  titleCell.font = { size: 16, bold: true };
+  titleCell.font = { size: 12, bold: true };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
-  sheet.getRow(1).height = 30;
+  sheet.getRow(1).height = 15;
 
   // Дата
   sheet.mergeCells('A2:D2');
@@ -60,7 +60,8 @@ export async function createOrderExcel(order: any): Promise<Buffer> {
     'Цена/шт (MDL)',
     'Сумма (MDL)',
   ]);
-  headerRow.font = { bold: true };
+  headerRow.font = { bold: true, size: 12 };
+  headerRow.height = 15;
   headerRow.alignment = { horizontal: 'center' };
   headerRow.eachCell((cell) => {
     cell.fill = {
