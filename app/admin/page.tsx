@@ -70,6 +70,7 @@ export default async function AdminPage() {
               items: {
                 select: {
                   id: true,
+                  productId: true,
                   quantity: true,
                   pricePerItem: true,
                   sum: true,

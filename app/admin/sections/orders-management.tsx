@@ -38,7 +38,6 @@ import {
   StickyNote,
 } from 'lucide-react';
 import { OrderCustomPricesDialog } from '@/components/admin/order-custom-prices-dialog';
-import { EditOrderDialog } from '@/components/shared/edit-order-dialog';
 import { VAT_RATE } from '@/lib/orders/pricing';
 import { formatMDL, formatMoney } from '@/lib/format-money';
 import type { AdminOrder } from '../types';
@@ -59,6 +58,16 @@ import { ProductGroup } from '@prisma/client';
 import { useConfirm } from '@/app/providers/confirm-provider';
 import { cn } from '@/lib/utils';
 import { naturalCompare } from '@/lib/naturalSort';
+
+// Локальная (не UTC) дата в формате YYYY-MM-DD для <input type="date">.
+// toISOString() переводит время в UTC и рядом с полуночью может "съехать"
+// на соседний день относительно локальной даты пользователя.
+function toDateInputValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 interface OrdersManagementProps {
   orders: AdminOrder[];
@@ -100,13 +109,19 @@ export default function OrdersManagement({
     'regular',
   );
   const [orderHasVat, setOrderHasVat] = useState(false);
-  const [creating, setCreating] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  // Заказ, который сейчас редактируется через окно "Создать заказ" -
+  // то же окно переиспользуется и для создания, и для редактирования,
+  // null означает режим создания.
+  const [orderBeingEdited, setOrderBeingEdited] = useState<AdminOrder | null>(
+    null,
+  );
   const [orderPartnerSearchQuery, setOrderPartnerSearchQuery] = useState('');
   const [productSearchQuery, setProductSearchQuery] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [orderAddress, setOrderAddress] = useState('');
   const [orderDate, setOrderDate] = useState<string>(
-    new Date().toISOString().split('T')[0],
+    toDateInputValue(new Date()),
   );
   const [selectedGroupId, setSelectedGroupId] = useState<string>('all');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<string>('ALL');
@@ -122,22 +137,20 @@ export default function OrdersManagement({
   const [mergeMode, setMergeMode] = useState(false);
   const [selectedMergeIds, setSelectedMergeIds] = useState<number[]>([]);
   const [merging, setMerging] = useState(false);
-  const [editingItemsOrderId, setEditingItemsOrderId] = useState<number | null>(
-    null,
-  );
   useEffect(() => {
     setOrders(initialOrders);
   }, [initialOrders]);
   useEffect(() => {
-    // Initialize quantities when dialog opens
-    if (isCreateDialogOpen) {
+    // Initialize quantities when dialog opens for creating a new order.
+    // Editing an existing order pre-fills quantities itself (handleOpenEditOrder).
+    if (isCreateDialogOpen && !orderBeingEdited) {
       const initialQuantities: Record<number, number> = {};
       products.forEach((product) => {
         initialQuantities[product.id] = 0;
       });
       setQuantities(initialQuantities);
     }
-  }, [isCreateDialogOpen, products]);
+  }, [isCreateDialogOpen, products, orderBeingEdited]);
 
   const handleQuantityChange = (productId: number, value: string) => {
     const qty = parseInt(value) || 0;
@@ -236,13 +249,15 @@ export default function OrdersManagement({
     }
   };
 
-  const handleCreateOrder = async () => {
+  // Общая валидация формы заказа (создание и редактирование): партнёр
+  // выбран, есть хотя бы один товар, и у партнёра есть цена на всё
+  // выбранное - иначе сервер всё равно откажет, но лучше сказать сразу.
+  const buildOrderItems = () => {
     if (!selectedPartnerId) {
       toast.error('Выберите партнера');
-      return;
+      return null;
     }
 
-    // Collect items with qty > 0
     const items = Object.entries(quantities)
       .filter(([, qty]) => qty > 0)
       .map(([productId, qty]) => ({
@@ -252,7 +267,7 @@ export default function OrdersManagement({
 
     if (items.length === 0) {
       toast.error('Добавьте хотя бы один товар');
-      return;
+      return null;
     }
 
     const missingPriceIds = getMissingPriceProductIds();
@@ -264,8 +279,64 @@ export default function OrdersManagement({
       toast.error(
         `У партнёра нет цены для: ${names}. Уберите эти товары или сначала задайте им цену на вкладке "Цены".`,
       );
-      return;
+      return null;
     }
+
+    return items;
+  };
+
+  const resetOrderFormFields = () => {
+    setOrderBeingEdited(null);
+    setOrderType('regular');
+    setOrderHasVat(false);
+    setOrderNotes('');
+    setOrderAddress('');
+    setOrderDate(toDateInputValue(new Date()));
+    setSelectedGroupId('all');
+    setSelectedTypeFilter('ALL');
+    setProductSearchQuery('');
+    setQuantities({});
+  };
+
+  const handleOpenCreateDialog = () => {
+    resetOrderFormFields();
+    setIsCreateDialogOpen(true);
+  };
+
+  const closeOrderDialog = () => {
+    setIsCreateDialogOpen(false);
+    resetOrderFormFields();
+  };
+
+  // Открывает то же окно "Создать заказ", но предзаполненное данными
+  // существующего заказа - партнёром, типом, товарами и т.д.
+  const handleOpenEditOrder = (order: AdminOrder) => {
+    setOrderBeingEdited(order);
+    setSelectedPartnerId(order.partnerId.toString());
+    setOrderType((order as any).isRealization ? 'realization' : 'regular');
+    setOrderHasVat(order.hasVat);
+    setOrderNotes(order.notes || '');
+    setOrderAddress(order.address || '');
+    setOrderDate(toDateInputValue(new Date(order.createdAt)));
+    setSelectedGroupId('all');
+    setSelectedTypeFilter('ALL');
+    setProductSearchQuery('');
+
+    const nextQuantities: Record<number, number> = {};
+    products.forEach((product) => {
+      nextQuantities[product.id] = 0;
+    });
+    order.items.forEach((item) => {
+      nextQuantities[item.productId] = item.quantity;
+    });
+    setQuantities(nextQuantities);
+
+    setIsCreateDialogOpen(true);
+  };
+
+  const handleCreateOrder = async () => {
+    const items = buildOrderItems();
+    if (!items) return;
 
     const requestData = {
       partnerId: parseInt(selectedPartnerId),
@@ -277,10 +348,8 @@ export default function OrdersManagement({
       createdAt: orderDate ? new Date(orderDate).toISOString() : undefined,
     };
 
-    console.log('Creating order with data:', requestData);
-
     try {
-      setCreating(true);
+      setSubmitting(true);
       const response = await fetch('/api/admin/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -293,19 +362,8 @@ export default function OrdersManagement({
         throw new Error(errorText || 'Failed to create order');
       }
 
-      const result = await response.json();
-      console.log('Order created:', result);
-
       toast.success('Заказ создан успешно');
-      setIsCreateDialogOpen(false);
-      setOrderType('regular');
-      setOrderHasVat(false);
-      setProductSearchQuery('');
-      setOrderNotes('');
-      setOrderAddress('');
-      setOrderDate(new Date().toISOString().split('T')[0]);
-      setSelectedGroupId('all');
-      setQuantities({});
+      closeOrderDialog();
       onRefresh();
     } catch (error) {
       console.error('Error creating order:', error);
@@ -313,7 +371,60 @@ export default function OrdersManagement({
         error instanceof Error ? error.message : 'Неизвестная ошибка';
       toast.error(`Ошибка при создании заказа: ${message}`);
     } finally {
-      setCreating(false);
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateOrder = async () => {
+    if (!orderBeingEdited) return;
+
+    const items = buildOrderItems();
+    if (!items) return;
+
+    const requestData = {
+      partnerId: parseInt(selectedPartnerId),
+      orderType,
+      hasVat: orderType === 'regular' && orderHasVat,
+      // PATCH /api/order/[id] ожидает поле quantity (унаследовано от старого
+      // items-only редактирования), а не qty, как POST /api/admin/create-order
+      items: items.map((item) => ({
+        productId: item.productId,
+        quantity: item.qty,
+      })),
+      notes: orderNotes.trim() || undefined,
+      address: orderAddress.trim() || undefined,
+      createdAt: orderDate ? new Date(orderDate).toISOString() : undefined,
+    };
+
+    try {
+      setSubmitting(true);
+      const response = await fetch(`/api/order/${orderBeingEdited.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error:', errorText);
+        throw new Error(errorText || 'Failed to update order');
+      }
+
+      const result = await response.json();
+      setOrders((prev) =>
+        prev.map((o) => (o.id === result.order.id ? result.order : o)),
+      );
+
+      toast.success('Заказ обновлён успешно');
+      closeOrderDialog();
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating order:', error);
+      const message =
+        error instanceof Error ? error.message : 'Неизвестная ошибка';
+      toast.error(`Ошибка при сохранении заказа: ${message}`);
+    } finally {
+      setSubmitting(false);
     }
   };
   const handleStatusChange = async (
@@ -706,7 +817,7 @@ export default function OrdersManagement({
               {mergeMode ? 'Отменить объединение' : 'Объединить заказы'}
             </Button>
           )}
-          <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
+          <Button onClick={handleOpenCreateDialog} className="gap-2">
             <Plus size={16} />
             Создать заказ
           </Button>
@@ -1400,7 +1511,7 @@ export default function OrdersManagement({
                         </div>
 
                         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                          {/* Кнопка редактирования позиций заказа */}
+                          {/* Кнопка редактирования заказа */}
                           {canManage &&
                             !(order as any).isRealization &&
                             (order.status === 'NEW' ||
@@ -1411,9 +1522,9 @@ export default function OrdersManagement({
                                 className="w-full gap-2 sm:w-auto"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEditingItemsOrderId(order.id);
+                                  handleOpenEditOrder(order);
                                 }}
-                                title="Редактировать товары в заказе"
+                                title="Редактировать заказ"
                               >
                                 <Pencil className="h-4 w-4" />
                                 Изменить заказ
@@ -1492,10 +1603,19 @@ export default function OrdersManagement({
       </div>
 
       {/* Create Order Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <Dialog
+        open={isCreateDialogOpen}
+        onOpenChange={(open) =>
+          open ? setIsCreateDialogOpen(true) : closeOrderDialog()
+        }
+      >
         <DialogContent className="max-w-[calc(100vw-1rem)] lg:max-w-[calc(75vw-2rem)] h-[90vh] sm:h-[85vh] flex flex-col overflow-hidden p-6">
           <DialogHeader>
-            <DialogTitle>Создать новый заказ</DialogTitle>
+            <DialogTitle>
+              {orderBeingEdited
+                ? `Редактировать заказ №${orderBeingEdited.id}`
+                : 'Создать новый заказ'}
+            </DialogTitle>
           </DialogHeader>
 
           <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)] flex-1 min-h-0">
@@ -1520,7 +1640,7 @@ export default function OrdersManagement({
                     {selectedPartner.phone}
                   </p>
                 )}
-                {lastPartnerOrder && (
+                {!orderBeingEdited && lastPartnerOrder && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -1818,32 +1938,20 @@ export default function OrdersManagement({
 
           {/* Submit Button */}
           <div className="flex justify-end gap-2 pt-4 border-t shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setIsCreateDialogOpen(false);
-                setOrderType('regular');
-                setOrderHasVat(false);
-                setOrderNotes('');
-                setOrderAddress('');
-                setOrderDate(new Date().toISOString().split('T')[0]);
-                setSelectedGroupId('all');
-                setSelectedTypeFilter('ALL');
-                setProductSearchQuery('');
-              }}
-            >
+            <Button type="button" variant="outline" onClick={closeOrderDialog}>
               Отмена
             </Button>
             <Button
-              onClick={handleCreateOrder}
-              disabled={creating || !selectedPartnerId || totalItems === 0}
+              onClick={orderBeingEdited ? handleUpdateOrder : handleCreateOrder}
+              disabled={submitting || !selectedPartnerId || totalItems === 0}
             >
-              {creating ? (
+              {submitting ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Создание...
+                  {orderBeingEdited ? 'Сохранение...' : 'Создание...'}
                 </>
+              ) : orderBeingEdited ? (
+                'Сохранить изменения'
               ) : (
                 'Создать заказ'
               )}
@@ -1914,18 +2022,6 @@ export default function OrdersManagement({
             }
             onRefresh();
           }}
-        />
-      )}
-
-      {/* Edit Order Items Dialog */}
-      {editingItemsOrderId !== null && (
-        <EditOrderDialog
-          orderId={editingItemsOrderId}
-          open={editingItemsOrderId !== null}
-          onOpenChange={(open) => {
-            if (!open) setEditingItemsOrderId(null);
-          }}
-          onSuccess={onRefresh}
         />
       )}
     </div>

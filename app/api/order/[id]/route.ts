@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/db';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 import { resolveItemPrice, calculateVatAmount } from '@/lib/orders/pricing';
+import { buildCreatedAt } from '@/lib/orders/dates';
+import { applyRealizationConfirmSideEffect } from '@/lib/orders/status';
 import { sendEmail } from '@/lib/email/transport';
 import { toPlain } from '@/lib/toPlain';
 import { naturalCompare } from '@/lib/naturalSort';
@@ -126,7 +128,24 @@ interface EditItemInput {
   quantity: number;
 }
 
-// === PATCH: применить изменения позиций заказа ===
+interface EditOrderBody {
+  items?: EditItemInput[];
+  // Поля ниже переносят заказ на владельца/тип/условия - их может менять
+  // только не-владелец (супер-админ), т.к. checkEditPermission пускает
+  // сюда только владельца-партнёра или SUPER_ADMIN. Владелец правит только
+  // items, эти поля от него игнорируются, даже если он их пришлёт.
+  partnerId?: number;
+  orderType?: 'regular' | 'realization';
+  hasVat?: boolean;
+  notes?: string;
+  address?: string;
+  createdAt?: string;
+}
+
+// === PATCH: применить изменения к заказу. Владелец-партнёр может менять
+// только позиции; не-владелец (супер-админ) - ещё и партнёра, тип заказа,
+// НДС, примечание, адрес и дату - тот же набор полей, что и при создании
+// заказа в админке ===
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> },
@@ -141,7 +160,7 @@ export async function PATCH(
       return new Response('Invalid order id', { status: 400 });
     }
 
-    const body = (await req.json()) as { items?: EditItemInput[] };
+    const body = (await req.json()) as EditOrderBody;
     const rawItems = body.items;
 
     if (!Array.isArray(rawItems) || rawItems.length === 0) {
@@ -184,13 +203,65 @@ export async function PATCH(
       isOwnerEdit = isOwner;
       notifyPartnerName = order.partner.name;
 
+      // "Полное" редактирование (партнёр/тип/НДС/примечание/адрес/дата) -
+      // только для не-владельца. Заказ на реализацию сюда попасть не может:
+      // getEditBlockReason уже блокирует любое редактирование таких заказов,
+      // так что order.isRealization здесь гарантированно false.
+      let effectivePartnerId = order.partnerId;
+      let effectivePartnerName = order.partner.name;
+      let effectivePartnerPrices = order.partner.prices;
+      let effectiveOrderType: 'regular' | 'realization' = 'regular';
+      let effectiveHasVat = order.hasVat;
+      let effectiveNotes = order.notes;
+      let effectiveAddress = order.address;
+      let effectiveCreatedAt: Date = order.createdAt;
+
+      if (!isOwner) {
+        const requestedPartnerId = body.partnerId
+          ? Number(body.partnerId)
+          : order.partnerId;
+
+        if (requestedPartnerId !== order.partnerId) {
+          const targetPartner = await trx.partner.findUnique({
+            where: { id: requestedPartnerId },
+            select: {
+              id: true,
+              name: true,
+              role: true,
+              prices: { select: { type: true, groupId: true, price: true } },
+            },
+          });
+
+          if (!targetPartner || targetPartner.role !== 'PARTNER') {
+            throw new Error('Партнёр не найден');
+          }
+
+          effectivePartnerId = targetPartner.id;
+          effectivePartnerName = targetPartner.name;
+          effectivePartnerPrices = targetPartner.prices;
+        }
+
+        effectiveOrderType =
+          body.orderType === 'realization' ? 'realization' : 'regular';
+        // НДС применим только к обычным заказам - как и при создании заказа
+        effectiveHasVat = effectiveOrderType === 'regular' && body.hasVat === true;
+        effectiveNotes = body.notes?.trim() || null;
+        effectiveAddress = body.address?.trim() || null;
+        effectiveCreatedAt = buildCreatedAt(body.createdAt) ?? order.createdAt;
+      }
+
+      const becomingRealization = effectiveOrderType === 'realization';
+
       const productIds = rawItems.map((i) => Number(i.productId));
       if (new Set(productIds).size !== productIds.length) {
         throw new Error('Товар не может повторяться в списке позиций');
       }
 
       const [products, defaultPrices] = await Promise.all([
-        trx.product.findMany({ where: { id: { in: productIds } } }),
+        trx.product.findMany({
+          where: { id: { in: productIds } },
+          include: { group: true },
+        }),
         trx.defaultPrice.findMany({
           select: { type: true, groupId: true, price: true },
         }),
@@ -213,14 +284,19 @@ export async function PATCH(
         }
 
         const existing = oldItemsByProductId.get(productId);
-        const pricePerItem = existing
-          ? Number(existing.pricePerItem)
-          : resolveItemPrice(
-              product,
-              order.partner.prices,
-              customPrices,
-              defaultPrices,
-            );
+        // Владелец меняет только количество - цена позиции сохраняется как
+        // была. Не-владелец может сменить партнёра/тип, поэтому цену всегда
+        // пересчитывает заново (с учётом кастомных цен заказа), как и при
+        // создании заказа - иначе цена могла бы остаться от старого партнёра.
+        const pricePerItem =
+          isOwner && existing
+            ? Number(existing.pricePerItem)
+            : resolveItemPrice(
+                product,
+                effectivePartnerPrices,
+                customPrices,
+                defaultPrices,
+              );
 
         const sum = pricePerItem * quantity;
 
@@ -229,7 +305,7 @@ export async function PATCH(
           quantity,
           pricePerItem,
           sum,
-          vatAmount: calculateVatAmount(sum, order.hasVat),
+          vatAmount: calculateVatAmount(sum, effectiveHasVat),
           number: product.number,
         };
       });
@@ -267,7 +343,38 @@ export async function PATCH(
           };
         });
 
-      if (added.length === 0 && removed.length === 0 && changed.length === 0) {
+      // Что ещё поменялось помимо позиций - только для не-владельца, только
+      // то, что реально отличается от текущих значений заказа.
+      const extraSummaryParts: string[] = [];
+      if (!isOwner) {
+        if (effectivePartnerId !== order.partnerId) {
+          extraSummaryParts.push(
+            `партнёр изменён: ${order.partner.name} → ${effectivePartnerName}`,
+          );
+        }
+        if (becomingRealization) {
+          extraSummaryParts.push('тип изменён на "на реализацию"');
+        }
+        if (effectiveHasVat !== order.hasVat) {
+          extraSummaryParts.push(effectiveHasVat ? 'включён НДС' : 'выключен НДС');
+        }
+        if ((effectiveNotes || '') !== (order.notes || '')) {
+          extraSummaryParts.push('изменено примечание');
+        }
+        if ((effectiveAddress || '') !== (order.address || '')) {
+          extraSummaryParts.push('изменён адрес доставки');
+        }
+        if (effectiveCreatedAt.getTime() !== order.createdAt.getTime()) {
+          extraSummaryParts.push('изменена дата заказа');
+        }
+      }
+
+      if (
+        added.length === 0 &&
+        removed.length === 0 &&
+        changed.length === 0 &&
+        extraSummaryParts.length === 0
+      ) {
         throw new Error('Нет изменений для сохранения');
       }
 
@@ -280,6 +387,14 @@ export async function PATCH(
         data: {
           totalPrice: baseTotal + vatTotal,
           vatAmount: vatTotal,
+          ...(!isOwner && {
+            partnerId: effectivePartnerId,
+            isRealization: becomingRealization,
+            hasVat: effectiveHasVat,
+            notes: effectiveNotes,
+            address: effectiveAddress,
+            createdAt: effectiveCreatedAt,
+          }),
           items: {
             create: newLines.map((l) => ({
               productId: l.productId,
@@ -291,6 +406,28 @@ export async function PATCH(
           },
         },
       });
+
+      // Заказ только что стал заказом на реализацию: если он уже подтверждён,
+      // заводим Realization сразу (как при создании); если ещё NEW - её
+      // создаст переход в CONFIRMED, см. PUT /api/admin/orders.
+      if (becomingRealization && order.status === 'CONFIRMED') {
+        await applyRealizationConfirmSideEffect(
+          trx,
+          {
+            id: orderId,
+            partnerId: effectivePartnerId,
+            totalPrice: baseTotal + vatTotal,
+            items: newLines.map((l) => ({
+              productId: l.productId,
+              quantity: l.quantity,
+              pricePerItem: l.pricePerItem,
+              sum: l.sum,
+              product: { group: productMap.get(l.productId)?.group ?? null },
+            })),
+          },
+          null,
+        );
+      }
 
       const summaryParts: string[] = [];
       if (added.length) {
@@ -310,7 +447,7 @@ export async function PATCH(
             .join(', ')}`,
         );
       }
-      const summary = summaryParts.join('; ');
+      const summary = [...summaryParts, ...extraSummaryParts].join('; ');
 
       await trx.orderChangeLog.create({
         data: {
@@ -355,7 +492,10 @@ export async function PATCH(
       include: {
         partner: true,
         createdBy: { select: { id: true, name: true, role: true } },
-        items: { include: { product: true } },
+        // group нужен на клиенте для проверки "цена ниже себестоимости"
+        // (см. AdminOrder/AdminProduct в app/admin/types.ts) - страница
+        // заказов в админке подставляет этот ответ прямо в список заказов.
+        items: { include: { product: { include: { group: true } } } },
         changeLogs: {
           orderBy: { createdAt: 'desc' },
           include: { changedBy: { select: { id: true, name: true, role: true } } },
