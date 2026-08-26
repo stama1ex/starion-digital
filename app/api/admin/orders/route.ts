@@ -18,7 +18,7 @@ export async function GET() {
       include: {
         partner: true,
         createdBy: { select: { id: true, name: true, role: true } },
-        items: { include: { product: true } },
+        items: { include: { product: { include: { group: true } } } },
         changeLogs: {
           orderBy: { createdAt: 'desc' },
           include: {
