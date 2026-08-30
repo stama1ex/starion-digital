@@ -4,6 +4,7 @@ import { sendOrderExcel } from '@/lib/telegram/sendExcel';
 import type { Prisma } from '@prisma/client';
 import { getPartnerFromSessionCookie } from '@/lib/auth/session';
 import { formatMoney, formatMDL } from '@/lib/format-money';
+import { toPlain } from '@/lib/toPlain';
 
 // === GET: список заказов партнёра ===
 export async function GET() {
@@ -26,6 +27,7 @@ export async function GET() {
       items: {
         select: {
           quantity: true,
+          pricePerItem: true,
           sum: true,
           vatAmount: true,
           product: {
@@ -45,7 +47,9 @@ export async function GET() {
     },
   });
 
-  return Response.json({ orders });
+  // toPlain конвертирует Prisma.Decimal в number - иначе на клиенте суммы
+  // приходят строками и "sum + vatAmount" склеивает их вместо сложения.
+  return Response.json({ orders: toPlain(orders) });
 }
 
 // === POST: создание заказа (обычный / реализация) ===

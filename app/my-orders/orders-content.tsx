@@ -30,6 +30,7 @@ interface Order {
   changeLogs: OrderChangeLogEntry[];
   items: {
     quantity: number;
+    pricePerItem: number;
     sum: number;
     vatAmount: number;
     product: { number: string; image: string | null; country: string };
@@ -226,8 +227,15 @@ export default function OrdersContent() {
                         </div>
                       </div>
 
-                      <div className="text-sm font-semibold text-primary shrink-0">
-                        {formatMoney(it.sum + it.vatAmount)} {t('currency_raw')}
+                      <div className="flex flex-col items-end shrink-0 text-right">
+                        <span className="text-sm font-semibold text-primary">
+                          {formatMoney(Number(it.sum) + Number(it.vatAmount))}{' '}
+                          {t('currency_raw')}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {formatMoney(Number(it.pricePerItem))}{' '}
+                          {t('currency_raw')}/{t('pcs')}
+                        </span>
                       </div>
                     </div>
                   ))}
