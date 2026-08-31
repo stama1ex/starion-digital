@@ -910,7 +910,7 @@ export default function OrdersManagement({
         </Card>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={filter}
@@ -986,9 +986,6 @@ export default function OrdersManagement({
             />
             Показать кто оформил заказ
           </label>
-        </div>
-
-        <div className="flex items-center gap-2">
           {hasActiveFilters && (
             <Button
               variant="ghost"
@@ -999,13 +996,14 @@ export default function OrdersManagement({
               Сбросить фильтры
             </Button>
           )}
-          <Input
-            value={orderPartnerSearchQuery}
-            onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
-            placeholder="Поиск по партнёру или №заказа..."
-            className="w-full sm:w-64"
-          />
         </div>
+
+        <Input
+          value={orderPartnerSearchQuery}
+          onChange={(e) => setOrderPartnerSearchQuery(e.target.value)}
+          placeholder="Поиск по партнёру или №заказа..."
+          className="w-full sm:w-64 sm:shrink-0"
+        />
       </div>
 
       <div className="space-y-2">
@@ -1375,18 +1373,18 @@ export default function OrdersManagement({
                                   </tr>
                                   {typeBucket.groups.map((group) => (
                                     <Fragment key={group.key}>
-                                      {/* Заголовок группы/материала — менее явно */}
+                                      {/* Заголовок группы/материала */}
                                       {group.name && (
-                                        <tr>
+                                        <tr className="bg-primary/15">
                                           <td
                                             colSpan={4}
-                                            className="px-2 pt-1.5 pb-0.5 pl-4"
+                                            className="px-2 py-1.5 pl-4"
                                           >
                                             <div className="flex items-baseline justify-between gap-2">
-                                              <span className="text-xs font-medium text-muted-foreground">
+                                              <span className="text-sm font-bold text-primary">
                                                 {group.name}
                                               </span>
-                                              <span className="text-[11px] text-muted-foreground/70">
+                                              <span className="text-xs font-medium text-primary/70">
                                                 {group.qty} шт •{' '}
                                                 {formatMDL(group.sum)}
                                               </span>
