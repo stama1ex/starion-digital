@@ -118,7 +118,7 @@ async function uploadArAsset(kind: ARAssetKind, file: File): Promise<string> {
 }
 
 export default function ARManagement() {
-  const { experiences, loading, mutate } = useARExperiences();
+  const { experiences, loading, loaded, error, mutate } = useARExperiences();
   const { products } = useProducts();
   const confirm = useConfirm();
 
@@ -249,7 +249,16 @@ export default function ARManagement() {
     }
   };
 
-  if (loading) return <div className="p-4">Загрузка...</div>;
+  // Важно: НЕ делать ранний `return` по loading/error — иначе на каждом
+  // ре-валидейте SWR (а при падающем эндпоинте это каждые несколько секунд)
+  // размонтируется всё поддерево, включая открытый <Dialog>, и модалка мигает.
+  // Состояние списка показываем только в области списка, диалоги — всегда в DOM.
+  // Ключуемся от «был ли успешный ответ» (loaded), а не от experiences.length:
+  // иначе после применения миграции разовая фоновая ошибка подменяет «Пока нет
+  // опытов» на экран «примените миграцию». error в SWR залипает до первого
+  // успеха, поэтому показываем его стабильно, без мигания «Загрузка…» ↔ ошибка.
+  const showError = !!error && !loaded;
+  const showSkeleton = loading && !error && !loaded;
 
   return (
     <div className="space-y-4">
@@ -261,12 +270,27 @@ export default function ARManagement() {
             сам сувенир и накладывает видео / 3D / анимацию.
           </p>
         </div>
-        <Button onClick={openNew} className="gap-2">
+        <Button onClick={openNew} className="gap-2" disabled={showError}>
           <Plus size={16} /> Новый AR-опыт
         </Button>
       </div>
 
-      {experiences.length === 0 ? (
+      {showSkeleton ? (
+        <p className="py-10 text-center text-muted-foreground">Загрузка…</p>
+      ) : showError ? (
+        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium text-destructive">
+            Не удалось загрузить AR-опыты
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            Скорее всего, не применена миграция БД. Выполните{' '}
+            <code className="rounded bg-muted px-1">
+              npx prisma migrate deploy
+            </code>{' '}
+            и обновите страницу.
+          </p>
+        </div>
+      ) : experiences.length === 0 ? (
         <p className="py-10 text-center text-muted-foreground">
           Пока нет ни одного AR-опыта
         </p>
