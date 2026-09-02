@@ -179,6 +179,36 @@ export default function ARStage({
         return;
       }
 
+      // MindAR меряет контейнер один раз внутри start(). На мобильных вьюпорт
+      // в этот момент ещё «прыгает» (адресная строка), из-за чего видео и canvas
+      // получают неправильный размер (полосы по краям). Пере-меряем после того,
+      // как раскладка устоялась, и на каждое изменение размера контейнера.
+      const applyResize = () => {
+        if (cancelled) return;
+        try {
+          mindarThree.resize();
+        } catch {}
+      };
+      applyResize();
+      requestAnimationFrame(applyResize);
+      const t1 = setTimeout(applyResize, 250);
+      const t2 = setTimeout(applyResize, 1000);
+      disposables.push(() => {
+        clearTimeout(t1);
+        clearTimeout(t2);
+      });
+
+      if (containerRef.current && 'ResizeObserver' in window) {
+        const ro = new ResizeObserver(applyResize);
+        ro.observe(containerRef.current);
+        disposables.push(() => ro.disconnect());
+      }
+      const vv = window.visualViewport;
+      if (vv) {
+        vv.addEventListener('resize', applyResize);
+        disposables.push(() => vv.removeEventListener('resize', applyResize));
+      }
+
       cb.onProgress(1);
       cb.onScanning();
 

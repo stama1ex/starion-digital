@@ -53,3 +53,5 @@ plate.glb
 # ignore local test scripts that may contain sensitive cookies/credentials
 scripts/test-session.js
 admin_cookies.txt
+
+certificates
