@@ -227,7 +227,6 @@
     "date": "Data",
     "no_data": "Nu există date de afișat"
   },
-
   "Orders": {
     "title": "Comenzile mele",
     "order_number": "Comanda nr. {id}",
@@ -279,7 +278,6 @@
     "realization_button": "Cerere de consignație",
     "realization_info": "Consignație — primiți marfa fără plată în avans și o achitați pe măsură ce se vinde. Vă vom contacta pentru a stabili condițiile."
   },
-
   "Login": {
     "title": "Intrare pentru parteneri",
     "login": "Login sau Email",
@@ -445,5 +443,49 @@
     "email_not_verified": "Confirmați email-ul cu codul primit",
     "code_sent": "Codul de confirmare a fost trimis pe email",
     "code_description": "Am trimis un cod de confirmare pe {email}. Introduceți-l pentru a trimite cererea."
+  },
+  "ARViewer": {
+    "meta": {
+      "description": "Îndreaptă camera spre o suvenir Starion și privește-o cum prinde viață — video, 3D și animație direct peste ea."
+    },
+    "close": "Închide",
+    "intro": {
+      "subtitle": "Îndreaptă camera spre suvenirul propriu-zis și privește-l cum prinde viață.",
+      "start": "Deschide camera",
+      "hint": "Este necesar accesul la cameră"
+    },
+    "loading": {
+      "camera": "Se solicită accesul la cameră…",
+      "assets": "Se încarcă… {progress}%"
+    },
+    "scanning": {
+      "hint": "Îndreaptă camera spre suvenir"
+    },
+    "sound": {
+      "on": "Activează sunetul",
+      "off": "Dezactivează sunetul"
+    },
+    "error": {
+      "title": "Ceva nu a mers",
+      "insecure": "AR funcționează doar printr-o conexiune securizată (https). Redeschide linkul.",
+      "unsupported": "Acest browser nu poate folosi camera pentru AR. Deschide linkul în Safari sau Chrome.",
+      "permission": "Accesul la cameră a fost refuzat. Permite-l în setările browserului și reîncarcă pagina.",
+      "noCamera": "Nicio cameră găsită. Asigură-te că dispozitivul are o cameră funcțională.",
+      "cameraBusy": "Camera este folosită de altă aplicație. Închide-o și încearcă din nou.",
+      "webgl": "Acest dispozitiv nu acceptă grafică 3D în browser (WebGL).",
+      "asset": "Nu s-a putut încărca conținutul AR. Verifică conexiunea și încearcă din nou.",
+      "mindar": "Nu s-a putut încărca motorul AR. Verifică conexiunea la internet.",
+      "unknown": "Ceva nu a mers. Încearcă să reîncarci pagina.",
+      "retry": "Încearcă din nou"
+    },
+    "cta": {
+      "catalog": "Catalog Starion"
+    },
+    "poweredBy": "AR de la Starion Digital",
+    "unavailable": {
+      "title": "Experiența AR nu este disponibilă",
+      "text": "Acest link nu mai este activ sau nu există.",
+      "home": "Acasă"
+    }
   }
 }
