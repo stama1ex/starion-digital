@@ -42,6 +42,7 @@ model Product {
   group            ProductGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
   items            OrderItem[]
   realizationItems RealizationItem[]
+  arExperiences    ARExperience[] // WebAR-опыты «оживления» этого сувенира (магнит/открытка)
 
   @@index([type])
   @@index([groupId])
@@ -248,6 +249,47 @@ model PartnerSession {
 
   @@index([partnerId])
   @@index([expiresAt])
+}
+
+// WebAR «Оживление сувениров»: пользователь сканирует QR на магните/открытке,
+// открывается /ar/{slug}, камера распознаёт сам сувенир как маркер и поверх
+// него накладывается контент (видео-текстура, 3D-модель или анимация).
+// Ассеты (изображение-маркер, скомпилированный .mind, видео/GLB, постер)
+// лежат в Dropbox — здесь хранятся их пути, а не временные ссылки.
+model ARExperience {
+  id          String        @id @default(cuid())
+  slug        String        @unique // используется в URL/QR: /ar/{slug}
+  title       String
+  contentType ARContentType // VIDEO | MODEL3D | ANIMATION
+  markerUrl   String // путь в Dropbox к изображению-маркеру (сам сувенир)
+  mindFileUrl String // путь в Dropbox к скомпилированному .mind файлу
+  contentUrl  String // путь в Dropbox к видео (VIDEO) или GLB (MODEL3D/ANIMATION)
+  posterUrl   String? // путь в Dropbox к превью (экран загрузки, og:image)
+  scale       Float         @default(1) // общий масштаб контента относительно маркера
+  rotationX   Float         @default(0) // доворот контента, радианы
+  rotationY   Float         @default(0)
+  rotationZ   Float         @default(0)
+  offsetX     Float         @default(0) // смещение контента относительно центра маркера
+  offsetY     Float         @default(0)
+  offsetZ     Float         @default(0)
+  autoplay    Boolean       @default(true) // запускать видео/анимацию при нахождении маркера
+  loop        Boolean       @default(true)
+  sound       Boolean       @default(false) // звук у видео (включается только после жеста пользователя)
+  scanCount   Int           @default(0) // счётчик сканирований — простая аналитика
+  isActive    Boolean       @default(true) // выключенный опыт отдаёт страницу-заглушку
+  productId   Int? // опциональная связь с товаром каталога
+  product     Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([productId])
+  @@index([isActive])
+}
+
+enum ARContentType {
+  VIDEO // видео-текстура на плоскости маркера (магниты)
+  MODEL3D // статичная 3D-модель поверх маркера (открытки)
+  ANIMATION // анимированная GLB (AnimationMixer) поверх маркера
 }
 
 enum PartnerRole {
