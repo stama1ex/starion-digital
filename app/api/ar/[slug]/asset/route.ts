@@ -32,16 +32,28 @@ export async function GET(
     return NextResponse.json({ error: 'kind is required' }, { status: 400 });
   }
 
-  const experience = await prisma.aRExperience.findUnique({
-    where: { slug },
-    select: {
-      isActive: true,
-      markerUrl: true,
-      mindFileUrl: true,
-      contentUrl: true,
-      posterUrl: true,
-    },
-  });
+  let experience: {
+    isActive: boolean;
+    markerUrl: string;
+    mindFileUrl: string;
+    contentUrl: string;
+    posterUrl: string | null;
+  } | null = null;
+  try {
+    experience = await prisma.aRExperience.findUnique({
+      where: { slug },
+      select: {
+        isActive: true,
+        markerUrl: true,
+        mindFileUrl: true,
+        contentUrl: true,
+        posterUrl: true,
+      },
+    });
+  } catch (error) {
+    console.error(`[AR asset] DB lookup failed for ${slug}:`, error);
+    return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
+  }
 
   if (!experience || !experience.isActive) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });

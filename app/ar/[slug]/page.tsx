@@ -15,10 +15,16 @@ const SITE_URL =
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-// один запрос на рендер (generateMetadata + сама страница)
-const getExperience = cache((slug: string) =>
-  prisma.aRExperience.findUnique({ where: { slug } })
-);
+// один запрос на рендер (generateMetadata + сама страница). Ошибку БД глушим
+// в заглушку, чтобы сбой соединения не превращался в 500 у сканирующего QR.
+const getExperience = cache(async (slug: string) => {
+  try {
+    return await prisma.aRExperience.findUnique({ where: { slug } });
+  } catch (error) {
+    console.error('[AR page] DB lookup failed for', slug, error);
+    return null;
+  }
+});
 
 export async function generateMetadata({
   params,
