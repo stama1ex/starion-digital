@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { prisma } from '@/lib/db';
@@ -14,9 +15,10 @@ const SITE_URL =
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-function getExperience(slug: string) {
-  return prisma.aRExperience.findUnique({ where: { slug } });
-}
+// один запрос на рендер (generateMetadata + сама страница)
+const getExperience = cache((slug: string) =>
+  prisma.aRExperience.findUnique({ where: { slug } })
+);
 
 export async function generateMetadata({
   params,

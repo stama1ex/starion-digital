@@ -32,6 +32,15 @@ export interface LoadedMindAR {
   THREE: any;
 }
 
+// Динамический импорт абсолютного CDN-URL. Магические комментарии не дают
+// бандлерам (webpack в `next build`, turbopack в `next dev`) пытаться
+// зарезолвить URL на этапе сборки — модуль грузит нативный import() в браузере.
+function importExternal(url: string): Promise<any> {
+  return import(
+    /* webpackIgnore: true */ /* turbopackIgnore: true */ url
+  );
+}
+
 let mindArCache: Promise<LoadedMindAR> | null = null;
 
 // Мемоизированная загрузка — можно дёргать заранее (prefetch на экране-интро),
@@ -43,8 +52,8 @@ export function loadMindAr(): Promise<LoadedMindAR> {
   if (!mindArCache) {
     mindArCache = (async () => {
       const [mindarMod, threeMod] = await Promise.all([
-        import(/* webpackIgnore: true */ AR_MINDAR_URL),
-        import(/* webpackIgnore: true */ AR_THREE_URL),
+        importExternal(AR_MINDAR_URL),
+        importExternal(AR_THREE_URL),
       ]);
       if (!mindarMod?.MindARThree) {
         throw new Error('MindARThree export missing from CDN bundle');
@@ -63,7 +72,7 @@ let gltfLoaderCache: Promise<any> | null = null;
 
 export function loadGltfLoaderClass(): Promise<any> {
   if (!gltfLoaderCache) {
-    gltfLoaderCache = import(/* webpackIgnore: true */ AR_GLTF_LOADER_URL)
+    gltfLoaderCache = importExternal(AR_GLTF_LOADER_URL)
       .then((m) => m.GLTFLoader)
       .catch((err) => {
         gltfLoaderCache = null;
