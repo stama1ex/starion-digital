@@ -65,6 +65,7 @@ interface FormState {
   markerUrl: string;
   mindFileUrl: string;
   contentUrl: string;
+  maskUrl: string;
   posterUrl: string;
   scale: number;
   rotationX: number;
@@ -88,9 +89,41 @@ const emptyForm = (): FormState => ({
   markerUrl: '',
   mindFileUrl: '',
   contentUrl: '',
+  maskUrl: '',
   posterUrl: '',
   ...AR_EXPERIENCE_DEFAULTS,
 });
+
+// Быстрая проверка, что у PNG-маски вообще есть прозрачные пиксели по краям.
+// Иначе (непрозрачный фон) маска не обрежет видео, а ошибки никакой не будет —
+// предупредим админа сразу при загрузке.
+async function maskLooksLikeCutout(file: File): Promise<boolean> {
+  try {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = reject;
+      el.src = url;
+    });
+    const w = 64;
+    const h = Math.max(1, Math.round((img.height / img.width) * 64));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    URL.revokeObjectURL(url);
+    if (!ctx) return true;
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    // доля полностью прозрачных пикселей
+    let transparent = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] < 8) transparent++;
+    return transparent / (w * h) > 0.05;
+  } catch {
+    return true; // не смогли проверить — не мешаем
+  }
+}
 
 // Прямая загрузка ассета в Dropbox через одноразовую ссылку (минуя лимит
 // тела запроса Vercel).
@@ -148,6 +181,7 @@ export default function ARManagement() {
       markerUrl: exp.markerUrl,
       mindFileUrl: exp.mindFileUrl,
       contentUrl: exp.contentUrl,
+      maskUrl: exp.maskUrl || '',
       posterUrl: exp.posterUrl || '',
       scale: exp.scale,
       rotationX: exp.rotationX,
@@ -433,7 +467,13 @@ export default function ARManagement() {
               <label className="text-sm font-medium">Тип контента</label>
               <Select
                 value={form.contentType}
-                onValueChange={(v) => patch({ contentType: v as ARContentType })}
+                onValueChange={(v) =>
+                  patch({
+                    contentType: v as ARContentType,
+                    // маска актуальна только для VIDEO — не тащим её в GLB-опыт
+                    maskUrl: v === 'VIDEO' ? form.maskUrl : '',
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -509,6 +549,16 @@ export default function ARManagement() {
               value={form.contentUrl}
               onChange={(path) => patch({ contentUrl: path })}
             />
+            {form.contentType === 'VIDEO' && (
+              <AssetField
+                kind="mask"
+                label="Маска-силуэт — необязательно (для фигурных магнитов)"
+                hint="PNG-высечка в той же кадрировке, что и маркер: силуэт сувенира — непрозрачный, фон — полностью прозрачный. Видео покажется только внутри силуэта. Делайте силуэт на 1–2% уже реального края."
+                value={form.maskUrl}
+                onChange={(path) => patch({ maskUrl: path })}
+                preview
+              />
+            )}
             <AssetField
               kind="poster"
               label="Постер (экран загрузки, превью при шеринге) — необязательно"
@@ -647,6 +697,11 @@ function AssetField({
         `Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`
       );
       return;
+    }
+    if (kind === 'mask' && !(await maskLooksLikeCutout(file))) {
+      toast.warning(
+        'В маске нет прозрачного фона — видео не обрежется по форме. Нужен PNG с прозрачностью вокруг силуэта.'
+      );
     }
     setBusy(true);
     try {

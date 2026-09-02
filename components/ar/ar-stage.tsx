@@ -374,11 +374,71 @@ async function buildContent({
     if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
     else texture.encoding = THREE.sRGBEncoding;
 
+    // Альфа-маска-силуэт для фигурных магнитов: видео видно только там, где
+    // маска непрозрачная (её alpha-канал). Ошибку/таймаут загрузки глушим —
+    // просто покажем прямоугольное видео.
+    let maskTexture: any = null;
+    if (experience.hasMask) {
+      try {
+        maskTexture = await Promise.race([
+          new THREE.TextureLoader().loadAsync(arAssetUrl(slug, 'mask', version)),
+          new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
+        ]);
+        if (maskTexture) {
+          // маска — это данные (не цвет), оставляем линейное пространство.
+          // flipY как у видео-текстуры (у VideoTexture false, у TextureLoader
+          // по умолчанию true) — иначе маска перевёрнута относительно видео.
+          maskTexture.flipY = texture.flipY;
+          maskTexture.generateMipmaps = false;
+          maskTexture.minFilter = THREE.LinearFilter;
+          maskTexture.anisotropy = 4;
+          maskTexture.needsUpdate = true;
+        } else {
+          console.warn('[AR] mask load timed out, showing full video');
+        }
+      } catch (err) {
+        console.warn('[AR] mask failed to load, showing full video', err);
+        maskTexture = null;
+      }
+    }
+
     const geometry = new THREE.PlaneGeometry(width, height);
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       toneMapped: false,
+      transparent: !!maskTexture,
     });
+
+    if (maskTexture) {
+      // Патч шейдера: домножаем итоговую альфу видео на alpha-канал маски.
+      // Маска = PNG-высечка: силуэт сувенира непрозрачный, фон прозрачный.
+      material.onBeforeCompile = (shader: any) => {
+        const src = shader.fragmentShader;
+        const patched = src
+          .replace(
+            '#include <common>',
+            '#include <common>\nuniform sampler2D uArMask;'
+          )
+          .replace(
+            '#include <dithering_fragment>',
+            `#include <dithering_fragment>
+             gl_FragColor.a *= texture2D( uArMask, vUv ).a;`
+          );
+        // если оба якоря не совпали (напр. сменилась версия three) — не
+        // вставляем битый шейдер, деградируем до прямоугольного видео
+        if (
+          patched.includes('uniform sampler2D uArMask') &&
+          patched.includes('texture2D( uArMask, vUv )')
+        ) {
+          shader.uniforms.uArMask = { value: maskTexture };
+          shader.fragmentShader = patched;
+        } else {
+          console.warn('[AR] mask shader anchors not found, full video');
+        }
+      };
+      material.needsUpdate = true;
+    }
+
     const mesh = new THREE.Mesh(geometry, material);
     applyTransform(mesh);
     anchor.group.add(mesh);
@@ -386,6 +446,7 @@ async function buildContent({
     videoElRef.current = video;
     disposables.push(() => {
       texture.dispose();
+      maskTexture?.dispose();
       geometry.dispose();
       material.dispose();
     });

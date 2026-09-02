@@ -22,7 +22,13 @@ export const AR_CONTENT_TYPE_HINTS: Record<ARContentType, string> = {
 };
 
 // Типы ассетов, которые отдаёт публичный прокси /api/ar/[slug]/asset
-export const AR_ASSET_KINDS = ['marker', 'mind', 'content', 'poster'] as const;
+export const AR_ASSET_KINDS = [
+  'marker',
+  'mind',
+  'content',
+  'poster',
+  'mask',
+] as const;
 export type ARAssetKind = (typeof AR_ASSET_KINDS)[number];
 
 // Папка в Dropbox, куда складываются AR-ассеты
@@ -53,6 +59,11 @@ export const AR_UPLOAD_LIMITS: Record<
     maxBytes: 100 * 1024 * 1024,
     accept: 'video/mp4,video/webm,video/quicktime,model/gltf-binary,.glb',
     label: 'контент (видео / GLB)',
+  },
+  mask: {
+    maxBytes: 8 * 1024 * 1024,
+    accept: 'image/png,image/webp',
+    label: 'маска-силуэт',
   },
 };
 

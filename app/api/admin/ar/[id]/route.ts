@@ -74,14 +74,12 @@ export async function PATCH(
       'mindFileUrl',
       'contentUrl',
       'posterUrl',
+      'maskUrl',
     ] as const) {
       if (data[field] !== undefined) {
+        const nullable = field === 'posterUrl' || field === 'maskUrl';
         updateData[field] =
-          field === 'posterUrl'
-            ? data[field]
-              ? String(data[field])
-              : null
-            : String(data[field]);
+          nullable && !data[field] ? null : String(data[field]);
       }
     }
 

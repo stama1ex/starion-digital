@@ -264,6 +264,7 @@ model ARExperience {
   markerUrl   String // путь в Dropbox к изображению-маркеру (сам сувенир)
   mindFileUrl String // путь в Dropbox к скомпилированному .mind файлу
   contentUrl  String // путь в Dropbox к видео (VIDEO) или GLB (MODEL3D/ANIMATION)
+  maskUrl     String? // путь в Dropbox к альфа-маске-силуэту (PNG, белое = видно) — для фигурных магнитов, тип VIDEO
   posterUrl   String? // путь в Dropbox к превью (экран загрузки, og:image)
   scale       Float         @default(1) // общий масштаб контента относительно маркера
   rotationX   Float         @default(0) // доворот контента, радианы

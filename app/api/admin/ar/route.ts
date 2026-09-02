@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
         markerUrl: String(data.markerUrl),
         mindFileUrl: String(data.mindFileUrl),
         contentUrl: String(data.contentUrl),
+        maskUrl: data.maskUrl ? String(data.maskUrl) : null,
         posterUrl: data.posterUrl ? String(data.posterUrl) : null,
         productId: data.productId ? parseInt(String(data.productId)) : null,
         ...pickARSettings(data),

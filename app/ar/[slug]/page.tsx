@@ -88,6 +88,7 @@ export default async function ARPage({ params }: PageProps) {
     loop: experience.loop,
     sound: experience.sound,
     hasPoster: !!experience.posterUrl,
+    hasMask: !!experience.maskUrl,
     version: String(experience.updatedAt.getTime()),
   };
 

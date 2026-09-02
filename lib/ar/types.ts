@@ -19,6 +19,9 @@ export interface ARExperienceClient {
   loop: boolean;
   sound: boolean;
   hasPoster: boolean;
+  // альфа-маска-силуэт для фигурных магнитов (тип VIDEO): видео видно только
+  // там, где маска светлая
+  hasMask: boolean;
   // метка версии (updatedAt) для инвалидации CDN-кэша прокси при замене ассета
   version: string;
 }
