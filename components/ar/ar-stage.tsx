@@ -114,6 +114,7 @@ export default function ARStage({
           uiLoading: 'no',
           uiScanning: 'no',
           uiError: 'no',
+          maxTrack: 1,
           ...AR_TRACKING_OPTIONS,
         });
       } catch (err) {
@@ -307,14 +308,22 @@ async function buildContent({
     video.preload = 'auto';
 
     await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error('video load timeout')),
+        30000
+      );
       const done = () => {
+        clearTimeout(timeout);
         video.removeEventListener('loadeddata', done);
         resolve();
       };
       video.addEventListener('loadeddata', done);
       video.addEventListener(
         'error',
-        () => reject(new Error('video load failed')),
+        () => {
+          clearTimeout(timeout);
+          reject(new Error('video load failed'));
+        },
         { once: true }
       );
       video.load();

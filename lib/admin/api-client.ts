@@ -121,6 +121,13 @@ export const AdminAPI = {
       toPartnerId,
     }),
 
+  // AR experiences («Оживление сувениров»)
+  getARExperiences: () => fetchData<any[]>('/api/admin/ar'),
+  createARExperience: (data: any) => postData('/api/admin/ar', data),
+  updateARExperience: (id: string, data: any) =>
+    patchData(`/api/admin/ar/${id}`, data),
+  deleteARExperience: (id: string) => deleteData(`/api/admin/ar/${id}`),
+
   // Current user
   getCurrentUser: () => fetchData<any>('/api/me'),
 };

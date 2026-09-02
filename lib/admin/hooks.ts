@@ -47,6 +47,11 @@ export function useGroups() {
   return { groups: data, loading, error, refetch: () => mutate(), mutate };
 }
 
+export function useARExperiences() {
+  const { data, loading, error, mutate } = useAdminList<any>('/api/admin/ar');
+  return { experiences: data, loading, error, refetch: () => mutate(), mutate };
+}
+
 export function useCurrentUser() {
   const { data, error, isLoading } = useSWR<any>('/api/me', fetchData);
   return { user: data ?? null, loading: isLoading, error: (error as Error) ?? null };
