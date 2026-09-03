@@ -29,6 +29,7 @@ export const AR_ASSET_KINDS = [
   'poster',
   'mask',
   'texture',
+  'audio',
 ] as const;
 export type ARAssetKind = (typeof AR_ASSET_KINDS)[number];
 
@@ -71,7 +72,54 @@ export const AR_UPLOAD_LIMITS: Record<
     accept: 'image/jpeg,image/png,image/webp',
     label: 'текстура модели',
   },
+  audio: {
+    maxBytes: 32 * 1024 * 1024,
+    accept: 'audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,.mp3,.m4a',
+    label: 'аудиодорожка',
+  },
 };
+
+// Языки озвучки. Совпадают с локалями сайта, но список отдельный: озвучек
+// может не быть на все языки, и наоборот — иногда нужен язык, которого нет
+// в интерфейсе.
+export const AR_AUDIO_LANGS = [
+  { code: 'ru', label: 'Русский' },
+  { code: 'ro', label: 'Română' },
+  { code: 'en', label: 'English' },
+  { code: 'uk', label: 'Українська' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'fr', label: 'Français' },
+] as const;
+
+export interface ARAudioTrack {
+  lang: string; // код языка, напр. 'ru'
+  label: string; // как показать в переключателе
+  path: string; // путь в Dropbox
+}
+
+// Нормализует дорожки из тела запроса: выкидывает пустые, режет длины,
+// схлопывает дубли по языку (в переключателе два «Русский» бессмысленны).
+export function cleanAudioTracks(input: unknown): ARAudioTrack[] | null {
+  if (!Array.isArray(input)) return null;
+  const seen = new Set<string>();
+  const out: ARAudioTrack[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const item = raw as Record<string, unknown>;
+    const path = typeof item.path === 'string' ? item.path.trim() : '';
+    const lang = typeof item.lang === 'string' ? item.lang.trim().slice(0, 8) : '';
+    if (!path || !lang || seen.has(lang)) continue;
+    seen.add(lang);
+    const known = AR_AUDIO_LANGS.find((l) => l.code === lang);
+    const label =
+      typeof item.label === 'string' && item.label.trim()
+        ? item.label.trim().slice(0, 40)
+        : (known?.label ?? lang.toUpperCase());
+    out.push({ lang, label, path });
+  }
+  return out.length ? out : null;
+}
 
 // Значения по умолчанию для формы создания опыта
 export const AR_EXPERIENCE_DEFAULTS = {

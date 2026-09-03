@@ -251,7 +251,7 @@ Automatic Telegram notifications for:
 
 ## 🔮 WebAR
 
-Scan a QR printed on a souvenir → `/ar/{slug}` opens in the phone browser → the
+Scan a QR printed on a souvenir → the viewer opens in the phone browser → the
 camera recognises the souvenir itself as an image target → video, a 3D model or
 an animation is overlaid on it. No app install.
 
@@ -269,6 +269,16 @@ an animation is overlaid on it. No app install.
   MindAR load them without CORS issues and Dropbox paths never reach the client.
 - **Marker compilation** runs in the browser inside the admin panel — MindAR's
   own `Compiler`, so no external web tool and no native dependency.
+- **Two routes to the same viewer**: `/ar/{slug}` (readable, internal) and
+  `/a/{code}` (7 random chars, `noindex`) — the QR always carries the short one,
+  so a souvenir made for another brand gives away neither the product name nor
+  the site section. The domain itself cannot be hidden in a QR; point a neutral
+  domain at this app and set `NEXT_PUBLIC_AR_SHORT_URL` to it.
+- **Social buttons** over the AR view, rendered only for the networks filled in
+  for that experience (`ARExperience.socials`, a JSON column).
+- **Per-language voice-over**: several audio tracks per experience
+  (`ARExperience.audioTracks`); when present, the video's own audio is muted for
+  good and the picked track plays instead, resynced to the video once a second.
 - Admin: `/admin` → **🔮 AR** tab (SUPER_ADMIN). See
   [ADMIN_GUIDE.md](ADMIN_GUIDE.md#ar--оживление-сувениров).
 

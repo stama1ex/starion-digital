@@ -12,32 +12,41 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Copy, ExternalLink } from 'lucide-react';
+import { AR_SHORT_URL_BASE } from '@/lib/ar/config';
 
 interface ArQrDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   slug: string;
+  shortCode: string | null;
   title: string;
 }
 
-// Ссылку строим от текущего origin — работает и на проде, и на превью-деплоях.
-function arUrl(slug: string) {
+// В QR уходит короткий безымянный код (/a/xxxxxxx), а не /ar/{slug}: на
+// сувенирах для сторонних компаний по ссылке не читается ни наш бренд, ни
+// название их товара. База — NEXT_PUBLIC_AR_SHORT_URL (можно направить на
+// приложение отдельный нейтральный домен), иначе текущий origin.
+export function arShortUrl(slug: string, shortCode: string | null) {
   const origin =
-    typeof window !== 'undefined'
+    AR_SHORT_URL_BASE ||
+    (typeof window !== 'undefined'
       ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || 'https://starion-digital.com';
-  return `${origin}/ar/${slug}`;
+      : process.env.NEXT_PUBLIC_SITE_URL || 'https://starion-digital.com');
+  // Пока код не выдан (запись создана до появления коротких ссылок) — обычный
+  // адрес, чтобы кнопка «Просмотр» не вела в никуда.
+  return shortCode ? `${origin}/a/${shortCode}` : `${origin}/ar/${slug}`;
 }
 
 export function ArQrDialog({
   open,
   onOpenChange,
   slug,
+  shortCode,
   title,
 }: ArQrDialogProps) {
   const [png, setPng] = useState('');
   const [svg, setSvg] = useState('');
-  const url = arUrl(slug);
+  const url = arShortUrl(slug, shortCode);
 
   useEffect(() => {
     if (!open) return;
@@ -125,7 +134,8 @@ export function ArQrDialog({
 
         <p className="text-xs text-muted-foreground">
           Печатайте QR не меньше 2×2 см. SVG — для типографии (без потери
-          качества), PNG — для быстрой печати и предпросмотра.
+          качества), PNG — для быстрой печати и предпросмотра. Ссылка короткая и
+          обезличенная — по ней не видно ни slug товара, ни раздела сайта.
         </p>
       </DialogContent>
     </Dialog>

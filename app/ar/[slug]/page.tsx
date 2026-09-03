@@ -1,10 +1,12 @@
-import { cache } from 'react';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { prisma } from '@/lib/db';
 import ARViewer from '@/components/ar/ARViewer';
 import ARUnavailable from '@/components/ar/ar-unavailable';
-import { arAssetUrl, type ARExperienceClient } from '@/lib/ar/types';
+import { arAssetUrl } from '@/lib/ar/types';
+import {
+  loadARExperienceBySlug,
+  toARExperienceClient,
+} from '@/lib/ar/experience';
 
 // Свежие данные на каждый запрос: временные ссылки Dropbox короткоживущие,
 // а прокси ассетов и так динамический.
@@ -15,22 +17,12 @@ const SITE_URL =
 
 type PageProps = { params: Promise<{ slug: string }> };
 
-// один запрос на рендер (generateMetadata + сама страница). Ошибку БД глушим
-// в заглушку, чтобы сбой соединения не превращался в 500 у сканирующего QR.
-const getExperience = cache(async (slug: string) => {
-  try {
-    return await prisma.aRExperience.findUnique({ where: { slug } });
-  } catch (error) {
-    console.error('[AR page] DB lookup failed for', slug, error);
-    return null;
-  }
-});
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const experience = await getExperience(slug);
+  const experience = await loadARExperienceBySlug(slug);
   const t = await getTranslations('ARViewer');
 
   if (!experience || !experience.isActive) {
@@ -67,31 +59,13 @@ export async function generateMetadata({
 
 export default async function ARPage({ params }: PageProps) {
   const { slug } = await params;
-  const experience = await getExperience(slug);
+  const experience = await loadARExperienceBySlug(slug);
 
   if (!experience || !experience.isActive) {
     return <ARUnavailable />;
   }
 
-  const client: ARExperienceClient = {
-    slug: experience.slug,
-    title: experience.title,
-    contentType: experience.contentType,
-    scale: experience.scale,
-    rotationX: experience.rotationX,
-    rotationY: experience.rotationY,
-    rotationZ: experience.rotationZ,
-    offsetX: experience.offsetX,
-    offsetY: experience.offsetY,
-    offsetZ: experience.offsetZ,
-    autoplay: experience.autoplay,
-    loop: experience.loop,
-    sound: experience.sound,
-    hasPoster: !!experience.posterUrl,
-    hasMask: !!experience.maskUrl,
-    hasTexture: !!experience.textureUrl,
-    version: String(experience.updatedAt.getTime()),
-  };
+  const client = toARExperienceClient(experience);
 
   return <ARViewer experience={client} />;
 }

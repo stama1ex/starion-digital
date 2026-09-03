@@ -465,6 +465,9 @@
       "on": "Activează sunetul",
       "off": "Dezactivează sunetul"
     },
+    "audio": {
+      "language": "Limba coloanei sonore"
+    },
     "error": {
       "title": "Ceva nu a mers",
       "insecure": "AR funcționează doar printr-o conexiune securizată (https). Redeschide linkul.",

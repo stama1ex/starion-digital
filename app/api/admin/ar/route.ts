@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { checkSuperAdminAuth } from '../auth-utils';
 import { AR_CONTENT_TYPES, AR_SLUG_PATTERN, slugifyAr } from '@/lib/ar/constants';
 import { pickARSettings } from '@/lib/ar/payload';
+import { cleanAudioTracks } from '@/lib/ar/constants';
+import { cleanSocials } from '@/lib/ar/socials';
+import { generateShortCode } from '@/lib/ar/short-code';
 import { resolveARAssetUrl } from '@/lib/ar/server';
 
 // GET — список всех AR-опытов (для админки)
@@ -102,9 +106,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Короткий код для QR. Коллизия при 32^7 вариантов практически невозможна,
+    // но колонка уникальная — поэтому пара повторов на всякий случай.
+    let shortCode = generateShortCode();
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const taken = await prisma.aRExperience.findUnique({
+        where: { shortCode },
+        select: { id: true },
+      });
+      if (!taken) break;
+      shortCode = generateShortCode();
+    }
+
     const experience = await prisma.aRExperience.create({
       data: {
         slug,
+        shortCode,
         title,
         contentType: data.contentType,
         markerUrl: String(data.markerUrl),
@@ -114,6 +131,11 @@ export async function POST(request: NextRequest) {
         textureUrl: data.textureUrl ? String(data.textureUrl) : null,
         posterUrl: data.posterUrl ? String(data.posterUrl) : null,
         productId: data.productId ? parseInt(String(data.productId)) : null,
+        // Prisma не выводит типизированные объект/массив как Json — приводим явно
+        socials: (cleanSocials(data.socials) ??
+          undefined) as Prisma.InputJsonValue | undefined,
+        audioTracks: (cleanAudioTracks(data.audioTracks) ??
+          undefined) as Prisma.InputJsonValue | undefined,
         ...pickARSettings(data),
       },
       include: {

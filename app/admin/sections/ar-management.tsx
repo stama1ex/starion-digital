@@ -38,6 +38,7 @@ import {
   ScanEye,
   Image as ImageIcon,
   Wand2,
+  Music,
 } from 'lucide-react';
 import type { ARContentType } from '@prisma/client';
 import {
@@ -55,10 +56,17 @@ import {
   AR_CONTENT_TYPE_HINTS,
   AR_EXPERIENCE_DEFAULTS,
   AR_UPLOAD_LIMITS,
+  AR_AUDIO_LANGS,
   slugifyAr,
   type ARAssetKind,
+  type ARAudioTrack,
 } from '@/lib/ar/constants';
-import { ArQrDialog } from '@/components/ar/ar-qr-dialog';
+import {
+  AR_SOCIAL_KEYS,
+  AR_SOCIAL_META,
+  type ARSocials,
+} from '@/lib/ar/socials';
+import { ArQrDialog, arShortUrl } from '@/components/ar/ar-qr-dialog';
 import { compileMindFile } from '@/lib/ar/compile-marker';
 
 interface FormState {
@@ -84,6 +92,8 @@ interface FormState {
   loop: boolean;
   sound: boolean;
   isActive: boolean;
+  socials: ARSocials;
+  audioTracks: ARAudioTrack[];
 }
 
 const emptyForm = (): FormState => ({
@@ -98,6 +108,8 @@ const emptyForm = (): FormState => ({
   maskUrl: '',
   textureUrl: '',
   posterUrl: '',
+  socials: {},
+  audioTracks: [],
   ...AR_EXPERIENCE_DEFAULTS,
 });
 
@@ -171,9 +183,11 @@ export default function ARManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
-  const [qrFor, setQrFor] = useState<{ slug: string; title: string } | null>(
-    null
-  );
+  const [qrFor, setQrFor] = useState<{
+    slug: string;
+    shortCode: string | null;
+    title: string;
+  } | null>(null);
   const [filterContentType, setFilterContentType] = useState<string>('ALL');
   const [filterProductType, setFilterProductType] = useState<string>('ALL');
   // файл маркера, выбранный в этой сессии — чтобы компилировать .mind без
@@ -215,6 +229,10 @@ export default function ARManagement() {
       loop: exp.loop,
       sound: exp.sound,
       isActive: exp.isActive,
+      socials: (exp.socials as ARSocials | null) ?? {},
+      audioTracks: Array.isArray(exp.audioTracks)
+        ? (exp.audioTracks as ARAudioTrack[])
+        : [],
     });
     setEditingId(exp.id);
     setMarkerFile(null);
@@ -333,11 +351,9 @@ export default function ARManagement() {
     }
   };
 
-  const copyLink = async (slug: string) => {
+  const copyLink = async (exp: any) => {
     try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/ar/${slug}`
-      );
+      await navigator.clipboard.writeText(arShortUrl(exp.slug, exp.shortCode));
       toast.success('Ссылка скопирована');
     } catch {
       toast.error('Не удалось скопировать');
@@ -362,6 +378,13 @@ export default function ARManagement() {
   const isVideo = form.contentType === 'VIDEO';
   const isModel = !isVideo;
   const hasPlayback = isVideo || form.contentType === 'ANIMATION';
+  const socialCount = AR_SOCIAL_KEYS.filter((k) =>
+    form.socials[k]?.trim()
+  ).length;
+  // Первый ещё не занятый язык — им предзаполняется новая дорожка
+  const freeAudioLang = AR_AUDIO_LANGS.find(
+    (l) => !form.audioTracks.some((t) => t.lang === l.code)
+  );
 
   const productOptions = products.map((p: any) => ({
     value: String(p.id),
@@ -472,8 +495,11 @@ export default function ARManagement() {
                   <ArThumb src={exp.thumbUrl} alt={exp.title} />
                   <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                   <span className="font-semibold">{exp.title}</span>
-                  <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">
-                    /ar/{exp.slug}
+                  <span
+                    className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs"
+                    title={`/ar/${exp.slug}`}
+                  >
+                    {exp.shortCode ? `/a/${exp.shortCode}` : `/ar/${exp.slug}`}
                   </span>
                   <span className="rounded border px-1.5 py-0.5 text-xs">
                     {AR_CONTENT_TYPE_LABELS[exp.contentType as ARContentType]}
@@ -500,7 +526,13 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    onClick={() => setQrFor({ slug: exp.slug, title: exp.title })}
+                    onClick={() =>
+                      setQrFor({
+                        slug: exp.slug,
+                        shortCode: exp.shortCode ?? null,
+                        title: exp.title,
+                      })
+                    }
                   >
                     <QrCode size={14} />
                     <span className="hidden sm:inline">QR</span>
@@ -524,7 +556,7 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    onClick={() => copyLink(exp.slug)}
+                    onClick={() => copyLink(exp)}
                   >
                     <Copy size={14} />
                     <span className="hidden sm:inline">Ссылка</span>
@@ -596,8 +628,10 @@ export default function ARManagement() {
                 placeholder="chisinau-arch"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Ссылка: {typeof window !== 'undefined' ? window.location.origin : ''}
-                /ar/{form.slug || '…'}
+                Прямой адрес: /ar/{form.slug || '…'}. В QR уходит не он, а
+                короткий обезличенный код /a/xxxxxxx — он выдаётся при
+                сохранении, чтобы на чужих сувенирах не читался наш домен и
+                название товара.
               </p>
             </div>
 
@@ -765,6 +799,131 @@ export default function ARManagement() {
 
             <details className="rounded-md border p-3">
               <summary className="cursor-pointer text-sm font-medium">
+                Соцсети и контакты — кнопки поверх AR
+                {socialCount > 0 && (
+                  <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-normal">
+                    {socialCount}
+                  </span>
+                )}
+              </summary>
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Показываются только заполненные — пустые поля не рисуют
+                  кнопку. Можно указать и короткий ник (@username), адрес
+                  достроится сам.
+                </p>
+                {AR_SOCIAL_KEYS.map((key) => (
+                  <div key={key}>
+                    <label className="text-xs text-muted-foreground">
+                      {AR_SOCIAL_META[key].label}
+                    </label>
+                    <Input
+                      value={form.socials[key] ?? ''}
+                      placeholder={AR_SOCIAL_META[key].placeholder}
+                      onChange={(e) =>
+                        patch({
+                          socials: { ...form.socials, [key]: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </details>
+
+            <details className="rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">
+                Озвучка по языкам — необязательно
+                {form.audioTracks.length > 0 && (
+                  <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-normal">
+                    {form.audioTracks.length}
+                  </span>
+                )}
+              </summary>
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Если добавлена хотя бы одна дорожка — собственный звук видео
+                  глушится, играет дорожка, а во вьюере появляется переключатель
+                  языка. Дорожка должна совпадать по длительности с видео:
+                  синхронизация идёт по его времени.
+                </p>
+
+                {form.audioTracks.map((track, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 rounded-md border p-2"
+                  >
+                    <Music className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Select
+                      value={track.lang}
+                      onValueChange={(lang) => {
+                        const known = AR_AUDIO_LANGS.find(
+                          (l) => l.code === lang
+                        );
+                        patch({
+                          audioTracks: form.audioTracks.map((it, i) =>
+                            i === index
+                              ? { ...it, lang, label: known?.label ?? lang }
+                              : it
+                          ),
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AR_AUDIO_LANGS.map((l) => (
+                          <SelectItem
+                            key={l.code}
+                            value={l.code}
+                            disabled={form.audioTracks.some(
+                              (it, i) => i !== index && it.lang === l.code
+                            )}
+                          >
+                            {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                      {track.path.split('/').pop()}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        patch({
+                          audioTracks: form.audioTracks.filter(
+                            (_, i) => i !== index
+                          ),
+                        })
+                      }
+                    >
+                      <X size={14} />
+                    </Button>
+                  </div>
+                ))}
+
+                {freeAudioLang ? (
+                  <AudioUpload
+                    title={form.title}
+                    lang={freeAudioLang}
+                    onAdd={(track) =>
+                      patch({ audioTracks: [...form.audioTracks, track] })
+                    }
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Добавлены дорожки на все доступные языки.
+                  </p>
+                )}
+              </div>
+            </details>
+
+            <details className="rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">
                 Позиционирование контента
               </summary>
               <div className="mt-3 space-y-3">
@@ -812,9 +971,11 @@ export default function ARManagement() {
                   onChange={(v) => patch({ loop: v })}
                 />
               )}
-              {isVideo && (
+              {(isVideo || form.audioTracks.length > 0) && (
                 <Toggle
-                  label="Звук"
+                  label={
+                    form.audioTracks.length > 0 ? 'Звук (озвучка)' : 'Звук'
+                  }
                   checked={form.sound}
                   onChange={(v) => patch({ sound: v })}
                 />
@@ -848,6 +1009,7 @@ export default function ARManagement() {
           open={!!qrFor}
           onOpenChange={(o) => !o && setQrFor(null)}
           slug={qrFor.slug}
+          shortCode={qrFor.shortCode}
           title={qrFor.title}
         />
       )}
@@ -997,6 +1159,64 @@ function AssetField({
       </div>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
+  );
+}
+
+// Добавление озвучки: язык уже выбран снаружи (первый свободный), здесь только
+// файл. Отдельный компонент, а не AssetField, потому что результат — не строка
+// пути, а запись {lang,label,path} в массиве.
+function AudioUpload({
+  title,
+  lang,
+  onAdd,
+}: {
+  title: string;
+  lang: { code: string; label: string };
+  onAdd: (track: ARAudioTrack) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const limit = AR_UPLOAD_LIMITS.audio;
+
+  const handleFile = async (file?: File) => {
+    if (!file) return;
+    if (!title.trim()) {
+      toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+      return;
+    }
+    if (file.size > limit.maxBytes) {
+      toast.error(
+        `Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`
+      );
+      return;
+    }
+    setBusy(true);
+    try {
+      const path = await uploadArAsset('audio', file, title);
+      onAdd({ lang: lang.code, label: lang.label, path });
+      toast.success(`Дорожка добавлена: ${lang.label}`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Ошибка загрузки');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed p-2 text-sm text-muted-foreground">
+      {busy ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Upload className="h-4 w-4" />
+      )}
+      {busy ? 'Загрузка…' : `Добавить дорожку — ${lang.label}`}
+      <input
+        type="file"
+        accept={limit.accept}
+        className="hidden"
+        disabled={busy}
+        onChange={(e) => handleFile(e.target.files?.[0])}
+      />
+    </label>
   );
 }
 

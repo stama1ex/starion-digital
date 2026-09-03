@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { resolveARAssetUrl } from '@/lib/ar/server';
-import { AR_ASSET_KINDS, type ARAssetKind } from '@/lib/ar/constants';
+import {
+  AR_ASSET_KINDS,
+  cleanAudioTracks,
+  type ARAssetKind,
+} from '@/lib/ar/constants';
 
 // Всегда динамический — резолвит свежую временную ссылку Dropbox на каждый
 // запрос (они живут ~4 часа).
 export const dynamic = 'force-dynamic';
 
 const KIND_TO_FIELD: Record<
-  ARAssetKind,
+  Exclude<ARAssetKind, 'audio'>,
   | 'markerUrl'
   | 'mindFileUrl'
   | 'contentUrl'
@@ -24,7 +28,7 @@ const KIND_TO_FIELD: Record<
   texture: 'textureUrl',
 };
 
-// Публичный прокси AR-ассетов: /api/ar/{slug}/asset?kind=marker|mind|content|poster|mask|texture
+// Публичный прокси AR-ассетов: /api/ar/{slug}/asset?kind=marker|mind|content|poster|mask|texture|audio(&i=N)
 // Отдаёт файл с того же origin, что и страница — это нужно, чтобы THREE.VideoTexture
 // и MindAR (fetch .mind) работали без CORS-заморочек и без утечки путей Dropbox
 // на клиент. Поддерживает Range для перемотки видео.
@@ -47,6 +51,7 @@ export async function GET(
     posterUrl: string | null;
     maskUrl: string | null;
     textureUrl: string | null;
+    audioTracks: unknown;
   } | null = null;
   try {
     experience = await prisma.aRExperience.findUnique({
@@ -59,6 +64,7 @@ export async function GET(
         posterUrl: true,
         maskUrl: true,
         textureUrl: true,
+        audioTracks: true,
       },
     });
   } catch (error) {
@@ -70,8 +76,16 @@ export async function GET(
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  let path = experience[KIND_TO_FIELD[kind]];
-  if (kind === 'poster' && !path) path = experience.markerUrl; // разумный fallback
+  let path: string | null;
+  if (kind === 'audio') {
+    // дорожки лежат JSON-массивом, поэтому адресуются индексом: ?kind=audio&i=N
+    const tracks = cleanAudioTracks(experience.audioTracks) ?? [];
+    const index = Number(request.nextUrl.searchParams.get('i') ?? '0');
+    path = Number.isInteger(index) ? (tracks[index]?.path ?? null) : null;
+  } else {
+    path = experience[KIND_TO_FIELD[kind]];
+    if (kind === 'poster' && !path) path = experience.markerUrl; // разумный fallback
+  }
 
   if (!path) {
     return NextResponse.json({ error: 'Asset is not set' }, { status: 404 });

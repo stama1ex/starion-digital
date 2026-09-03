@@ -15,6 +15,7 @@ import type { ARErrorKind } from './ar-errors';
 interface ARStageProps {
   experience: ARExperienceClient;
   soundOn: boolean;
+  audioTrackIndex: number;
   onProgress: (value: number) => void;
   onScanning: () => void;
   onTargetFound: () => void;
@@ -89,6 +90,7 @@ function viewportSize() {
 export default function ARStage({
   experience,
   soundOn,
+  audioTrackIndex,
   onProgress,
   onScanning,
   onTargetFound,
@@ -98,6 +100,11 @@ export default function ARStage({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const debugRef = useRef<HTMLPreElement | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  // индекс держим в ref: init-эффект читает его один раз при старте и не должен
+  // пересоздавать сцену, когда пользователь переключает язык
+  const audioTrackIndexRef = useRef(audioTrackIndex);
+  audioTrackIndexRef.current = audioTrackIndex;
   const mixerRef = useRef<any>(null);
   const isTrackingRef = useRef(false);
 
@@ -341,11 +348,39 @@ export default function ARStage({
         console.warn('[AR] shader precompile skipped', err);
       }
 
+      // Озвучка отдельной дорожкой. Если дорожки заданы, звук видео глушится
+      // навсегда (см. buildContent) и слышно только выбранный язык — иначе они
+      // накладывались бы друг на друга.
+      if (experience.audioTracks.length > 0) {
+        const audio = document.createElement('audio');
+        audio.preload = 'auto';
+        audio.loop = experience.loop;
+        audio.muted = true; // как и видео: звук включает только жест пользователя
+        audio.setAttribute('playsinline', '');
+        audio.src = arAssetUrl(
+          slug,
+          'audio',
+          version,
+          Math.max(0, audioTrackIndexRef.current)
+        );
+        audio.load();
+        audioElRef.current = audio;
+        disposables.push(() => {
+          try {
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+          } catch {}
+          audioElRef.current = null;
+        });
+      }
+
       anchor.onTargetFound = () => {
         isTrackingRef.current = true;
         cb.onTargetFound();
         if (experience.autoplay) {
           videoElRef.current?.play().catch(() => {});
+          audioElRef.current?.play().catch(() => {});
           startAnimations?.();
         }
       };
@@ -353,6 +388,7 @@ export default function ARStage({
         isTrackingRef.current = false;
         cb.onTargetLost();
         videoElRef.current?.pause();
+        audioElRef.current?.pause();
       };
 
       // У MindAR нет опции разрешения камеры — он запрашивает поток только по
@@ -469,11 +505,24 @@ export default function ARStage({
       // кадров после потери маркера нужна, чтобы стереть последний показанный
       // (при preserveDrawingBuffer=false композитор иначе держит старую картинку).
       let flushFrames = 2;
+      let syncTick = 0;
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
         const visible = anchor.group.visible;
         if (visible) {
           if (mixerRef.current) mixerRef.current.update(delta);
+          // Видео и озвучка — два независимых элемента и со временем расходятся.
+          // Раз в ~секунду подтягиваем дорожку к видео, если разбежались заметно.
+          if (++syncTick >= 60) {
+            syncTick = 0;
+            const a = audioElRef.current;
+            const v = videoElRef.current;
+            if (a && v && !v.paused && !a.paused && v.duration) {
+              if (Math.abs(a.currentTime - v.currentTime) > 0.3) {
+                a.currentTime = v.currentTime;
+              }
+            }
+          }
           flushFrames = 2;
         } else if (flushFrames <= 0) {
           return;
@@ -551,14 +600,46 @@ export default function ARStage({
 
   // Звук управляется отдельно, без переинициализации сцены. Вызов из обработчика
   // клика по кнопке звука = пользовательский жест, поэтому play() проходит.
+  // Когда заданы озвучки — звучит дорожка, а видео остаётся немым.
+  const hasAudioTracks = experience.audioTracks.length > 0;
   useEffect(() => {
-    const video = videoElRef.current;
-    if (!video) return;
-    video.muted = !soundOn;
+    const media = hasAudioTracks ? audioElRef.current : videoElRef.current;
+    if (!media) return;
+    media.muted = !soundOn;
     if (soundOn && isTrackingRef.current) {
-      video.play().catch(() => {});
+      media.play().catch(() => {});
     }
-  }, [soundOn]);
+  }, [soundOn, hasAudioTracks]);
+
+  // Переключение языка озвучки: подменяем источник, сохраняя позицию
+  // воспроизведения, чтобы фраза не начиналась заново.
+  useEffect(() => {
+    const audio = audioElRef.current;
+    if (!audio) return;
+    const next = arAssetUrl(
+      experience.slug,
+      'audio',
+      experience.version,
+      audioTrackIndex
+    );
+    if (audio.getAttribute('src') === next) return;
+
+    const resumeAt = audio.currentTime;
+    const wasPlaying = !audio.paused;
+    const onReady = () => {
+      audio.removeEventListener('loadedmetadata', onReady);
+      if (Number.isFinite(resumeAt) && resumeAt > 0) {
+        try {
+          audio.currentTime = Math.min(resumeAt, audio.duration || resumeAt);
+        } catch {}
+      }
+      if (wasPlaying) audio.play().catch(() => {});
+    };
+    audio.addEventListener('loadedmetadata', onReady);
+    audio.src = next;
+    audio.load();
+    return () => audio.removeEventListener('loadedmetadata', onReady);
+  }, [audioTrackIndex, experience.slug, experience.version]);
 
   return (
     <>
@@ -627,7 +708,9 @@ async function buildContent({
     video.src = arAssetUrl(slug, 'content', version);
     video.crossOrigin = 'anonymous';
     video.loop = experience.loop;
-    video.muted = true; // старт всегда без звука (autoplay-политика iOS)
+    // Старт всегда без звука (autoplay-политика iOS). Если заданы озвучки,
+    // видео остаётся немым навсегда — звук идёт из выбранной дорожки.
+    video.muted = true;
     video.playsInline = true;
     video.setAttribute('playsinline', '');
     video.setAttribute('webkit-playsinline', '');
