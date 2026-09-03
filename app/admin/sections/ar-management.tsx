@@ -490,9 +490,12 @@ export default function ARManagement() {
                 {AR_CONTENT_TYPE_HINTS[form.contentType]}
               </p>
               {form.contentType !== 'VIDEO' && (
-                <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
-                  Типы MODEL3D и ANIMATION пока в разработке — просмотр покажет
-                  ошибку загрузки контента.
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Модель автоматически вписывается в размер маркера и ставится
+                  вертикально на него, поэтому «Поворот X = 0» — это уже
+                  стоящая модель. Развернуть её лицом — «Поворот Z»
+                  (π ≈ 3.14 — разворот на 180°). Draco/KTX2-сжатие пока не
+                  поддерживается — экспортируйте обычный .glb.
                 </p>
               )}
             </div>
@@ -544,7 +547,9 @@ export default function ARManagement() {
               hint={
                 form.contentType === 'VIDEO'
                   ? 'Короткий клип. Для звука включите тумблер ниже.'
-                  : 'glTF Binary (.glb).'
+                  : form.contentType === 'ANIMATION'
+                    ? 'glTF Binary (.glb) со встроенными анимационными клипами — они проигрываются, пока маркер в кадре.'
+                    : 'glTF Binary (.glb), статичная модель.'
               }
               value={form.contentUrl}
               onChange={(path) => patch({ contentUrl: path })}

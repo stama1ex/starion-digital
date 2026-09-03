@@ -42,6 +42,7 @@ export default function ARViewer({
   const [stageMounted, setStageMounted] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const scanPingedRef = useRef(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   const showSoundToggle = experience.contentType === 'VIDEO' && experience.sound;
 
@@ -51,6 +52,34 @@ export default function ARViewer({
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
+    };
+  }, []);
+
+  // Держим вьюер ровно по видимой области. На мобильных vh/dvh расходятся с
+  // тем, что реально видно (адресная строка), из-за чего оверлеи уезжают, а
+  // слой камеры внутри ARStage считает свой размер отдельно — синхронизируем
+  // оба от одного источника (visualViewport).
+  useEffect(() => {
+    const apply = () => {
+      const el = rootRef.current;
+      if (!el) return;
+      const vv = window.visualViewport;
+      const w = Math.round(vv?.width ?? window.innerWidth);
+      const h = Math.round(vv?.height ?? window.innerHeight);
+      if (w > 1) el.style.width = w + 'px';
+      if (h > 1) el.style.height = h + 'px';
+    };
+    apply();
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', apply);
+    vv?.addEventListener('scroll', apply);
+    window.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+    return () => {
+      vv?.removeEventListener('resize', apply);
+      vv?.removeEventListener('scroll', apply);
+      window.removeEventListener('resize', apply);
+      window.removeEventListener('orientationchange', apply);
     };
   }, []);
 
@@ -136,7 +165,15 @@ export default function ARViewer({
     : null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-black text-white select-none">
+    // Размер строго по видимой области: 100dvh на мобильных совпадает с тем,
+    // что видно, поэтому нижняя панель не уезжает под адресную строку.
+    // h-screen (100vh) — запасной вариант: если браузер не знает dvh,
+    // инлайновое значение отбрасывается и остаётся класс.
+    <div
+      ref={rootRef}
+      className="fixed left-0 top-0 z-[100] flex h-screen w-screen flex-col overflow-hidden bg-black text-white select-none"
+      style={{ width: '100vw', height: '100dvh' }}
+    >
       {/* Слой AR (камера + canvas). Держим смонтированным со стадии загрузки. */}
       {stageMounted && (
         <ARStage

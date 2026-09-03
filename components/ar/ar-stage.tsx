@@ -2,7 +2,11 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { loadMindAr, AR_TRACKING_OPTIONS } from '@/lib/ar/config';
+import {
+  loadMindAr,
+  loadGltfLoaderClass,
+  AR_TRACKING_OPTIONS,
+} from '@/lib/ar/config';
 import { arAssetUrl } from '@/lib/ar/types';
 import type { ARExperienceClient } from '@/lib/ar/types';
 import type { ARErrorKind } from './ar-errors';
@@ -40,6 +44,18 @@ function loadImageAspect(src: string): Promise<number> {
   });
 }
 
+// Видимая область вьюпорта в CSS-пикселях. На мобильных `100vh` / `fixed
+// inset-0` считаются от «большого» вьюпорта (как если бы адресная строка была
+// спрятана), а visualViewport даёт то, что реально видит пользователь — именно
+// этот размер должен получить контейнер MindAR, иначе камера и canvas
+// разъезжаются (полосы по краям + сбитая привязка контента к маркеру).
+function viewportSize() {
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+  const w = Math.round(vv?.width ?? window.innerWidth);
+  const h = Math.round(vv?.height ?? window.innerHeight);
+  return { w, h };
+}
+
 /**
  * Голая интеграция MindAR + three (не R3F — MindAR требует прямого доступа к
  * сцене/камере). Монтируется только после того, как пользователь нажал «Навести
@@ -57,6 +73,7 @@ export default function ARStage({
   onError,
 }: ARStageProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const debugRef = useRef<HTMLPreElement | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
   const mixerRef = useRef<any>(null);
   const isTrackingRef = useRef(false);
@@ -84,6 +101,70 @@ export default function ARStage({
     let scene: any = null;
     const disposables: Array<() => void> = [];
 
+    const debugOn =
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('ardebug');
+
+    // Жёстко задаём контейнеру размер видимой области в px. Без этого MindAR
+    // меряет clientWidth/clientHeight от вьюпорт-юнитов, которые на мобильных
+    // не совпадают с видимой областью — отсюда полосы и сдвиг привязки.
+    const syncContainerSize = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      const { w, h } = viewportSize();
+      if (w < 2 || h < 2) return;
+      if (el.style.width !== w + 'px') el.style.width = w + 'px';
+      if (el.style.height !== h + 'px') el.style.height = h + 'px';
+    };
+
+    const renderDebug = () => {
+      const box = debugRef.current;
+      if (!debugOn || !box) return;
+      box.style.display = 'block';
+      const el = containerRef.current;
+      const v: HTMLVideoElement | undefined = mindarThree?.video;
+      const c: HTMLCanvasElement | undefined = renderer?.domElement;
+      const cam = mindarThree?.camera;
+      const { w, h } = viewportSize();
+      box.textContent = [
+        'vv        ' + w + 'x' + h + '  dpr ' + window.devicePixelRatio,
+        'inner     ' + window.innerWidth + 'x' + window.innerHeight,
+        'container ' + el?.clientWidth + 'x' + el?.clientHeight,
+        'video css ' +
+          (v?.style.width || '-') +
+          ' x ' +
+          (v?.style.height || '-') +
+          ' @ ' +
+          (v?.style.left || '-') +
+          ',' +
+          (v?.style.top || '-'),
+        'video src ' + (v?.videoWidth || 0) + 'x' + (v?.videoHeight || 0),
+        'canvas    ' + (c?.style.width || '-') + ' x ' + (c?.style.height || '-'),
+        'camera    fov ' +
+          (cam?.fov?.toFixed ? cam.fov.toFixed(2) : '-') +
+          ' aspect ' +
+          (cam?.aspect?.toFixed ? cam.aspect.toFixed(3) : '-'),
+      ].join('\n');
+    };
+
+    // resize() у MindAR пересоздаёт буфер рендера, а visualViewport 'scroll'
+    // сыплется пачками — дёргаем только когда размер реально поменялся.
+    let lastW = 0;
+    let lastH = 0;
+    const syncAndResize = (force = false) => {
+      if (cancelled) return;
+      syncContainerSize();
+      const { w, h } = viewportSize();
+      if (!force && w === lastW && h === lastH) return;
+      lastW = w;
+      lastH = h;
+      try {
+        mindarThree?.resize();
+      } catch {}
+      renderDebug();
+    };
+    const forceResize = () => syncAndResize(true);
+
     async function init() {
       const cb = cbRef.current;
       cb.onProgress(0.05);
@@ -92,6 +173,10 @@ export default function ARStage({
         cb.onError('webgl');
         return;
       }
+
+      // Размер контейнера выставляем ДО создания MindARThree, чтобы самый
+      // первый внутренний resize() внутри start() увидел правильные размеры.
+      syncContainerSize();
 
       let MindARThree: any;
       let THREE: any;
@@ -103,7 +188,8 @@ export default function ARStage({
         return;
       }
       if (cancelled) return;
-      cb.onProgress(0.3);
+      cb.onProgress(0.25);
+      syncContainerSize();
 
       const { slug, version } = experience;
 
@@ -127,21 +213,27 @@ export default function ARStage({
       scene = mindarThree.scene;
       const camera = mindarThree.camera;
 
-      // мягкий свет, чтобы 3D-контент не был плоским (для VIDEO не мешает)
-      const hemi = new THREE.HemisphereLight(0xffffff, 0xbbc4d4, 1.1);
-      const dir = new THREE.DirectionalLight(0xffffff, 1.4);
-      dir.position.set(0.5, 1, 1);
-      scene.add(hemi, dir);
+      // Свет для 3D-контента (для VIDEO не мешает — там MeshBasicMaterial)
+      const hemi = new THREE.HemisphereLight(0xffffff, 0xbbc4d4, 1.15);
+      const key = new THREE.DirectionalLight(0xffffff, 1.5);
+      key.position.set(0.6, 1.2, 1.4);
+      const fill = new THREE.DirectionalLight(0xffffff, 0.6);
+      fill.position.set(-0.8, -0.4, 0.9);
+      scene.add(hemi, key, fill);
 
       const anchor = mindarThree.addAnchor(0);
 
+      let startAnimations: (() => void) | null = null;
       try {
-        await buildContent({
+        startAnimations = await buildContent({
           THREE,
           anchor,
           experience,
           videoElRef,
+          mixerRef,
           disposables,
+          onAssetProgress: (p: number) =>
+            cb.onProgress(0.25 + Math.max(0, Math.min(1, p)) * 0.45),
         });
       } catch (err) {
         console.error('[AR] content build failed', err);
@@ -154,9 +246,9 @@ export default function ARStage({
       anchor.onTargetFound = () => {
         isTrackingRef.current = true;
         cb.onTargetFound();
-        const video = videoElRef.current;
-        if (video && experience.autoplay) {
-          video.play().catch(() => {});
+        if (experience.autoplay) {
+          videoElRef.current?.play().catch(() => {});
+          startAnimations?.();
         }
       };
       anchor.onTargetLost = () => {
@@ -179,34 +271,60 @@ export default function ARStage({
         return;
       }
 
-      // MindAR меряет контейнер один раз внутри start(). На мобильных вьюпорт
-      // в этот момент ещё «прыгает» (адресная строка), из-за чего видео и canvas
-      // получают неправильный размер (полосы по краям). Пере-меряем после того,
-      // как раскладка устоялась, и на каждое изменение размера контейнера.
-      const applyResize = () => {
-        if (cancelled) return;
-        try {
-          mindarThree.resize();
-        } catch {}
-      };
-      applyResize();
-      requestAnimationFrame(applyResize);
-      const t1 = setTimeout(applyResize, 250);
-      const t2 = setTimeout(applyResize, 1000);
+      // MindAR меряет контейнер один раз внутри start(). На мобильных к этому
+      // моменту вьюпорт ещё «прыгает» (адресная строка), поэтому пере-меряем
+      // многократно: сразу, по кадру, по таймерам и на все события вьюпорта.
+      forceResize();
+      requestAnimationFrame(forceResize);
+      const timers = [100, 300, 800, 1600, 3000].map((ms) =>
+        setTimeout(forceResize, ms)
+      );
+      disposables.push(() => timers.forEach(clearTimeout));
+
+      // видео камеры получает реальные размеры асинхронно — на каждое событие
+      // пересчитываем раскладку и FOV
+      const camVideo: HTMLVideoElement | undefined = mindarThree.video;
+      if (camVideo) {
+        const events: Array<keyof HTMLVideoElementEventMap> = [
+          'loadedmetadata',
+          'playing',
+          'resize',
+        ];
+        for (const ev of events) {
+          camVideo.addEventListener(ev, forceResize);
+          disposables.push(() =>
+            camVideo.removeEventListener(ev, forceResize)
+          );
+        }
+      }
+
+      window.addEventListener('orientationchange', forceResize);
+      window.addEventListener('resize', forceResize);
       disposables.push(() => {
-        clearTimeout(t1);
-        clearTimeout(t2);
+        window.removeEventListener('orientationchange', forceResize);
+        window.removeEventListener('resize', forceResize);
       });
 
-      if (containerRef.current && 'ResizeObserver' in window) {
-        const ro = new ResizeObserver(applyResize);
-        ro.observe(containerRef.current);
-        disposables.push(() => ro.disconnect());
-      }
       const vv = window.visualViewport;
       if (vv) {
-        vv.addEventListener('resize', applyResize);
-        disposables.push(() => vv.removeEventListener('resize', applyResize));
+        const onVv = () => syncAndResize();
+        vv.addEventListener('resize', onVv);
+        vv.addEventListener('scroll', onVv);
+        disposables.push(() => {
+          vv.removeEventListener('resize', onVv);
+          vv.removeEventListener('scroll', onVv);
+        });
+      }
+
+      if (containerRef.current && 'ResizeObserver' in window) {
+        const ro = new ResizeObserver(() => {
+          try {
+            mindarThree?.resize();
+          } catch {}
+          renderDebug();
+        });
+        ro.observe(containerRef.current);
+        disposables.push(() => ro.disconnect());
       }
 
       cb.onProgress(1);
@@ -220,6 +338,12 @@ export default function ARStage({
         }
         renderer.render(scene, camera);
       });
+
+      if (debugOn) {
+        const iv = setInterval(renderDebug, 1000);
+        disposables.push(() => clearInterval(iv));
+        renderDebug();
+      }
     }
 
     init().catch((err) => {
@@ -292,24 +416,50 @@ export default function ARStage({
     }
   }, [soundOn]);
 
-  return <div ref={containerRef} className="absolute inset-0 overflow-hidden" />;
+  return (
+    <>
+      {/* fixed + явные px-размеры из visualViewport (см. syncContainerSize) */}
+      <div
+        ref={containerRef}
+        className="fixed left-0 top-0 overflow-hidden"
+        style={{ width: '100vw', height: '100vh' }}
+      />
+      {/* диагностика раскладки: открыть /ar/{slug}?ardebug=1 */}
+      <pre
+        ref={debugRef}
+        className="pointer-events-none fixed left-2 top-16 z-40 max-w-[92vw] whitespace-pre rounded bg-black/70 px-2 py-1 text-[10px] leading-tight text-lime-300"
+        style={{ display: 'none' }}
+      />
+    </>
+  );
 }
 
 // ---- построение контента по типу ------------------------------------------
 
+/**
+ * Строит контент опыта в группе якоря MindAR.
+ * Возвращает функцию запуска анимаций (для ANIMATION) либо null.
+ *
+ * Система координат группы якоря: маркер — плоскость шириной 1 в плоскости XY,
+ * центр в начале координат, +Z смотрит наружу из маркера.
+ */
 async function buildContent({
   THREE,
   anchor,
   experience,
   videoElRef,
+  mixerRef,
   disposables,
+  onAssetProgress,
 }: {
   THREE: any;
   anchor: any;
   experience: ARExperienceClient;
   videoElRef: React.MutableRefObject<HTMLVideoElement | null>;
+  mixerRef: React.MutableRefObject<any>;
   disposables: Array<() => void>;
-}) {
+  onAssetProgress: (p: number) => void;
+}): Promise<(() => void) | null> {
   const { slug, version, contentType } = experience;
 
   const applyTransform = (obj: any) => {
@@ -358,6 +508,7 @@ async function buildContent({
       );
       video.load();
     });
+    onAssetProgress(0.6);
 
     const markerAspect = await loadImageAspect(
       arAssetUrl(slug, 'marker', version)
@@ -421,11 +572,10 @@ async function buildContent({
           )
           .replace(
             '#include <dithering_fragment>',
-            `#include <dithering_fragment>
-             gl_FragColor.a *= texture2D( uArMask, vUv ).a;`
+            '#include <dithering_fragment>\n  gl_FragColor.a *= texture2D( uArMask, vUv ).a;'
           );
-        // если оба якоря не совпали (напр. сменилась версия three) — не
-        // вставляем битый шейдер, деградируем до прямоугольного видео
+        // если якоря не совпали (напр. сменилась версия three) — не вставляем
+        // битый шейдер, деградируем до прямоугольного видео
         if (
           patched.includes('uniform sampler2D uArMask') &&
           patched.includes('texture2D( uArMask, vUv )')
@@ -450,11 +600,131 @@ async function buildContent({
       geometry.dispose();
       material.dispose();
     });
-    return;
+    onAssetProgress(1);
+    return null;
   }
 
-  // MODEL3D / ANIMATION — реализуются в следующем этапе (см. ADMIN_GUIDE).
-  throw new Error(`content type ${contentType} not implemented yet`);
+  // ---- MODEL3D / ANIMATION: glTF-модель поверх маркера ----------------------
+
+  let GLTFLoader: any;
+  try {
+    GLTFLoader = await loadGltfLoaderClass();
+  } catch (err) {
+    console.error('[AR] GLTFLoader load failed', err);
+    throw new Error('gltf loader failed');
+  }
+
+  const modelUrl = arAssetUrl(slug, 'content', version);
+  const gltf: any = await Promise.race([
+    new Promise((resolve, reject) => {
+      new GLTFLoader().load(
+        modelUrl,
+        resolve,
+        (ev: ProgressEvent) => {
+          if (ev.lengthComputable && ev.total > 0) {
+            onAssetProgress((ev.loaded / ev.total) * 0.95);
+          }
+        },
+        reject
+      );
+    }),
+    new Promise((_resolve, reject) =>
+      setTimeout(() => reject(new Error('model load timeout')), 60000)
+    ),
+  ]);
+
+  const model = gltf?.scene || gltf?.scenes?.[0];
+  if (!model) throw new Error('glb has no scene');
+
+  // Нормализация: вписываем модель в куб со стороной 1 (= ширина маркера),
+  // центрируем по X/Z и ставим «на землю» (низ модели в 0 по Y). Благодаря
+  // этому любая модель, независимо от единиц в GLB, появляется соразмерной
+  // сувениру, а поле «Масштаб» в админке работает как множитель к этому.
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z) || 1;
+  const k = 1 / maxDim;
+  model.scale.setScalar(k);
+  model.position.set(-center.x * k, -box.min.y * k, -center.z * k);
+
+  model.traverse((obj: any) => {
+    if (obj.isMesh) {
+      // маркер маленький, а модель может выходить за его габариты —
+      // отсечение по фрустуму иногда прячет её целиком
+      obj.frustumCulled = false;
+    }
+  });
+
+  // glTF — Y-up, а «наружу из маркера» у MindAR это +Z. Поворот на +90° по X
+  // ставит модель вертикально на плоскость маркера («голограмма на открытке»).
+  // Поля поворота из БД применяются поверх, поэтому rotationX = 0 — это уже
+  // правильно стоящая модель, а не лежащая.
+  const stand = new THREE.Group();
+  stand.rotation.x = Math.PI / 2;
+  stand.add(model);
+
+  const holder = new THREE.Group();
+  holder.add(stand);
+  applyTransform(holder);
+  anchor.group.add(holder);
+
+  let startAnimations: (() => void) | null = null;
+  if (contentType === 'ANIMATION') {
+    const clips: any[] = gltf.animations || [];
+    if (clips.length === 0) {
+      console.warn('[AR] GLB has no animation clips — showing static model');
+    } else {
+      const mixer = new THREE.AnimationMixer(model);
+      const actions = clips.map((clip: any) => {
+        const action = mixer.clipAction(clip);
+        action.setLoop(
+          experience.loop ? THREE.LoopRepeat : THREE.LoopOnce,
+          Infinity
+        );
+        action.clampWhenFinished = !experience.loop;
+        return action;
+      });
+      mixerRef.current = mixer;
+      startAnimations = () => {
+        actions.forEach((a: any) => {
+          if (!a.isRunning()) a.reset().play();
+        });
+      };
+      disposables.push(() => {
+        try {
+          mixer.stopAllAction();
+          mixer.uncacheRoot(model);
+        } catch {}
+      });
+    }
+  }
+
+  disposables.push(() => {
+    model.traverse((obj: any) => {
+      obj.geometry?.dispose?.();
+      const mat = obj.material;
+      if (mat) {
+        (Array.isArray(mat) ? mat : [mat]).forEach((m: any) => {
+          for (const mapKey of [
+            'map',
+            'normalMap',
+            'roughnessMap',
+            'metalnessMap',
+            'emissiveMap',
+            'aoMap',
+            'alphaMap',
+          ]) {
+            m?.[mapKey]?.dispose?.();
+          }
+          m?.dispose?.();
+        });
+      }
+    });
+  });
+
+  onAssetProgress(1);
+  return startAnimations;
 }
 
 function classifyStartError(err: any): ARErrorKind {
