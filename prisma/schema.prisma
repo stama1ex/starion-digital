@@ -266,7 +266,6 @@ model ARExperience {
   contentUrl  String // путь в Dropbox к видео (VIDEO) или GLB (MODEL3D/ANIMATION)
   maskUrl     String? // путь в Dropbox к альфа-маске-силуэту (PNG, белое = видно) — для фигурных магнитов, тип VIDEO
   textureUrl  String? // путь в Dropbox к текстуре-атласу для GLB без встроенных текстур (MODEL3D/ANIMATION)
-  shortCode   String?       @unique // короткий непрозрачный код для QR: /a/{code} — короче QR и не раскрывает название
   socials     Json? // ссылки на соцсети: {instagram, facebook, tiktok, youtube, telegram, whatsapp, website, email, phone} — показываются кнопками поверх AR
   audioTracks Json? // озвучки по языкам: [{lang, label, path}] — если заданы, звук видео глушится и играет выбранная дорожка
   posterUrl   String? // путь в Dropbox к превью (экран загрузки, og:image)

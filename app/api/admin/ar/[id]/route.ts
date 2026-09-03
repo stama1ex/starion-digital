@@ -7,7 +7,6 @@ import { AR_CONTENT_TYPES, AR_SLUG_PATTERN, slugifyAr } from '@/lib/ar/constants
 import { pickARSettings } from '@/lib/ar/payload';
 import { cleanAudioTracks } from '@/lib/ar/constants';
 import { cleanSocials } from '@/lib/ar/socials';
-import { generateShortCode } from '@/lib/ar/short-code';
 
 // PATCH — обновить AR-опыт (частично)
 export async function PATCH(
@@ -96,12 +95,6 @@ export async function PATCH(
     }
     if (data.audioTracks !== undefined) {
       updateData.audioTracks = cleanAudioTracks(data.audioTracks) ?? Prisma.DbNull;
-    }
-
-    // Старым записям кода могло не достаться (созданы до появления короткой
-    // ссылки) — выдаём при первом же сохранении.
-    if (!existing.shortCode) {
-      updateData.shortCode = generateShortCode();
     }
 
     if (data.productId !== undefined) {

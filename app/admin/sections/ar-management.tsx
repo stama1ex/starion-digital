@@ -66,7 +66,7 @@ import {
   AR_SOCIAL_META,
   type ARSocials,
 } from '@/lib/ar/socials';
-import { ArQrDialog, arShortUrl } from '@/components/ar/ar-qr-dialog';
+import { ArQrDialog, arUrl } from '@/components/ar/ar-qr-dialog';
 import { compileMindFile } from '@/lib/ar/compile-marker';
 
 interface FormState {
@@ -183,11 +183,9 @@ export default function ARManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
-  const [qrFor, setQrFor] = useState<{
-    slug: string;
-    shortCode: string | null;
-    title: string;
-  } | null>(null);
+  const [qrFor, setQrFor] = useState<{ slug: string; title: string } | null>(
+    null
+  );
   const [filterContentType, setFilterContentType] = useState<string>('ALL');
   const [filterProductType, setFilterProductType] = useState<string>('ALL');
   // файл маркера, выбранный в этой сессии — чтобы компилировать .mind без
@@ -353,7 +351,7 @@ export default function ARManagement() {
 
   const copyLink = async (exp: any) => {
     try {
-      await navigator.clipboard.writeText(arShortUrl(exp.slug, exp.shortCode));
+      await navigator.clipboard.writeText(arUrl(exp.slug));
       toast.success('Ссылка скопирована');
     } catch {
       toast.error('Не удалось скопировать');
@@ -495,11 +493,8 @@ export default function ARManagement() {
                   <ArThumb src={exp.thumbUrl} alt={exp.title} />
                   <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                   <span className="font-semibold">{exp.title}</span>
-                  <span
-                    className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs"
-                    title={`/ar/${exp.slug}`}
-                  >
-                    {exp.shortCode ? `/a/${exp.shortCode}` : `/ar/${exp.slug}`}
+                  <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">
+                    /ar/{exp.slug}
                   </span>
                   <span className="rounded border px-1.5 py-0.5 text-xs">
                     {AR_CONTENT_TYPE_LABELS[exp.contentType as ARContentType]}
@@ -526,13 +521,7 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    onClick={() =>
-                      setQrFor({
-                        slug: exp.slug,
-                        shortCode: exp.shortCode ?? null,
-                        title: exp.title,
-                      })
-                    }
+                    onClick={() => setQrFor({ slug: exp.slug, title: exp.title })}
                   >
                     <QrCode size={14} />
                     <span className="hidden sm:inline">QR</span>
@@ -628,10 +617,8 @@ export default function ARManagement() {
                 placeholder="chisinau-arch"
               />
               <p className="mt-1 text-xs text-muted-foreground">
-                Прямой адрес: /ar/{form.slug || '…'}. В QR уходит не он, а
-                короткий обезличенный код /a/xxxxxxx — он выдаётся при
-                сохранении, чтобы на чужих сувенирах не читался наш домен и
-                название товара.
+                Ссылка: /ar/{form.slug || '…'}. Домен берётся из настройки
+                NEXT_PUBLIC_AR_SHORT_URL, если она задана.
               </p>
             </div>
 
@@ -1009,7 +996,6 @@ export default function ARManagement() {
           open={!!qrFor}
           onOpenChange={(o) => !o && setQrFor(null)}
           slug={qrFor.slug}
-          shortCode={qrFor.shortCode}
           title={qrFor.title}
         />
       )}

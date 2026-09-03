@@ -6,7 +6,6 @@ import { AR_CONTENT_TYPES, AR_SLUG_PATTERN, slugifyAr } from '@/lib/ar/constants
 import { pickARSettings } from '@/lib/ar/payload';
 import { cleanAudioTracks } from '@/lib/ar/constants';
 import { cleanSocials } from '@/lib/ar/socials';
-import { generateShortCode } from '@/lib/ar/short-code';
 import { resolveARAssetUrl } from '@/lib/ar/server';
 
 // GET — список всех AR-опытов (для админки)
@@ -106,22 +105,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Короткий код для QR. Коллизия при 32^7 вариантов практически невозможна,
-    // но колонка уникальная — поэтому пара повторов на всякий случай.
-    let shortCode = generateShortCode();
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const taken = await prisma.aRExperience.findUnique({
-        where: { shortCode },
-        select: { id: true },
-      });
-      if (!taken) break;
-      shortCode = generateShortCode();
-    }
-
     const experience = await prisma.aRExperience.create({
       data: {
         slug,
-        shortCode,
         title,
         contentType: data.contentType,
         markerUrl: String(data.markerUrl),

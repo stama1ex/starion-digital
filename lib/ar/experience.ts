@@ -5,9 +5,8 @@ import { cleanAudioTracks } from './constants';
 import { cleanSocials } from './socials';
 import type { ARExperienceClient } from './types';
 
-// Общая загрузка/маппинг опыта для обеих публичных страниц: /ar/{slug} и
-// короткой /a/{code}. Обёрнуто в React cache(), поэтому generateMetadata и сам
-// рендер страницы делят один запрос.
+// Загрузка/маппинг опыта для публичной страницы /ar/{slug}. Обёрнуто в React
+// cache(), поэтому generateMetadata и сам рендер страницы делят один запрос.
 export const loadARExperience = cache(
   async (where: Prisma.ARExperienceWhereUniqueInput) => {
     try {
@@ -23,9 +22,6 @@ export const loadARExperience = cache(
 
 export const loadARExperienceBySlug = (slug: string) =>
   loadARExperience({ slug });
-
-export const loadARExperienceByShortCode = (shortCode: string) =>
-  loadARExperience({ shortCode });
 
 type LoadedExperience = NonNullable<
   Awaited<ReturnType<typeof loadARExperience>>
