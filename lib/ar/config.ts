@@ -26,6 +26,10 @@ const CDN_BASE = process.env.NEXT_PUBLIC_AR_CDN_BASE || 'https://esm.sh';
 export const AR_MINDAR_URL = `${CDN_BASE}/mind-ar@${AR_MINDAR_VERSION}/dist/mindar-image-three.prod.js?deps=three@${AR_THREE_VERSION}&target=es2022`;
 export const AR_THREE_URL = `${CDN_BASE}/three@${AR_THREE_VERSION}/es2022/three.mjs`;
 export const AR_GLTF_LOADER_URL = `${CDN_BASE}/three@${AR_THREE_VERSION}/es2022/addons/loaders/GLTFLoader.mjs`;
+// Сборка MindAR без three — нужна только ради класса Compiler (тот самый, что
+// крутится на официальной странице веб-компилятора). Грузится в админке по
+// требованию, чтобы собирать .mind прямо в браузере.
+export const AR_MINDAR_COMPILER_URL = `${CDN_BASE}/mind-ar@${AR_MINDAR_VERSION}/dist/mindar-image.prod.js?target=es2022`;
 
 export interface LoadedMindAR {
   MindARThree: any;
@@ -80,6 +84,25 @@ export function loadGltfLoaderClass(): Promise<any> {
       });
   }
   return gltfLoaderCache;
+}
+
+let compilerCache: Promise<any> | null = null;
+
+// Класс Compiler из браузерной сборки MindAR. Компиляция идёт в Web Worker
+// (он инлайнится в бандл), поэтому интерфейс админки не подвисает.
+export function loadMindArCompilerClass(): Promise<any> {
+  if (!compilerCache) {
+    compilerCache = importExternal(AR_MINDAR_COMPILER_URL)
+      .then((m) => {
+        if (!m?.Compiler) throw new Error('Compiler export missing');
+        return m.Compiler;
+      })
+      .catch((err) => {
+        compilerCache = null;
+        throw err;
+      });
+  }
+  return compilerCache;
 }
 
 // Параметры сглаживания позы маркера (OneEuroFilter внутри MindAR).

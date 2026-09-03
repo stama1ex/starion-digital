@@ -37,6 +37,7 @@ import {
   EyeOff,
   ScanEye,
   Image as ImageIcon,
+  Wand2,
 } from 'lucide-react';
 import type { ARContentType } from '@prisma/client';
 import {
@@ -58,6 +59,7 @@ import {
   type ARAssetKind,
 } from '@/lib/ar/constants';
 import { ArQrDialog } from '@/components/ar/ar-qr-dialog';
+import { compileMindFile } from '@/lib/ar/compile-marker';
 
 interface FormState {
   title: string;
@@ -174,12 +176,18 @@ export default function ARManagement() {
   );
   const [filterContentType, setFilterContentType] = useState<string>('ALL');
   const [filterProductType, setFilterProductType] = useState<string>('ALL');
+  // файл маркера, выбранный в этой сессии — чтобы компилировать .mind без
+  // повторного выбора того же изображения
+  const [markerFile, setMarkerFile] = useState<File | null>(null);
+  const [compiling, setCompiling] = useState(false);
+  const [compileProgress, setCompileProgress] = useState(0);
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
 
   const openNew = () => {
     setForm(emptyForm());
     setEditingId(null);
+    setMarkerFile(null);
     setDialogOpen(true);
   };
 
@@ -209,7 +217,47 @@ export default function ARManagement() {
       isActive: exp.isActive,
     });
     setEditingId(exp.id);
+    setMarkerFile(null);
     setDialogOpen(true);
+  };
+
+  // Выбор картинки через скрытый input, когда маркер ещё не грузили в этой сессии
+  const pickImageFile = () =>
+    new Promise<File | null>((resolve) => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/webp';
+      input.onchange = () => resolve(input.files?.[0] ?? null);
+      input.click();
+    });
+
+  const handleCompileMind = async () => {
+    if (!form.title.trim()) {
+      toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+      return;
+    }
+    const file = markerFile ?? (await pickImageFile());
+    if (!file) return;
+
+    setCompiling(true);
+    setCompileProgress(0);
+    try {
+      const mind = await compileMindFile(
+        file,
+        setCompileProgress,
+        slugifyAr(form.slug || form.title) || 'marker'
+      );
+      const path = await uploadArAsset('mind', mind, form.title);
+      patch({ mindFileUrl: path });
+      toast.success('.mind скомпилирован и загружен');
+    } catch (error: any) {
+      console.error('[AR] compile failed', error);
+      toast.error(
+        'Не удалось скомпилировать .mind: ' + (error?.message || 'ошибка')
+      );
+    } finally {
+      setCompiling(false);
+    }
   };
 
   const handleSave = async () => {
@@ -615,16 +663,44 @@ export default function ARManagement() {
               value={form.markerUrl}
               onChange={(path) => patch({ markerUrl: path })}
               title={form.title}
+              onFilePicked={setMarkerFile}
               preview
             />
-            <AssetField
-              kind="mind"
-              label=".mind файл (скомпилированный маркер)"
-              hint="scripts/compile-marker.ts или веб-компилятор MindAR."
-              value={form.mindFileUrl}
-              onChange={(path) => patch({ mindFileUrl: path })}
-              title={form.title}
-            />
+            <div>
+              <AssetField
+                kind="mind"
+                label=".mind файл (скомпилированный маркер)"
+                value={form.mindFileUrl}
+                onChange={(path) => patch({ mindFileUrl: path })}
+                title={form.title}
+              />
+              <div className="mt-2 flex flex-col gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCompileMind}
+                  disabled={compiling}
+                  className="w-fit gap-2"
+                >
+                  {compiling ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wand2 size={14} />
+                  )}
+                  {compiling
+                    ? `Компиляция… ${compileProgress}%`
+                    : markerFile
+                      ? 'Скомпилировать из загруженного маркера'
+                      : 'Скомпилировать из изображения'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Собирает .mind прямо в браузере и сразу загружает — ходить на
+                  веб-компилятор MindAR не нужно. Занимает от нескольких секунд
+                  до минуты, вкладку не закрывайте.
+                </p>
+              </div>
+            </div>
             <AssetField
               kind="content"
               label={
@@ -796,6 +872,7 @@ function AssetField({
   onChange,
   preview = false,
   title,
+  onFilePicked,
 }: {
   kind: ARAssetKind;
   label: string;
@@ -804,6 +881,7 @@ function AssetField({
   onChange: (path: string) => void;
   preview?: boolean;
   title: string;
+  onFilePicked?: (file: File) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -847,6 +925,7 @@ function AssetField({
     try {
       const path = await uploadArAsset(kind, file, title);
       onChange(path);
+      onFilePicked?.(file);
       toast.success('Загружено');
     } catch (error: any) {
       toast.error(error?.message || 'Ошибка загрузки');
