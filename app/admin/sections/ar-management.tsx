@@ -67,6 +67,7 @@ import {
   type ARSocials,
 } from '@/lib/ar/socials';
 import { ArQrDialog, arUrl } from '@/components/ar/ar-qr-dialog';
+import { AR_DOMAIN_URL } from '@/lib/ar/domain';
 import { compileMindFile } from '@/lib/ar/compile-marker';
 
 interface FormState {
@@ -184,9 +185,11 @@ export default function ARManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
-  const [qrFor, setQrFor] = useState<{ slug: string; title: string } | null>(
-    null
-  );
+  const [qrFor, setQrFor] = useState<{
+    slug: string;
+    whiteLabel: boolean;
+    title: string;
+  } | null>(null);
   const [filterContentType, setFilterContentType] = useState<string>('ALL');
   const [filterProductType, setFilterProductType] = useState<string>('ALL');
   // файл маркера, выбранный в этой сессии — чтобы компилировать .mind без
@@ -353,7 +356,7 @@ export default function ARManagement() {
 
   const copyLink = async (exp: any) => {
     try {
-      await navigator.clipboard.writeText(arUrl(exp.slug));
+      await navigator.clipboard.writeText(arUrl(exp.slug, exp.whiteLabel));
       toast.success('Ссылка скопирована');
     } catch {
       toast.error('Не удалось скопировать');
@@ -523,7 +526,13 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    onClick={() => setQrFor({ slug: exp.slug, title: exp.title })}
+                    onClick={() =>
+                      setQrFor({
+                        slug: exp.slug,
+                        whiteLabel: !!exp.whiteLabel,
+                        title: exp.title,
+                      })
+                    }
                   >
                     <QrCode size={14} />
                     <span className="hidden sm:inline">QR</span>
@@ -618,10 +627,16 @@ export default function ARManagement() {
                 }
                 placeholder="chisinau-arch"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ссылка: /ar/{form.slug || '…'}. Домен берётся из настройки
-                NEXT_PUBLIC_AR_SHORT_URL, если она задана.
+              <p className="mt-1 font-mono text-xs break-all text-muted-foreground">
+                {arUrl(form.slug || '…', form.whiteLabel)}
               </p>
+              {form.whiteLabel && !AR_DOMAIN_URL && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+                  Отдельный домен не настроен (NEXT_PUBLIC_AR_SHORT_URL), поэтому
+                  в QR попадёт основной адрес. Сам вьюер при этом уже без
+                  упоминаний Starion.
+                </p>
+              )}
             </div>
 
             <div>
@@ -1012,6 +1027,7 @@ export default function ARManagement() {
           open={!!qrFor}
           onOpenChange={(o) => !o && setQrFor(null)}
           slug={qrFor.slug}
+          whiteLabel={qrFor.whiteLabel}
           title={qrFor.title}
         />
       )}

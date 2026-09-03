@@ -15,14 +15,7 @@
 // База CDN переопределяется через NEXT_PUBLIC_AR_CDN_BASE, если понадобится
 // self-hosting (см. ADMIN_GUIDE).
 
-// Домен, который уходит в QR на сувенирах. Сувениры делаются и под чужим
-// брендом, поэтому приложение может обслуживаться на отдельном домене (в Vercel
-// он добавляется к тому же проекту — это не редирект, страница реально живёт на
-// нём). Тогда основной адрес в QR не попадает. Пусто — берётся origin страницы,
-// на которой генерируется QR.
-export const AR_SHORT_URL_BASE = (
-  process.env.NEXT_PUBLIC_AR_SHORT_URL || ''
-).replace(/\/+$/, '');
+// Домен для QR живёт в lib/ar/domain.ts — он же нужен middleware.
 
 export const AR_MINDAR_VERSION = '1.2.5';
 export const AR_THREE_VERSION = '0.144.0';
