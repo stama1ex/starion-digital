@@ -134,7 +134,7 @@ export default function ARStage({
         (v?.style.width || '').includes('NaN') ||
         (v?.style.height || '').includes('NaN');
       box.textContent = [
-        'ardebug v4' + (bad ? '   !! NaN in video css !!' : ''),
+        'ardebug v6' + (bad ? '   !! NaN in video css !!' : ''),
         'vv        ' + w + 'x' + h + '  dpr ' + window.devicePixelRatio,
         'inner     ' + window.innerWidth + 'x' + window.innerHeight,
         'container ' + el?.clientWidth + 'x' + el?.clientHeight,
@@ -155,6 +155,16 @@ export default function ARStage({
         'resizes   ' +
           resizeCount +
           (lastResizeError ? '  ERR ' + lastResizeError : ''),
+        'video box ' +
+          (v
+            ? Math.round(v.getBoundingClientRect().width) +
+              'x' +
+              Math.round(v.getBoundingClientRect().height) +
+              ' fit ' +
+              getComputedStyle(v).objectFit
+            : '-'),
+        'marker    ' + (debugInfo.marker || '-'),
+        'plane     ' + (debugInfo.plane || '-'),
       ].join('\n');
     };
 
@@ -164,6 +174,7 @@ export default function ARStage({
     let lastH = 0;
     let resizeCount = 0;
     let lastResizeError = '';
+    const debugInfo: { marker?: string; plane?: string } = {};
     const syncAndResize = (force = false) => {
       if (cancelled) return;
       syncContainerSize();
@@ -251,6 +262,7 @@ export default function ARStage({
           videoElRef,
           mixerRef,
           disposables,
+          debugInfo,
           onAssetProgress: (p: number) =>
             cb.onProgress(0.25 + Math.max(0, Math.min(1, p)) * 0.45),
         });
@@ -276,12 +288,33 @@ export default function ARStage({
         videoElRef.current?.pause();
       };
 
+      // MindAR запрашивает камеру как { facingMode: 'environment' } без единого
+      // требования к разрешению — Android на этом охотно отдаёт 480x640 (0.3 МП).
+      // Для image-tracking это мало: меньше точек-признаков => грубая и
+      // «плавающая» привязка. Своих опций для конструктора у MindAR нет,
+      // поэтому на время start() подмешиваем желаемое разрешение в getUserMedia
+      // и сразу возвращаем оригинал.
+      const media = navigator.mediaDevices;
+      const originalGetUserMedia = media.getUserMedia.bind(media);
+      media.getUserMedia = (constraints?: MediaStreamConstraints) => {
+        if (constraints?.video && typeof constraints.video === 'object') {
+          Object.assign(constraints.video, {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 },
+          });
+        }
+        return originalGetUserMedia(constraints);
+      };
+
       try {
         await mindarThree.start();
       } catch (err: any) {
         console.error('[AR] mindar start failed', err);
         cb.onError(classifyStartError(err));
         return;
+      } finally {
+        media.getUserMedia = originalGetUserMedia;
       }
       if (cancelled) {
         try {
@@ -460,7 +493,7 @@ export default function ARStage({
       {/* fixed + явные px-размеры из visualViewport (см. syncContainerSize) */}
       <div
         ref={containerRef}
-        className="fixed left-0 top-0 overflow-hidden"
+        className="ar-stage fixed left-0 top-0 overflow-hidden"
         style={{ width: '100vw', height: '100vh' }}
       />
       {/* диагностика раскладки: открыть /ar/{slug}?ardebug=1 */}
@@ -489,6 +522,7 @@ async function buildContent({
   videoElRef,
   mixerRef,
   disposables,
+  debugInfo,
   onAssetProgress,
 }: {
   THREE: any;
@@ -497,6 +531,7 @@ async function buildContent({
   videoElRef: React.MutableRefObject<HTMLVideoElement | null>;
   mixerRef: React.MutableRefObject<any>;
   disposables: Array<() => void>;
+  debugInfo: { marker?: string; plane?: string };
   onAssetProgress: (p: number) => void;
 }): Promise<(() => void) | null> {
   const { slug, version, contentType } = experience;
@@ -559,6 +594,13 @@ async function buildContent({
     // В системе координат MindAR ширина маркера = 1
     const width = 1;
     const height = 1 / markerAspect;
+    debugInfo.marker = 'aspect ' + markerAspect.toFixed(3);
+    debugInfo.plane =
+      width.toFixed(2) +
+      'x' +
+      height.toFixed(2) +
+      ' scale ' +
+      (experience.scale || 1);
 
     const texture = new THREE.VideoTexture(video);
     if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
