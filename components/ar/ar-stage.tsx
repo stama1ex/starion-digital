@@ -101,13 +101,13 @@ export default function ARStage({
     let scene: any = null;
     const disposables: Array<() => void> = [];
 
-    // Панель диагностики раскладки: всегда в dev (`npm run dev` / `dev:https`),
-    // в проде — только по ?ardebug=1. Так на телефоне ничего не нужно
-    // дописывать в адрес, чтобы увидеть реальные размеры.
+    // Панель диагностики раскладки — выключена, включается только вручную:
+    // /ar/{slug}?ardebug=1. Пригодится, если на каком-то устройстве кадр
+    // камеры снова поедет: показывает реальные размеры вьюпорта, контейнера,
+    // видео и canvas, а также fov/aspect камеры и габариты плоскости контента.
     const debugOn =
       typeof window !== 'undefined' &&
-      (process.env.NODE_ENV !== 'production' ||
-        new URLSearchParams(window.location.search).has('ardebug'));
+      new URLSearchParams(window.location.search).has('ardebug');
 
     // Жёстко задаём контейнеру размер видимой области в px. Без этого MindAR
     // меряет clientWidth/clientHeight от вьюпорт-юнитов, которые на мобильных
