@@ -101,9 +101,13 @@ export default function ARStage({
     let scene: any = null;
     const disposables: Array<() => void> = [];
 
+    // Панель диагностики раскладки: всегда в dev (`npm run dev` / `dev:https`),
+    // в проде — только по ?ardebug=1. Так на телефоне ничего не нужно
+    // дописывать в адрес, чтобы увидеть реальные размеры.
     const debugOn =
       typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).has('ardebug');
+      (process.env.NODE_ENV !== 'production' ||
+        new URLSearchParams(window.location.search).has('ardebug'));
 
     // Жёстко задаём контейнеру размер видимой области в px. Без этого MindAR
     // меряет clientWidth/clientHeight от вьюпорт-юнитов, которые на мобильных
@@ -130,7 +134,7 @@ export default function ARStage({
         (v?.style.width || '').includes('NaN') ||
         (v?.style.height || '').includes('NaN');
       box.textContent = [
-        'ardebug v2' + (bad ? '   !! NaN in video css !!' : ''),
+        'ardebug v4' + (bad ? '   !! NaN in video css !!' : ''),
         'vv        ' + w + 'x' + h + '  dpr ' + window.devicePixelRatio,
         'inner     ' + window.innerWidth + 'x' + window.innerHeight,
         'container ' + el?.clientWidth + 'x' + el?.clientHeight,
@@ -148,6 +152,9 @@ export default function ARStage({
           (cam?.fov?.toFixed ? cam.fov.toFixed(2) : '-') +
           ' aspect ' +
           (cam?.aspect?.toFixed ? cam.aspect.toFixed(3) : '-'),
+        'resizes   ' +
+          resizeCount +
+          (lastResizeError ? '  ERR ' + lastResizeError : ''),
       ].join('\n');
     };
 
@@ -155,6 +162,8 @@ export default function ARStage({
     // сыплется пачками — дёргаем только когда размер реально поменялся.
     let lastW = 0;
     let lastH = 0;
+    let resizeCount = 0;
+    let lastResizeError = '';
     const syncAndResize = (force = false) => {
       if (cancelled) return;
       syncContainerSize();
@@ -164,7 +173,13 @@ export default function ARStage({
       lastH = h;
       try {
         mindarThree?.resize();
-      } catch {}
+        resizeCount++;
+      } catch (err: any) {
+        // молчаливый провал resize() = камера навсегда с неправильным кадром,
+        // поэтому показываем причину в панели диагностики
+        lastResizeError = String(err?.message || err);
+        console.error('[AR] mindar resize failed', err);
+      }
       renderDebug();
     };
     const forceResize = () => syncAndResize(true);
@@ -451,7 +466,7 @@ export default function ARStage({
       {/* диагностика раскладки: открыть /ar/{slug}?ardebug=1 */}
       <pre
         ref={debugRef}
-        className="pointer-events-none fixed left-2 top-16 z-40 max-w-[92vw] whitespace-pre rounded bg-black/70 px-2 py-1 text-[10px] leading-tight text-lime-300"
+        className="pointer-events-none fixed left-1 top-14 z-40 max-w-[98vw] whitespace-pre rounded bg-black/85 px-2 py-1 text-[11px] font-bold leading-snug text-lime-300"
         style={{ display: 'none' }}
       />
     </>
