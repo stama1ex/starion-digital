@@ -115,10 +115,16 @@ export async function GET(
   if (!headers.has('accept-ranges') && kind === 'content') {
     headers.set('accept-ranges', 'bytes');
   }
+  // URL версионирован меткой updatedAt (?v=...), то есть адрес меняется вместе
+  // с содержимым — значит ответ можно объявить неизменяемым и не перепроверять.
   // Первое сканирование оплачивает проксирование, дальше отдаёт CDN Vercel.
+  // Без ?v= (прямой заход) остаёмся на осторожном коротком кэше.
+  const versioned = !!request.nextUrl.searchParams.get('v');
   headers.set(
     'cache-control',
-    'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
+    versioned
+      ? 'public, max-age=31536000, s-maxage=31536000, immutable'
+      : 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'
   );
 
   return new NextResponse(upstream.body, {

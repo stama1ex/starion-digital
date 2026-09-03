@@ -196,7 +196,7 @@ export default function ARViewer({
         type="button"
         onClick={handleClose}
         aria-label={t('close')}
-        className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/45 backdrop-blur transition hover:bg-black/65"
+        className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 transition hover:bg-black/75"
       >
         <X className="h-5 w-5" />
       </button>
@@ -246,7 +246,7 @@ export default function ARViewer({
 
       {/* ---------- ЗАГРУЗКА ---------- */}
       {phase === 'loading' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/70 px-8 text-center backdrop-blur-sm">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/85 px-8 text-center">
           <Loader2 className="h-9 w-9 animate-spin text-white/80" />
           <div className="space-y-3">
             <p className="text-sm text-white/80">
@@ -275,7 +275,7 @@ export default function ARViewer({
       {phase === 'scanning' && (
         <div className="pointer-events-none absolute inset-0 z-20 flex flex-col">
           <div className="flex justify-center px-6 pt-[calc(env(safe-area-inset-top)+4rem)]">
-            <p className="rounded-full bg-black/45 px-4 py-2 text-sm text-white/90 backdrop-blur">
+            <p className="rounded-full bg-black/60 px-4 py-2 text-sm text-white/90">
               {t('scanning.hint')}
             </p>
           </div>
@@ -313,7 +313,7 @@ export default function ARViewer({
 
       {/* ---------- ОШИБКА ---------- */}
       {phase === 'error' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/80 px-8 text-center backdrop-blur">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/90 px-8 text-center">
           <div className="grid h-14 w-14 place-items-center rounded-full bg-white/10">
             <Camera className="h-7 w-7 text-white/70" />
           </div>
@@ -360,7 +360,7 @@ function BottomBar({
     <div className="pointer-events-auto flex items-center justify-between gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
       <a
         href={catalogHref}
-        className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20"
+        className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/30"
       >
         {t('cta.catalog')}
         <ArrowRight className="h-4 w-4" />
@@ -370,7 +370,7 @@ function BottomBar({
           type="button"
           onClick={onToggleSound}
           aria-label={soundOn ? t('sound.off') : t('sound.on')}
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/12 backdrop-blur transition hover:bg-white/20"
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/20 transition hover:bg-white/30"
         >
           {soundOn ? (
             <Volume2 className="h-5 w-5" />

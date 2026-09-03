@@ -246,6 +246,22 @@ export default function ARStage({
 
       const { slug, version } = experience;
 
+      // MindAR вешает свой resize-слушатель на window прямо в конструкторе и
+      // нигде его не снимает — ссылку на bound-функцию он не хранит, поэтому
+      // сами снять её потом нельзя. Без этого каждый монтаж вьюера навсегда
+      // удерживает всю AR-сцену. Перехватываем регистрацию, чтобы снять при
+      // размонтировании.
+      const captured: Array<[string, EventListenerOrEventListenerObject]> = [];
+      const originalAddEventListener = window.addEventListener.bind(window);
+      window.addEventListener = ((
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+      ) => {
+        captured.push([type, listener]);
+        return originalAddEventListener(type, listener, options);
+      }) as typeof window.addEventListener;
+
       try {
         mindarThree = new MindARThree({
           container: containerRef.current,
@@ -260,11 +276,26 @@ export default function ARStage({
         console.error('[AR] MindARThree ctor failed', err);
         cb.onError('unknown');
         return;
+      } finally {
+        window.addEventListener = originalAddEventListener;
       }
+      disposables.push(() => {
+        for (const [type, listener] of captured) {
+          window.removeEventListener(type, listener);
+        }
+      });
 
       renderer = mindarThree.renderer;
       scene = mindarThree.scene;
       const camera = mindarThree.camera;
+
+      // MindAR ставит pixelRatio = devicePixelRatio (на телефоне это 3), то есть
+      // прозрачный оверлей рисуется в родном разрешении панели — 2.6 Мпикс,
+      // которые каждый кадр чистятся и вычитываются композитором ради одного
+      // квада. Ограничиваем: раскладка и привязка не затрагиваются, потому что
+      // resize() у MindAR считает fov/aspect только из CSS-размеров контейнера,
+      // а setSize сам домножает на pixelRatio.
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
       // Свет для 3D-контента (для VIDEO не мешает — там MeshBasicMaterial)
       const hemi = new THREE.HemisphereLight(0xffffff, 0xbbc4d4, 1.15);
@@ -296,6 +327,19 @@ export default function ARStage({
       }
       if (cancelled) return;
       cb.onProgress(0.7);
+
+      // Материал компилируется лениво — в первом кадре, где меш реально
+      // отрисован, то есть ровно в момент захвата маркера. В three r144 линковка
+      // сопровождается блокирующим getProgramParameter, и на Android это
+      // 30-150 мс рывка именно там, где нужна плавность. Компилируем заранее.
+      try {
+        const wasVisible = anchor.group.visible;
+        anchor.group.visible = true;
+        renderer.compile(scene, camera);
+        anchor.group.visible = wasVisible;
+      } catch (err) {
+        console.warn('[AR] shader precompile skipped', err);
+      }
 
       anchor.onTargetFound = () => {
         isTrackingRef.current = true;
@@ -419,10 +463,22 @@ export default function ARStage({
       cb.onScanning();
 
       const clock = new THREE.Clock();
+      // Пока маркер не найден, сцена пуста, но кадр всё равно чистился и
+      // вычитывался композитором — это отнимало время у распознавания, которое
+      // крутится в том же rAF. Рисуем только когда есть что показать; ещё пара
+      // кадров после потери маркера нужна, чтобы стереть последний показанный
+      // (при preserveDrawingBuffer=false композитор иначе держит старую картинку).
+      let flushFrames = 2;
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
-        if (mixerRef.current && isTrackingRef.current) {
-          mixerRef.current.update(delta);
+        const visible = anchor.group.visible;
+        if (visible) {
+          if (mixerRef.current) mixerRef.current.update(delta);
+          flushFrames = 2;
+        } else if (flushFrames <= 0) {
+          return;
+        } else {
+          flushFrames--;
         }
         renderer.render(scene, camera);
       });
