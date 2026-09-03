@@ -225,6 +225,8 @@ export default function ARManagement() {
   const [compileProgress, setCompileProgress] = useState(0);
   // какая дорожка сейчас грузится: индекс существующей либо 'new'
   const [audioBusy, setAudioBusy] = useState<number | 'new' | null>(null);
+  // язык, выбранный для следующей дорожки
+  const [newTrackLang, setNewTrackLang] = useState('');
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
 
@@ -461,10 +463,14 @@ export default function ARManagement() {
   const socialCount = AR_SOCIAL_KEYS.filter((k) =>
     form.socials[k]?.trim()
   ).length;
-  // Первый ещё не занятый язык — им предзаполняется новая дорожка
-  const freeAudioLang = AR_AUDIO_LANGS.find(
+  // Языки, которых в этом оживлении ещё нет
+  const freeAudioLangs = AR_AUDIO_LANGS.filter(
     (l) => !form.audioTracks.some((t) => t.lang === l.code)
   );
+  // Выбор админа; если выбранный язык успели занять — откатываемся на первый
+  // свободный, чтобы в селекте никогда не висело пустое значение
+  const pendingLang =
+    freeAudioLangs.find((l) => l.code === newTrackLang) ?? freeAudioLangs[0];
 
   const productOptions = products.map((p: any) => ({
     value: String(p.id),
@@ -930,8 +936,9 @@ export default function ARManagement() {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   <b>Первая в списке — язык по умолчанию</b>, с него начинается
-                  просмотр. Стрелками меняется порядок, кнопкой со стрелками
-                  по кругу — файл дорожки.
+                  просмотр. Новые дорожки добавляются в конец; порядок меняется
+                  стрелками слева, файл существующей дорожки — кнопкой с
+                  круговыми стрелками (язык при этом сохраняется).
                 </p>
 
                 {form.audioTracks.map((track, index) => (
@@ -1025,22 +1032,37 @@ export default function ARManagement() {
                   </div>
                 ))}
 
-                {freeAudioLang ? (
-                  <button
-                    type="button"
-                    disabled={audioBusy !== null}
-                    onClick={() => addTrack(freeAudioLang)}
-                    className="flex w-full items-center gap-2 rounded-md border border-dashed p-2 text-sm text-muted-foreground disabled:opacity-60"
-                  >
-                    {audioBusy === 'new' ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Upload className="h-4 w-4" />
-                    )}
-                    {audioBusy === 'new'
-                      ? 'Загрузка…'
-                      : `Добавить дорожку — ${freeAudioLang.label}`}
-                  </button>
+                {pendingLang ? (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={pendingLang.code}
+                      onValueChange={setNewTrackLang}
+                    >
+                      <SelectTrigger className="w-40 shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {freeAudioLangs.map((l) => (
+                          <SelectItem key={l.code} value={l.code}>
+                            {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      type="button"
+                      disabled={audioBusy !== null}
+                      onClick={() => addTrack(pendingLang)}
+                      className="flex flex-1 items-center gap-2 rounded-md border border-dashed p-2 text-sm text-muted-foreground disabled:opacity-60"
+                    >
+                      {audioBusy === 'new' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      {audioBusy === 'new' ? 'Загрузка…' : 'Выбрать файл'}
+                    </button>
+                  </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     Добавлены дорожки на все доступные языки.

@@ -79,17 +79,38 @@ export const AR_UPLOAD_LIMITS: Record<
   },
 };
 
-// Языки озвучки. Совпадают с локалями сайта, но список отдельный: озвучек
-// может не быть на все языки, и наоборот — иногда нужен язык, которого нет
-// в интерфейсе.
+// Языки озвучки. Совпадают с локалями сайта только частично: озвучек может не
+// быть на все языки интерфейса, и наоборот — сувенир под конкретный рынок
+// требует языка, которого на сайте нет. Порядок здесь — только порядок в
+// выпадающем списке; какой язык будет по умолчанию во вьюере, решает порядок
+// дорожек в конкретном оживлении.
+//
+// Нужен ещё язык — допишите строку, больше ничего менять не надо: подпись из
+// label показывается и в админке, и в переключателе вьюера.
 export const AR_AUDIO_LANGS = [
-  { code: 'ru', label: 'Русский' },
-  { code: 'ro', label: 'Română' },
   { code: 'en', label: 'English' },
+  { code: 'ro', label: 'Română' },
+  { code: 'ru', label: 'Русский' },
   { code: 'uk', label: 'Українська' },
+  { code: 'es', label: 'Español' },
   { code: 'it', label: 'Italiano' },
   { code: 'de', label: 'Deutsch' },
   { code: 'fr', label: 'Français' },
+  { code: 'pt', label: 'Português' },
+  { code: 'pl', label: 'Polski' },
+  { code: 'nl', label: 'Nederlands' },
+  { code: 'tr', label: 'Türkçe' },
+  { code: 'cs', label: 'Čeština' },
+  { code: 'sk', label: 'Slovenčina' },
+  { code: 'hu', label: 'Magyar' },
+  { code: 'bg', label: 'Български' },
+  { code: 'sr', label: 'Srpski' },
+  { code: 'el', label: 'Ελληνικά' },
+  { code: 'he', label: 'עברית' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'zh', label: '中文' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
 ] as const;
 
 export interface ARAudioTrack {
