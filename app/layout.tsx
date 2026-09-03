@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
+import { headers } from 'next/headers';
 import { Header } from '@/components/shared/header';
 import { Footer } from '@/components/shared/footer';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -37,6 +38,12 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
+  // Страница оживления — полноэкранный вьюер: обвязка сайта на ней не видна,
+  // но лежала бы в разметке, а при белой метке этого быть не должно.
+  // Путь приходит из middleware — сюда он иначе не попадает.
+  const pathname = (await headers()).get('x-pathname') || '';
+  const bare = pathname.startsWith('/ar/');
+
   return (
     <html lang={locale} suppressHydrationWarning>
       <body
@@ -62,13 +69,17 @@ export default async function RootLayout({
           >
             <PartnerProvider>
               <ConfirmProvider>
-                <Header />
+                {!bare && <Header />}
                 {children}
               </ConfirmProvider>
             </PartnerProvider>
             <Toaster />
-            <Footer />
-            <CookieBanner />
+            {!bare && (
+              <>
+                <Footer />
+                <CookieBanner />
+              </>
+            )}
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>
