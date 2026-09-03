@@ -726,8 +726,15 @@ async function buildContent({
   const center = box.getCenter(new THREE.Vector3());
   const maxDim = Math.max(size.x, size.y, size.z) || 1;
   const k = 1 / maxDim;
-  model.scale.setScalar(k);
-  model.position.set(-center.x * k, -box.min.y * k, -center.z * k);
+
+  // Подгонку вешаем на отдельную группу-обёртку, а не на сам gltf.scene:
+  // анимационные клипы могут содержать ключи на трансформе корневого узла
+  // (root motion), и тогда AnimationMixer каждый кадр перезаписывал бы наш
+  // scale/position — модель прыгала бы в исходный размер.
+  const fit = new THREE.Group();
+  fit.scale.setScalar(k);
+  fit.position.set(-center.x * k, -box.min.y * k, -center.z * k);
+  fit.add(model);
 
   model.traverse((obj: any) => {
     if (obj.isMesh) {
@@ -791,7 +798,7 @@ async function buildContent({
   // правильно стоящая модель, а не лежащая.
   const stand = new THREE.Group();
   stand.rotation.x = Math.PI / 2;
-  stand.add(model);
+  stand.add(fit);
 
   const holder = new THREE.Group();
   holder.add(stand);
