@@ -33,15 +33,37 @@ function hasWebGL(): boolean {
   }
 }
 
-function loadImageAspect(src: string): Promise<number> {
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () =>
-      resolve(img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1);
+    img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('marker image failed'));
     img.src = src;
   });
+}
+
+// Есть ли у картинки заметная прозрачность. Нужно, чтобы понять, фигурный
+// сувенир или прямоугольный: у высечки (PNG с прозрачным фоном) альфа сама
+// задаёт силуэт, и отдельную маску грузить не нужно. Считаем на уменьшенной
+// копии — точность тут не важна, важен сам факт.
+function hasTransparency(img: HTMLImageElement): boolean {
+  try {
+    const w = 64;
+    const h = Math.max(1, Math.round((img.naturalHeight / img.naturalWidth) * 64));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return false;
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let transparent = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] < 8) transparent++;
+    return transparent / (w * h) > 0.01;
+  } catch {
+    return false; // не смогли прочитать пиксели — считаем прямоугольным
+  }
 }
 
 // Видимая область вьюпорта в CSS-пикселях. На мобильных `100vh` / `fixed
@@ -584,12 +606,16 @@ async function buildContent({
     });
     onAssetProgress(0.6);
 
-    const markerAspect = await loadImageAspect(
+    const markerImage = await loadImage(
       arAssetUrl(slug, 'marker', version)
-    ).catch(() => {
-      const va = video.videoWidth / video.videoHeight;
-      return Number.isFinite(va) && va > 0 ? va : 1;
-    });
+    ).catch(() => null);
+
+    const markerAspect = markerImage?.naturalHeight
+      ? markerImage.naturalWidth / markerImage.naturalHeight
+      : (() => {
+          const va = video.videoWidth / video.videoHeight;
+          return Number.isFinite(va) && va > 0 ? va : 1;
+        })();
 
     // В системе координат MindAR ширина маркера = 1
     const width = 1;
@@ -606,32 +632,46 @@ async function buildContent({
     if ('colorSpace' in texture) texture.colorSpace = THREE.SRGBColorSpace;
     else texture.encoding = THREE.sRGBEncoding;
 
-    // Альфа-маска-силуэт для фигурных магнитов: видео видно только там, где
-    // маска непрозрачная (её alpha-канал). Ошибку/таймаут загрузки глушим —
-    // просто покажем прямоугольное видео.
+    // Обрезка видео по силуэту фигурного сувенира.
+    //
+    // По умолчанию маской работает альфа САМОГО маркера: у высечки (PNG с
+    // прозрачным фоном) она и есть силуэт, а грузить один и тот же файл дважды
+    // незачем. У прямоугольного маркера прозрачности нет — обрезка не нужна,
+    // и мы её просто не включаем, не платя за лишнюю текстуру и прозрачный
+    // проход рендера.
+    //
+    // Отдельная маска нужна лишь в одном случае: маркер сведён на непрозрачный
+    // фон (так иногда делают ради лучшего трекинга) — тогда силуэт брать
+    // неоткуда, и его загружают явно. Такая маска имеет приоритет.
     let maskTexture: any = null;
+
     if (experience.hasMask) {
       try {
         maskTexture = await Promise.race([
           new THREE.TextureLoader().loadAsync(arAssetUrl(slug, 'mask', version)),
           new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
         ]);
-        if (maskTexture) {
-          // маска — это данные (не цвет), оставляем линейное пространство.
-          // flipY как у видео-текстуры (у VideoTexture false, у TextureLoader
-          // по умолчанию true) — иначе маска перевёрнута относительно видео.
-          maskTexture.flipY = texture.flipY;
-          maskTexture.generateMipmaps = false;
-          maskTexture.minFilter = THREE.LinearFilter;
-          maskTexture.anisotropy = 4;
-          maskTexture.needsUpdate = true;
-        } else {
+        if (!maskTexture) {
           console.warn('[AR] mask load timed out, showing full video');
         }
       } catch (err) {
         console.warn('[AR] mask failed to load, showing full video', err);
         maskTexture = null;
       }
+    } else if (markerImage && hasTransparency(markerImage)) {
+      // маркер уже декодирован — берём текстуру из него, без второй загрузки
+      maskTexture = new THREE.Texture(markerImage);
+    }
+
+    if (maskTexture) {
+      // маска — это данные (не цвет), оставляем линейное пространство.
+      // flipY как у видео-текстуры (у VideoTexture false, у TextureLoader
+      // по умолчанию true) — иначе маска перевёрнута относительно видео.
+      maskTexture.flipY = texture.flipY;
+      maskTexture.generateMipmaps = false;
+      maskTexture.minFilter = THREE.LinearFilter;
+      maskTexture.anisotropy = 4;
+      maskTexture.needsUpdate = true;
     }
 
     const geometry = new THREE.PlaneGeometry(width, height);

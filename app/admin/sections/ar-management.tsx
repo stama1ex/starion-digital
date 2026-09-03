@@ -659,7 +659,7 @@ export default function ARManagement() {
             <AssetField
               kind="marker"
               label="Изображение-маркер (сам сувенир)"
-              hint="Контрастная детальная картинка. Из неё компилируется .mind."
+              hint="Контрастная детальная картинка. Из неё компилируется .mind. Если сувенир фигурный — заливайте PNG-высечку с прозрачным фоном: по её альфе видео само обрежется по силуэту."
               value={form.markerUrl}
               onChange={(path) => patch({ markerUrl: path })}
               title={form.title}
@@ -718,15 +718,29 @@ export default function ARManagement() {
               title={form.title}
             />
             {isVideo && (
-              <AssetField
-                kind="mask"
-                label="Маска-силуэт — необязательно (для фигурных магнитов)"
-                hint="PNG-высечка в той же кадрировке, что и маркер: силуэт сувенира — непрозрачный, фон — полностью прозрачный. Видео покажется только внутри силуэта. Делайте силуэт на 1–2% уже реального края."
-                value={form.maskUrl}
-                onChange={(path) => patch({ maskUrl: path })}
-                preview
-                title={form.title}
-              />
+              <details className="rounded-md border p-3">
+                <summary className="cursor-pointer text-sm font-medium">
+                  Отдельная маска-силуэт — обычно не нужна
+                </summary>
+                <div className="mt-3">
+                  <p className="mb-2 text-xs text-muted-foreground">
+                    Для фигурных сувениров силуэт берётся из альфы самого
+                    маркера — достаточно залить его PNG-высечкой. Отдельная
+                    маска нужна, только если маркер сведён на непрозрачный фон
+                    (иногда так делают ради трекинга): тогда силуэт брать
+                    неоткуда. Кадрирование и пропорции — как у маркера.
+                  </p>
+                  <AssetField
+                    kind="mask"
+                    label="Маска-силуэт"
+                    hint="PNG: силуэт непрозрачный, фон полностью прозрачный. Если видео свешивается за край — сожмите силуэт внутрь на 1–2%."
+                    value={form.maskUrl}
+                    onChange={(path) => patch({ maskUrl: path })}
+                    preview
+                    title={form.title}
+                  />
+                </div>
+              </details>
             )}
             {isModel && (
               <AssetField
