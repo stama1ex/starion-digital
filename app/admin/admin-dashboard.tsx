@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +23,13 @@ import type { AdminOrder, AdminPartner, AdminRealization } from './types';
 import type { DateRange } from './utils';
 import { ProductGroup, PartnerRole } from '@prisma/client';
 import { isTestPartnerName } from '@/lib/admin';
+
+// AR-раздел ленивый: тянет qrcode и клиентский AR-код только когда открыта
+// вкладка, не раздувая основной чанк админки.
+const ARManagement = dynamic(() => import('./sections/ar-management'), {
+  ssr: false,
+  loading: () => <div className="p-4">Загрузка...</div>,
+});
 
 interface AdminDashboardProps {
   orders: AdminOrder[];
@@ -340,7 +348,7 @@ export default function AdminDashboard({
         onValueChange={setActiveTab}
         className="w-full"
       >
-        <TabsList className="grid w-full grid-cols-3 gap-1 h-auto">
+        <TabsList className="grid w-full grid-cols-4 gap-1 h-auto">
           <TabsTrigger
             value="orders"
             className="text-xs sm:text-sm py-2 relative"
@@ -371,6 +379,9 @@ export default function AdminDashboard({
                 {pendingRequestsCount}
               </Badge>
             )}
+          </TabsTrigger>
+          <TabsTrigger value="ar" className="text-xs sm:text-sm py-2">
+            <span className="hidden sm:inline">🔮 </span>AR
           </TabsTrigger>
         </TabsList>
 
@@ -650,6 +661,11 @@ export default function AdminDashboard({
               <GroupsManagement />
             </TabsContent>
           </Tabs>
+        </TabsContent>
+
+        {/* AR — Оживление сувениров */}
+        <TabsContent value="ar" className="space-y-4">
+          <ARManagement />
         </TabsContent>
       </Tabs>
     </div>

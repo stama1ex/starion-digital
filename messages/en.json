@@ -222,7 +222,6 @@
     "date": "Date",
     "no_data": "No data available"
   },
-
   "Orders": {
     "title": "My Orders",
     "order_number": "Order No. {id}",
@@ -274,7 +273,6 @@
     "realization_button": "Consignment request",
     "realization_info": "Consignment — you receive the goods without prepayment and pay for them as they sell. We'll contact you to agree on the terms."
   },
-
   "Login": {
     "title": "Partner Login",
     "login": "Login or Email",
@@ -440,5 +438,49 @@
     "email_not_verified": "Please verify your email with the code",
     "code_sent": "Verification code sent to your email",
     "code_description": "We sent a verification code to {email}. Enter it to submit your application."
+  },
+  "ARViewer": {
+    "meta": {
+      "description": "Point your camera at a Starion souvenir and watch it come alive — video, 3D and animation right on top of it."
+    },
+    "close": "Close",
+    "intro": {
+      "subtitle": "Point your camera at the souvenir itself and watch it come alive.",
+      "start": "Open camera",
+      "hint": "Camera access is required"
+    },
+    "loading": {
+      "camera": "Requesting camera access…",
+      "assets": "Loading… {progress}%"
+    },
+    "scanning": {
+      "hint": "Point your camera at the souvenir"
+    },
+    "sound": {
+      "on": "Turn on sound",
+      "off": "Turn off sound"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "insecure": "AR only works over a secure (https) connection. Please reopen the link.",
+      "unsupported": "This browser can't use the camera for AR. Open the link in Safari or Chrome.",
+      "permission": "Camera access was denied. Allow it in your browser settings and reload the page.",
+      "noCamera": "No camera found. Make sure your device has a working camera.",
+      "cameraBusy": "The camera is in use by another app. Close it and try again.",
+      "webgl": "This device doesn't support in-browser 3D graphics (WebGL).",
+      "asset": "Couldn't load the AR content. Check your connection and try again.",
+      "mindar": "Couldn't load the AR engine. Check your internet connection.",
+      "unknown": "Something went wrong. Try reloading the page.",
+      "retry": "Try again"
+    },
+    "cta": {
+      "catalog": "Starion catalog"
+    },
+    "poweredBy": "AR by Starion Digital",
+    "unavailable": {
+      "title": "AR experience unavailable",
+      "text": "This link is no longer active or doesn't exist.",
+      "home": "Go home"
+    }
   }
 }

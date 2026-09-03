@@ -179,6 +179,49 @@ export async function getTemporaryLink(
   return data.link;
 }
 
+// Одноразовая ссылка для прямой загрузки файла в Dropbox из браузера, минуя
+// наш сервер. Нужна для AR-ассетов (видео/GLB), которые не пролезают через
+// 4.5 МБ лимит тела запроса у serverless-функций Vercel. Ссылка живёт `duration`
+// секунд; браузер шлёт на неё POST с телом файла и Content-Type
+// application/octet-stream (это "простой" CORS-запрос, без preflight).
+export async function getTemporaryUploadLink(
+  path: string,
+  duration = 3600
+): Promise<string> {
+  const accessToken = await getAccessToken();
+
+  const res = await fetch(
+    'https://api.dropboxapi.com/2/files/get_temporary_upload_link',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        commit_info: {
+          path,
+          mode: 'add',
+          autorename: true,
+          mute: false,
+        },
+        duration,
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    const errorText = await parseDropboxError(res);
+    console.error('GET TEMP UPLOAD LINK ERROR:', errorText);
+    throw new Error(
+      `Dropbox temp upload link failed: ${JSON.stringify(errorText)}`
+    );
+  }
+
+  const data = await res.json();
+  return data.link as string;
+}
+
 export async function uploadImage(buffer: ArrayBuffer, filename: string) {
   try {
     console.log('[DROPBOX] Starting upload process for:', filename);
