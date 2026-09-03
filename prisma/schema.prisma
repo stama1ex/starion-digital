@@ -265,6 +265,7 @@ model ARExperience {
   mindFileUrl String // путь в Dropbox к скомпилированному .mind файлу
   contentUrl  String // путь в Dropbox к видео (VIDEO) или GLB (MODEL3D/ANIMATION)
   maskUrl     String? // путь в Dropbox к альфа-маске-силуэту (PNG, белое = видно) — для фигурных магнитов, тип VIDEO
+  textureUrl  String? // путь в Dropbox к текстуре-атласу для GLB без встроенных текстур (MODEL3D/ANIMATION)
   posterUrl   String? // путь в Dropbox к превью (экран загрузки, og:image)
   scale       Float         @default(1) // общий масштаб контента относительно маркера
   rotationX   Float         @default(0) // доворот контента, радианы

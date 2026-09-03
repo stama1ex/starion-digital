@@ -28,6 +28,7 @@ export const AR_ASSET_KINDS = [
   'content',
   'poster',
   'mask',
+  'texture',
 ] as const;
 export type ARAssetKind = (typeof AR_ASSET_KINDS)[number];
 
@@ -64,6 +65,11 @@ export const AR_UPLOAD_LIMITS: Record<
     maxBytes: 8 * 1024 * 1024,
     accept: 'image/png,image/webp',
     label: 'маска-силуэт',
+  },
+  texture: {
+    maxBytes: 32 * 1024 * 1024,
+    accept: 'image/jpeg,image/png,image/webp',
+    label: 'текстура модели',
   },
 };
 

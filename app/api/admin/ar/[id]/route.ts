@@ -75,9 +75,13 @@ export async function PATCH(
       'contentUrl',
       'posterUrl',
       'maskUrl',
+      'textureUrl',
     ] as const) {
       if (data[field] !== undefined) {
-        const nullable = field === 'posterUrl' || field === 'maskUrl';
+        const nullable =
+          field === 'posterUrl' ||
+          field === 'maskUrl' ||
+          field === 'textureUrl';
         updateData[field] =
           nullable && !data[field] ? null : String(data[field]);
       }

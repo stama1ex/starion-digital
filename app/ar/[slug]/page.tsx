@@ -89,6 +89,7 @@ export default async function ARPage({ params }: PageProps) {
     sound: experience.sound,
     hasPoster: !!experience.posterUrl,
     hasMask: !!experience.maskUrl,
+    hasTexture: !!experience.textureUrl,
     version: String(experience.updatedAt.getTime()),
   };
 

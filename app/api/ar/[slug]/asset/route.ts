@@ -9,16 +9,22 @@ export const dynamic = 'force-dynamic';
 
 const KIND_TO_FIELD: Record<
   ARAssetKind,
-  'markerUrl' | 'mindFileUrl' | 'contentUrl' | 'posterUrl' | 'maskUrl'
+  | 'markerUrl'
+  | 'mindFileUrl'
+  | 'contentUrl'
+  | 'posterUrl'
+  | 'maskUrl'
+  | 'textureUrl'
 > = {
   marker: 'markerUrl',
   mind: 'mindFileUrl',
   content: 'contentUrl',
   poster: 'posterUrl',
   mask: 'maskUrl',
+  texture: 'textureUrl',
 };
 
-// Публичный прокси AR-ассетов: /api/ar/{slug}/asset?kind=marker|mind|content|poster|mask
+// Публичный прокси AR-ассетов: /api/ar/{slug}/asset?kind=marker|mind|content|poster|mask|texture
 // Отдаёт файл с того же origin, что и страница — это нужно, чтобы THREE.VideoTexture
 // и MindAR (fetch .mind) работали без CORS-заморочек и без утечки путей Dropbox
 // на клиент. Поддерживает Range для перемотки видео.
@@ -40,6 +46,7 @@ export async function GET(
     contentUrl: string;
     posterUrl: string | null;
     maskUrl: string | null;
+    textureUrl: string | null;
   } | null = null;
   try {
     experience = await prisma.aRExperience.findUnique({
@@ -51,6 +58,7 @@ export async function GET(
         contentUrl: true,
         posterUrl: true,
         maskUrl: true,
+        textureUrl: true,
       },
     });
   } catch (error) {

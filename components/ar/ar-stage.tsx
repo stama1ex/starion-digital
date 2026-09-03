@@ -737,6 +737,54 @@ async function buildContent({
     }
   });
 
+  // Отдельная текстура-атлас: фотограмметрия часто отдаёт GLB с голой
+  // геометрией и текстурой отдельным файлом. Если она загружена — натягиваем
+  // её на все материалы модели. Ошибку/таймаут глушим: покажем модель как есть.
+  let modelTexture: any = null;
+  if (experience.hasTexture) {
+    try {
+      modelTexture = await Promise.race([
+        new THREE.TextureLoader().loadAsync(
+          arAssetUrl(slug, 'texture', version)
+        ),
+        new Promise((resolve) => setTimeout(() => resolve(null), 20000)),
+      ]);
+    } catch (err) {
+      console.warn('[AR] model texture failed to load', err);
+      modelTexture = null;
+    }
+  }
+
+  if (modelTexture) {
+    // В glTF ось V перевёрнута относительно дефолта three, поэтому GLTFLoader
+    // грузит встроенные текстуры с flipY=false — внешнюю выставляем так же,
+    // иначе развёртка ляжет вверх ногами.
+    modelTexture.flipY = false;
+    if ('colorSpace' in modelTexture)
+      modelTexture.colorSpace = THREE.SRGBColorSpace;
+    else modelTexture.encoding = THREE.sRGBEncoding;
+    modelTexture.anisotropy = 8;
+    modelTexture.needsUpdate = true;
+
+    const touched = new Set<any>();
+    model.traverse((obj: any) => {
+      if (!obj.isMesh || !obj.material) return;
+      const materials = Array.isArray(obj.material)
+        ? obj.material
+        : [obj.material];
+      for (const material of materials) {
+        if (!material || touched.has(material)) continue;
+        touched.add(material);
+        material.map = modelTexture;
+        // базовый цвет в белый, иначе текстура затонируется цветом материала
+        material.color?.setHex?.(0xffffff);
+        material.needsUpdate = true;
+      }
+    });
+
+    disposables.push(() => modelTexture.dispose());
+  }
+
   // glTF — Y-up, а «наружу из маркера» у MindAR это +Z. Поворот на +90° по X
   // ставит модель вертикально на плоскость маркера («голограмма на открытке»).
   // Поля поворота из БД применяются поверх, поэтому rotationX = 0 — это уже

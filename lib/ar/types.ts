@@ -22,6 +22,8 @@ export interface ARExperienceClient {
   // альфа-маска-силуэт для фигурных магнитов (тип VIDEO): видео видно только
   // там, где маска светлая
   hasMask: boolean;
+  // отдельная текстура-атлас для GLB без встроенных текстур (MODEL3D/ANIMATION)
+  hasTexture: boolean;
   // метка версии (updatedAt) для инвалидации CDN-кэша прокси при замене ассета
   version: string;
 }

@@ -12,14 +12,40 @@ function sanitizeFilename(name: string) {
   return cleaned || `file_${Date.now()}`;
 }
 
-// Путь в Dropbox для нового AR-ассета: /ar/<timestamp>_<kind>_<safe-name>
-export function buildARAssetPath(kind: ARAssetKind, filename: string) {
-  return `${AR_DROPBOX_DIR}/${Date.now()}_${kind}_${sanitizeFilename(filename)}`;
+// Имя папки опыта в Dropbox из названия, которое ввёл админ. Кириллицу
+// оставляем (Dropbox её принимает) — папка должна быть узнаваемой глазами;
+// убираем только то, что нельзя в путях, и подрезаем длину.
+export function sanitizeARFolder(title: string | undefined | null) {
+  const cleaned = String(title ?? '')
+    .replace(/[\\/:*?"<>|]/g, '-') // запрещённые в путях символы
+    .replace(/\s+/g, ' ')
+    .replace(/^[.\s]+|[.\s]+$/g, '') // Dropbox не любит точки/пробелы по краям
+    .slice(0, 80)
+    .trim();
+  return cleaned || '_без-названия';
+}
+
+// Путь в Dropbox для нового AR-ассета:
+//   /ar/<Название опыта>/<timestamp>_<kind>_<safe-name>
+// Папка на опыт нужна, чтобы ассеты одного сувенира лежали вместе, а не
+// вперемешку в общей куче. Если название ещё не введено — складываем
+// в /ar/_без-названия и потом можно перенести руками.
+export function buildARAssetPath(
+  kind: ARAssetKind,
+  filename: string,
+  title?: string
+) {
+  const folder = sanitizeARFolder(title);
+  return `${AR_DROPBOX_DIR}/${folder}/${Date.now()}_${kind}_${sanitizeFilename(filename)}`;
 }
 
 // Одноразовая ссылка для прямой загрузки ассета в Dropbox из браузера админки.
-export async function createARUploadLink(kind: ARAssetKind, filename: string) {
-  const path = buildARAssetPath(kind, filename);
+export async function createARUploadLink(
+  kind: ARAssetKind,
+  filename: string,
+  title?: string
+) {
+  const path = buildARAssetPath(kind, filename, title);
   const uploadUrl = await getTemporaryUploadLink(path);
   return { uploadUrl, path };
 }

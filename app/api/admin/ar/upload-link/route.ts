@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { filename, kind, size } = await request.json();
+    const { filename, kind, size, title } = await request.json();
 
     if (!AR_ASSET_KINDS.includes(kind)) {
       return NextResponse.json(
@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
     const safeName = String(filename || 'asset').slice(0, 120);
     const { uploadUrl, path } = await createARUploadLink(
       kind as ARAssetKind,
-      safeName
+      safeName,
+      typeof title === 'string' ? title : undefined
     );
 
     return NextResponse.json({ uploadUrl, path });

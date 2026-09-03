@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
         mindFileUrl: String(data.mindFileUrl),
         contentUrl: String(data.contentUrl),
         maskUrl: data.maskUrl ? String(data.maskUrl) : null,
+        textureUrl: data.textureUrl ? String(data.textureUrl) : null,
         posterUrl: data.posterUrl ? String(data.posterUrl) : null,
         productId: data.productId ? parseInt(String(data.productId)) : null,
         ...pickARSettings(data),

@@ -66,6 +66,7 @@ interface FormState {
   mindFileUrl: string;
   contentUrl: string;
   maskUrl: string;
+  textureUrl: string;
   posterUrl: string;
   scale: number;
   rotationX: number;
@@ -90,6 +91,7 @@ const emptyForm = (): FormState => ({
   mindFileUrl: '',
   contentUrl: '',
   maskUrl: '',
+  textureUrl: '',
   posterUrl: '',
   ...AR_EXPERIENCE_DEFAULTS,
 });
@@ -127,11 +129,16 @@ async function maskLooksLikeCutout(file: File): Promise<boolean> {
 
 // Прямая загрузка ассета в Dropbox через одноразовую ссылку (минуя лимит
 // тела запроса Vercel).
-async function uploadArAsset(kind: ARAssetKind, file: File): Promise<string> {
+async function uploadArAsset(
+  kind: ARAssetKind,
+  file: File,
+  title: string
+): Promise<string> {
   const linkRes = await fetch('/api/admin/ar/upload-link', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ filename: file.name, kind, size: file.size }),
+    // title -> папка опыта в Dropbox: /ar/<Название>/...
+    body: JSON.stringify({ filename: file.name, kind, size: file.size, title }),
   });
   if (!linkRes.ok) {
     const data = await linkRes.json().catch(() => ({}));
@@ -182,6 +189,7 @@ export default function ARManagement() {
       mindFileUrl: exp.mindFileUrl,
       contentUrl: exp.contentUrl,
       maskUrl: exp.maskUrl || '',
+      textureUrl: exp.textureUrl || '',
       posterUrl: exp.posterUrl || '',
       scale: exp.scale,
       rotationX: exp.rotationX,
@@ -293,6 +301,14 @@ export default function ARManagement() {
   // успеха, поэтому показываем его стабильно, без мигания «Загрузка…» ↔ ошибка.
   const showError = !!error && !loaded;
   const showSkeleton = loading && !error && !loaded;
+
+  // Какие поля вообще имеют смысл для выбранного типа контента.
+  // Звук — только у видео; автозапуск/зацикливание — там, где есть что играть;
+  // маска-силуэт — только для видео на плоскости; внешняя текстура — только
+  // для GLB-моделей.
+  const isVideo = form.contentType === 'VIDEO';
+  const isModel = !isVideo;
+  const hasPlayback = isVideo || form.contentType === 'ANIMATION';
 
   return (
     <div className="space-y-4">
@@ -470,8 +486,10 @@ export default function ARManagement() {
                 onValueChange={(v) =>
                   patch({
                     contentType: v as ARContentType,
-                    // маска актуальна только для VIDEO — не тащим её в GLB-опыт
+                    // маска — только для VIDEO, текстура — только для GLB:
+                    // не тащим за собой ассет, неприменимый к новому типу
                     maskUrl: v === 'VIDEO' ? form.maskUrl : '',
+                    textureUrl: v === 'VIDEO' ? '' : form.textureUrl,
                   })
                 }
               >
@@ -530,6 +548,7 @@ export default function ARManagement() {
               hint="Контрастная детальная картинка. Из неё компилируется .mind."
               value={form.markerUrl}
               onChange={(path) => patch({ markerUrl: path })}
+              title={form.title}
               preview
             />
             <AssetField
@@ -538,14 +557,15 @@ export default function ARManagement() {
               hint="scripts/compile-marker.ts или веб-компилятор MindAR."
               value={form.mindFileUrl}
               onChange={(path) => patch({ mindFileUrl: path })}
+              title={form.title}
             />
             <AssetField
               kind="content"
               label={
-                form.contentType === 'VIDEO' ? 'Видео (mp4/webm)' : 'Модель GLB'
+                isVideo ? 'Видео (mp4/webm)' : 'Модель GLB'
               }
               hint={
-                form.contentType === 'VIDEO'
+                isVideo
                   ? 'Короткий клип. Для звука включите тумблер ниже.'
                   : form.contentType === 'ANIMATION'
                     ? 'glTF Binary (.glb) со встроенными анимационными клипами — они проигрываются, пока маркер в кадре.'
@@ -553,8 +573,9 @@ export default function ARManagement() {
               }
               value={form.contentUrl}
               onChange={(path) => patch({ contentUrl: path })}
+              title={form.title}
             />
-            {form.contentType === 'VIDEO' && (
+            {isVideo && (
               <AssetField
                 kind="mask"
                 label="Маска-силуэт — необязательно (для фигурных магнитов)"
@@ -562,6 +583,18 @@ export default function ARManagement() {
                 value={form.maskUrl}
                 onChange={(path) => patch({ maskUrl: path })}
                 preview
+                title={form.title}
+              />
+            )}
+            {isModel && (
+              <AssetField
+                kind="texture"
+                label="Текстура модели — необязательно"
+                hint="Если .glb без встроенных текстур (частый случай у фотограмметрии) — загрузите сюда атлас (jpg/png). Он натянется на все материалы модели по её UV-развёртке."
+                value={form.textureUrl}
+                onChange={(path) => patch({ textureUrl: path })}
+                preview
+                title={form.title}
               />
             )}
             <AssetField
@@ -570,6 +603,7 @@ export default function ARManagement() {
               hint="Если не задан — используется маркер."
               value={form.posterUrl}
               onChange={(path) => patch({ posterUrl: path })}
+              title={form.title}
               preview
             />
 
@@ -608,21 +642,27 @@ export default function ARManagement() {
             </details>
 
             <div className="grid grid-cols-2 gap-2">
-              <Toggle
-                label="Автозапуск"
-                checked={form.autoplay}
-                onChange={(v) => patch({ autoplay: v })}
-              />
-              <Toggle
-                label="Зациклить"
-                checked={form.loop}
-                onChange={(v) => patch({ loop: v })}
-              />
-              <Toggle
-                label="Звук (видео)"
-                checked={form.sound}
-                onChange={(v) => patch({ sound: v })}
-              />
+              {hasPlayback && (
+                <Toggle
+                  label={isVideo ? 'Автозапуск видео' : 'Автозапуск анимации'}
+                  checked={form.autoplay}
+                  onChange={(v) => patch({ autoplay: v })}
+                />
+              )}
+              {hasPlayback && (
+                <Toggle
+                  label="Зациклить"
+                  checked={form.loop}
+                  onChange={(v) => patch({ loop: v })}
+                />
+              )}
+              {isVideo && (
+                <Toggle
+                  label="Звук"
+                  checked={form.sound}
+                  onChange={(v) => patch({ sound: v })}
+                />
+              )}
               <Toggle
                 label="Активен"
                 checked={form.isActive}
@@ -668,6 +708,7 @@ function AssetField({
   value,
   onChange,
   preview = false,
+  title,
 }: {
   kind: ARAssetKind;
   label: string;
@@ -675,6 +716,7 @@ function AssetField({
   value: string;
   onChange: (path: string) => void;
   preview?: boolean;
+  title: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -697,6 +739,12 @@ function AssetField({
 
   const handleFile = async (file?: File) => {
     if (!file) return;
+    // папка в Dropbox называется по «Названию», поэтому без него загрузка
+    // ушла бы в /ar/_без-названия и потерялась среди остальных
+    if (!title.trim()) {
+      toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+      return;
+    }
     if (file.size > limit.maxBytes) {
       toast.error(
         `Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`
@@ -710,7 +758,7 @@ function AssetField({
     }
     setBusy(true);
     try {
-      const path = await uploadArAsset(kind, file);
+      const path = await uploadArAsset(kind, file, title);
       onChange(path);
       toast.success('Загружено');
     } catch (error: any) {
