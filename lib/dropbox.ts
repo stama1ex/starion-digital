@@ -154,14 +154,13 @@ export async function deleteDropboxFile(path: string): Promise<void> {
 // Временные ссылки Dropbox живут ~4 часа, а прокси ассетов и список опытов в
 // админке спрашивают одни и те же пути снова и снова — каждый раз это отдельный
 // вызов API. Кэшируем в памяти процесса на 3 часа (запас до истечения).
+//
+// Инвалидация не нужна: имя загружаемого файла всегда содержит Date.now()
+// (см. buildARAssetPath), поэтому по существующему пути файл никогда не
+// заменяется — запись в кэше не может разойтись с содержимым.
 const TEMP_LINK_TTL_MS = 3 * 60 * 60 * 1000;
 const TEMP_LINK_CACHE_MAX = 500;
 const tempLinkCache = new Map<string, { link: string; expiresAt: number }>();
-
-// Сбросить кэш для пути — на случай, если файл по нему заменили.
-export function invalidateTemporaryLink(path: string) {
-  tempLinkCache.delete(path);
-}
 
 export async function getTemporaryLink(
   path: string,

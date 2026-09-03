@@ -29,6 +29,8 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   // Статику и картинки Next пропускаем мимо middleware — они нужны самому
-  // вьюеру, и гонять их через edge незачем.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // вьюеру, и гонять их через edge незачем. А вот favicon.ico исключать нельзя:
+  // на AR-домене он должен отдавать 404, иначе по прямому запросу приезжает
+  // иконка основного сайта в обход нейтральной, объявленной в <link rel=icon>.
+  matcher: ['/((?!_next/static|_next/image).*)'],
 };

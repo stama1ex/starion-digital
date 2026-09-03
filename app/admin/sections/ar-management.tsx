@@ -39,6 +39,9 @@ import {
   Image as ImageIcon,
   Wand2,
   Music,
+  ChevronUp,
+  ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 import type { ARContentType } from '@prisma/client';
 import {
@@ -176,6 +179,29 @@ async function uploadArAsset(
   return path as string;
 }
 
+// Выбор аудиофайла + загрузка в Dropbox. Общая часть для «добавить дорожку» и
+// «заменить файл»: возвращает путь либо null, если отменили или файл не прошёл.
+async function pickAndUploadAudio(title: string): Promise<string | null> {
+  if (!title.trim()) {
+    toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+    return null;
+  }
+  const limit = AR_UPLOAD_LIMITS.audio;
+  const file = await new Promise<File | null>((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = limit.accept;
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.click();
+  });
+  if (!file) return null;
+  if (file.size > limit.maxBytes) {
+    toast.error(`Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`);
+    return null;
+  }
+  return uploadArAsset('audio', file, title);
+}
+
 export default function ARManagement() {
   const { experiences, loading, loaded, error, mutate } = useARExperiences();
   const { products } = useProducts();
@@ -197,8 +223,59 @@ export default function ARManagement() {
   const [markerFile, setMarkerFile] = useState<File | null>(null);
   const [compiling, setCompiling] = useState(false);
   const [compileProgress, setCompileProgress] = useState(0);
+  // какая дорожка сейчас грузится: индекс существующей либо 'new'
+  const [audioBusy, setAudioBusy] = useState<number | 'new' | null>(null);
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
+
+  const patchTracks = (
+    update: (tracks: ARAudioTrack[]) => ARAudioTrack[]
+  ) => setForm((f) => ({ ...f, audioTracks: update(f.audioTracks) }));
+
+  // Порядок важен: первая дорожка — язык по умолчанию во вьюере.
+  const moveTrack = (index: number, delta: number) =>
+    patchTracks((tracks) => {
+      const target = index + delta;
+      if (target < 0 || target >= tracks.length) return tracks;
+      const next = [...tracks];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+
+  const addTrack = async (lang: { code: string; label: string }) => {
+    setAudioBusy('new');
+    try {
+      const path = await pickAndUploadAudio(form.title);
+      if (path) {
+        patchTracks((tracks) => [
+          ...tracks,
+          { lang: lang.code, label: lang.label, path },
+        ]);
+        toast.success(`Дорожка добавлена: ${lang.label}`);
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Ошибка загрузки');
+    } finally {
+      setAudioBusy(null);
+    }
+  };
+
+  const replaceTrackFile = async (index: number) => {
+    setAudioBusy(index);
+    try {
+      const path = await pickAndUploadAudio(form.title);
+      if (path) {
+        patchTracks((tracks) =>
+          tracks.map((it, i) => (i === index ? { ...it, path } : it))
+        );
+        toast.success('Файл заменён');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Ошибка загрузки');
+    } finally {
+      setAudioBusy(null);
+    }
+  };
 
   const openNew = () => {
     setForm(emptyForm());
@@ -851,12 +928,37 @@ export default function ARManagement() {
                   языка. Дорожка должна совпадать по длительности с видео:
                   синхронизация идёт по его времени.
                 </p>
+                <p className="text-xs text-muted-foreground">
+                  <b>Первая в списке — язык по умолчанию</b>, с него начинается
+                  просмотр. Стрелками меняется порядок, кнопкой со стрелками
+                  по кругу — файл дорожки.
+                </p>
 
                 {form.audioTracks.map((track, index) => (
                   <div
                     key={index}
                     className="flex items-center gap-2 rounded-md border p-2"
                   >
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        aria-label="Выше"
+                        disabled={index === 0}
+                        onClick={() => moveTrack(index, -1)}
+                        className="text-muted-foreground disabled:opacity-25"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Ниже"
+                        disabled={index === form.audioTracks.length - 1}
+                        onClick={() => moveTrack(index, 1)}
+                        className="text-muted-foreground disabled:opacity-25"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
                     <Music className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <Select
                       value={track.lang}
@@ -897,12 +999,25 @@ export default function ARManagement() {
                       type="button"
                       variant="ghost"
                       size="sm"
+                      aria-label="Заменить файл"
+                      disabled={audioBusy !== null}
+                      onClick={() => replaceTrackFile(index)}
+                    >
+                      {audioBusy === index ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw size={14} />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Удалить дорожку"
                       onClick={() =>
-                        patch({
-                          audioTracks: form.audioTracks.filter(
-                            (_, i) => i !== index
-                          ),
-                        })
+                        patchTracks((tracks) =>
+                          tracks.filter((_, i) => i !== index)
+                        )
                       }
                     >
                       <X size={14} />
@@ -911,13 +1026,21 @@ export default function ARManagement() {
                 ))}
 
                 {freeAudioLang ? (
-                  <AudioUpload
-                    title={form.title}
-                    lang={freeAudioLang}
-                    onAdd={(track) =>
-                      patch({ audioTracks: [...form.audioTracks, track] })
-                    }
-                  />
+                  <button
+                    type="button"
+                    disabled={audioBusy !== null}
+                    onClick={() => addTrack(freeAudioLang)}
+                    className="flex w-full items-center gap-2 rounded-md border border-dashed p-2 text-sm text-muted-foreground disabled:opacity-60"
+                  >
+                    {audioBusy === 'new' ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="h-4 w-4" />
+                    )}
+                    {audioBusy === 'new'
+                      ? 'Загрузка…'
+                      : `Добавить дорожку — ${freeAudioLang.label}`}
+                  </button>
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     Добавлены дорожки на все доступные языки.
@@ -1177,64 +1300,6 @@ function AssetField({
       </div>
       {hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
     </div>
-  );
-}
-
-// Добавление озвучки: язык уже выбран снаружи (первый свободный), здесь только
-// файл. Отдельный компонент, а не AssetField, потому что результат — не строка
-// пути, а запись {lang,label,path} в массиве.
-function AudioUpload({
-  title,
-  lang,
-  onAdd,
-}: {
-  title: string;
-  lang: { code: string; label: string };
-  onAdd: (track: ARAudioTrack) => void;
-}) {
-  const [busy, setBusy] = useState(false);
-  const limit = AR_UPLOAD_LIMITS.audio;
-
-  const handleFile = async (file?: File) => {
-    if (!file) return;
-    if (!title.trim()) {
-      toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
-      return;
-    }
-    if (file.size > limit.maxBytes) {
-      toast.error(
-        `Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`
-      );
-      return;
-    }
-    setBusy(true);
-    try {
-      const path = await uploadArAsset('audio', file, title);
-      onAdd({ lang: lang.code, label: lang.label, path });
-      toast.success(`Дорожка добавлена: ${lang.label}`);
-    } catch (error: any) {
-      toast.error(error?.message || 'Ошибка загрузки');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed p-2 text-sm text-muted-foreground">
-      {busy ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Upload className="h-4 w-4" />
-      )}
-      {busy ? 'Загрузка…' : `Добавить дорожку — ${lang.label}`}
-      <input
-        type="file"
-        accept={limit.accept}
-        className="hidden"
-        disabled={busy}
-        onChange={(e) => handleFile(e.target.files?.[0])}
-      />
-    </label>
   );
 }
 

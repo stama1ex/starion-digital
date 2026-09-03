@@ -14,6 +14,7 @@ import {
 import type { IconType } from 'react-icons';
 import {
   AR_SOCIAL_KEYS,
+  AR_SOCIAL_META,
   socialHref,
   type ARSocialKey,
   type ARSocials,
@@ -61,7 +62,7 @@ export function ARSocialLinks({
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={key}
+            aria-label={AR_SOCIAL_META[key].label}
             className="grid h-11 w-11 place-items-center rounded-full bg-white/20 text-white transition active:scale-95 hover:bg-white/35"
           >
             <Icon className="h-5 w-5" />
