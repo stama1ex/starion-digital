@@ -92,6 +92,7 @@ interface FormState {
   loop: boolean;
   sound: boolean;
   isActive: boolean;
+  whiteLabel: boolean;
   socials: ARSocials;
   audioTracks: ARAudioTrack[];
 }
@@ -227,6 +228,7 @@ export default function ARManagement() {
       loop: exp.loop,
       sound: exp.sound,
       isActive: exp.isActive,
+      whiteLabel: !!exp.whiteLabel,
       socials: (exp.socials as ARSocials | null) ?? {},
       audioTracks: Array.isArray(exp.audioTracks)
         ? (exp.audioTracks as ARAudioTrack[])
@@ -972,7 +974,21 @@ export default function ARManagement() {
                 checked={form.isActive}
                 onChange={(v) => patch({ isActive: v })}
               />
+              <Toggle
+                label="Скрыть упоминания Starion"
+                checked={form.whiteLabel}
+                onChange={(v) => patch({ whiteLabel: v })}
+              />
             </div>
+            {form.whiteLabel && (
+              <p className="-mt-2 text-xs text-muted-foreground">
+                Белая метка: во вьюере не остаётся ни подписи «AR от Starion
+                Digital», ни ссылки на наш каталог, в заголовке вкладки — только
+                название оживления, иконка вкладки нейтральная. Вместо каталога
+                показывается сайт из блока «Соцсети и контакты»; если он не
+                заполнен, кнопки не будет вовсе.
+              </p>
+            )}
           </div>
 
           <DialogFooter>

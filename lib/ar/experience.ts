@@ -53,6 +53,7 @@ export function toARExperienceClient(
     audioTracks: (cleanAudioTracks(experience.audioTracks) ?? []).map(
       ({ lang, label }) => ({ lang, label })
     ),
+    whiteLabel: experience.whiteLabel,
     version: String(experience.updatedAt.getTime()),
   };
 }

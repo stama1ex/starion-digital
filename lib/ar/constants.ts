@@ -134,6 +134,7 @@ export const AR_EXPERIENCE_DEFAULTS = {
   loop: true,
   sound: false,
   isActive: true,
+  whiteLabel: false,
 };
 
 // Приводит произвольную строку к безопасному slug для URL/QR (/ar/{slug})

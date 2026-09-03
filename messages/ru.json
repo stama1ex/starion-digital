@@ -477,7 +477,8 @@
       "retry": "Попробовать снова"
     },
     "cta": {
-      "catalog": "Каталог Starion"
+      "catalog": "Каталог Starion",
+      "website": "Сайт"
     },
     "poweredBy": "AR от Starion Digital",
     "unavailable": {

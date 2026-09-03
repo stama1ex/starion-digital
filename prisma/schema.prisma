@@ -279,6 +279,7 @@ model ARExperience {
   autoplay    Boolean       @default(true) // запускать видео/анимацию при нахождении маркера
   loop        Boolean       @default(true)
   sound       Boolean       @default(false) // звук у видео (включается только после жеста пользователя)
+  whiteLabel  Boolean       @default(false) // белая метка: во вьюере не остаётся никаких упоминаний Starion
   scanCount   Int           @default(0) // счётчик сканирований — простая аналитика
   isActive    Boolean       @default(true) // выключенный опыт отдаёт страницу-заглушку
   productId   Int? // опциональная связь с товаром каталога

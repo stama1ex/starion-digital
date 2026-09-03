@@ -482,7 +482,8 @@
       "retry": "Încearcă din nou"
     },
     "cta": {
-      "catalog": "Catalog Starion"
+      "catalog": "Catalog Starion",
+      "website": "Site"
     },
     "poweredBy": "AR de la Starion Digital",
     "unavailable": {

@@ -477,7 +477,8 @@
       "retry": "Try again"
     },
     "cta": {
-      "catalog": "Starion catalog"
+      "catalog": "Starion catalog",
+      "website": "Website"
     },
     "poweredBy": "AR by Starion Digital",
     "unavailable": {

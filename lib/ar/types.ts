@@ -29,6 +29,9 @@ export interface ARExperienceClient {
   socials: ARSocials | null;
   // озвучки по языкам; если непусто — звук видео глушится, играет дорожка
   audioTracks: Array<Pick<ARAudioTrack, 'lang' | 'label'>>;
+  // белая метка: вьюер не показывает ни подпись, ни ссылку на наш каталог —
+  // для сувениров, которые делаются под чужим брендом
+  whiteLabel: boolean;
   // метка версии (updatedAt) для инвалидации CDN-кэша прокси при замене ассета
   version: string;
 }
