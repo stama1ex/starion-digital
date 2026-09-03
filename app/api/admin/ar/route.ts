@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { checkSuperAdminAuth } from '../auth-utils';
 import { AR_CONTENT_TYPES, AR_SLUG_PATTERN, slugifyAr } from '@/lib/ar/constants';
 import { pickARSettings } from '@/lib/ar/payload';
+import { resolveARAssetUrl } from '@/lib/ar/server';
 
 // GET — список всех AR-опытов (для админки)
 export async function GET() {
@@ -20,7 +21,26 @@ export async function GET() {
         product: { select: { id: true, number: true, type: true } },
       },
     });
-    return NextResponse.json(experiences);
+
+    // Миниатюра для списка: постер, а если его нет — маркер. Резолвим все
+    // временные ссылки одним батчем (общий закэшированный токен Dropbox),
+    // чтобы админка не дёргала /preview на каждую строку отдельно.
+    const withThumbs = await Promise.all(
+      experiences.map(async (experience) => {
+        const path = experience.posterUrl || experience.markerUrl;
+        let thumbUrl: string | null = null;
+        if (path) {
+          try {
+            thumbUrl = await resolveARAssetUrl(path);
+          } catch {
+            thumbUrl = null; // битый путь не должен ронять весь список
+          }
+        }
+        return { ...experience, thumbUrl };
+      })
+    );
+
+    return NextResponse.json(withThumbs);
   } catch (error) {
     console.error('Error fetching AR experiences:', error);
     return NextResponse.json(

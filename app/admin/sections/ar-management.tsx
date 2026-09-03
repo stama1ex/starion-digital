@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,7 @@ import {
   Eye,
   EyeOff,
   ScanEye,
+  Image as ImageIcon,
 } from 'lucide-react';
 import type { ARContentType } from '@prisma/client';
 import {
@@ -43,6 +45,7 @@ import {
   AdminAPI,
   handleApiError,
   PRODUCT_TYPE_LABELS,
+  PRODUCT_TYPES,
 } from '@/lib/admin';
 import { useConfirm } from '@/app/providers/confirm-provider';
 import {
@@ -169,6 +172,8 @@ export default function ARManagement() {
   const [qrFor, setQrFor] = useState<{ slug: string; title: string } | null>(
     null
   );
+  const [filterContentType, setFilterContentType] = useState<string>('ALL');
+  const [filterProductType, setFilterProductType] = useState<string>('ALL');
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
 
@@ -310,6 +315,22 @@ export default function ARManagement() {
   const isModel = !isVideo;
   const hasPlayback = isVideo || form.contentType === 'ANIMATION';
 
+  const productOptions = products.map((p: any) => ({
+    value: String(p.id),
+    label: [PRODUCT_TYPE_LABELS[p.type] || p.type, p.number, p.country]
+      .filter(Boolean)
+      .join(' · '),
+  }));
+
+  const visibleExperiences = experiences.filter((exp: any) => {
+    if (filterContentType !== 'ALL' && exp.contentType !== filterContentType)
+      return false;
+    if (filterProductType === 'NONE') return !exp.product;
+    if (filterProductType !== 'ALL' && exp.product?.type !== filterProductType)
+      return false;
+    return true;
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -324,6 +345,52 @@ export default function ARManagement() {
           <Plus size={16} /> Новый AR-опыт
         </Button>
       </div>
+
+      {experiences.length > 0 && (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Select value={filterContentType} onValueChange={setFilterContentType}>
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue placeholder="Все типы контента" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Все типы контента</SelectItem>
+              {AR_CONTENT_TYPES.map((ct) => (
+                <SelectItem key={ct} value={ct}>
+                  {AR_CONTENT_TYPE_LABELS[ct]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterProductType} onValueChange={setFilterProductType}>
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue placeholder="Все типы товаров" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Все типы товаров</SelectItem>
+              <SelectItem value="NONE">Без товара</SelectItem>
+              {PRODUCT_TYPES.map((type) => (
+                <SelectItem key={type} value={type}>
+                  {PRODUCT_TYPE_LABELS[type] || type}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {(filterContentType !== 'ALL' || filterProductType !== 'ALL') && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setFilterContentType('ALL');
+                setFilterProductType('ALL');
+              }}
+              className="gap-1"
+            >
+              <X size={14} /> Сбросить
+            </Button>
+          )}
+        </div>
+      )}
 
       {showSkeleton ? (
         <p className="py-10 text-center text-muted-foreground">Загрузка…</p>
@@ -344,12 +411,18 @@ export default function ARManagement() {
         <p className="py-10 text-center text-muted-foreground">
           Пока нет ни одного AR-опыта
         </p>
+      ) : visibleExperiences.length === 0 ? (
+        <p className="py-10 text-center text-muted-foreground">
+          Под фильтры ничего не подходит
+        </p>
       ) : (
         <div className="grid gap-2">
-          {experiences.map((exp: any) => (
+          {visibleExperiences.map((exp: any) => (
             <Card key={exp.id} className={exp.isActive ? 'p-0' : 'p-0 opacity-60'}>
               <CardContent className="flex flex-col gap-3 px-3 py-2 md:flex-row md:items-center md:justify-between">
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <ArThumb src={exp.thumbUrl} alt={exp.title} />
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
                   <span className="font-semibold">{exp.title}</span>
                   <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">
                     /ar/{exp.slug}
@@ -371,6 +444,7 @@ export default function ARManagement() {
                       Выключен
                     </span>
                   )}
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
@@ -522,24 +596,16 @@ export default function ARManagement() {
               <label className="text-sm font-medium">
                 Товар каталога (необязательно)
               </label>
-              <Select
-                value={form.productId || 'NONE'}
-                onValueChange={(v) =>
-                  patch({ productId: v === 'NONE' ? '' : v })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Не привязан" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NONE">Не привязан</SelectItem>
-                  {products.map((p: any) => (
-                    <SelectItem key={p.id} value={String(p.id)}>
-                      {(PRODUCT_TYPE_LABELS[p.type] || p.type) + ' ' + p.number}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Combobox
+                options={productOptions}
+                value={form.productId}
+                onChange={(v) => patch({ productId: v })}
+                placeholder="Не привязан"
+                searchPlaceholder="Поиск по артикулу или типу..."
+                emptyText="Товар не найден"
+                clearable
+                onClear={() => patch({ productId: '' })}
+              />
             </div>
 
             <AssetField
@@ -696,6 +762,27 @@ export default function ARManagement() {
         />
       )}
     </div>
+  );
+}
+
+// Миниатюра опыта в списке: постер, а если его нет — маркер (ссылку резолвит
+// сервер в GET /api/admin/ar). Битую/отсутствующую картинку заменяем плейсхолдером.
+function ArThumb({ src, alt }: { src?: string | null; alt: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="grid h-12 w-12 shrink-0 place-items-center rounded bg-muted">
+        <ImageIcon className="h-5 w-5 text-muted-foreground/50" />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      onError={() => setFailed(true)}
+      className="h-12 w-12 shrink-0 rounded object-cover"
+    />
   );
 }
 
