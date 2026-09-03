@@ -126,7 +126,11 @@ export default function ARStage({
       const c: HTMLCanvasElement | undefined = renderer?.domElement;
       const cam = mindarThree?.camera;
       const { w, h } = viewportSize();
+      const bad =
+        (v?.style.width || '').includes('NaN') ||
+        (v?.style.height || '').includes('NaN');
       box.textContent = [
+        'ardebug v2' + (bad ? '   !! NaN in video css !!' : ''),
         'vv        ' + w + 'x' + h + '  dpr ' + window.devicePixelRatio,
         'inner     ' + window.innerWidth + 'x' + window.innerHeight,
         'container ' + el?.clientWidth + 'x' + el?.clientHeight,
@@ -280,6 +284,26 @@ export default function ARStage({
         setTimeout(forceResize, ms)
       );
       disposables.push(() => timers.forEach(clearTimeout));
+
+      // Некоторые Android-браузеры отдают videoWidth=0 в тот момент, когда
+      // MindAR делает свой единственный resize() внутри start(). Тогда он
+      // считает videoRatio = NaN, пишет в стили видео 'NaNpx' — браузер их
+      // игнорирует, и камера навсегда остаётся полосой, а FOV сбит. Ждём
+      // реальные размеры и пересчитываем.
+      let dimTries = 0;
+      const waitForVideoDims = () => {
+        if (cancelled) return;
+        const v: HTMLVideoElement | undefined = mindarThree?.video;
+        if (v && v.videoWidth > 0 && v.videoHeight > 0) {
+          forceResize();
+          return;
+        }
+        if (dimTries++ < 60) {
+          const id = setTimeout(waitForVideoDims, 100);
+          disposables.push(() => clearTimeout(id));
+        }
+      };
+      waitForVideoDims();
 
       // видео камеры получает реальные размеры асинхронно — на каждое событие
       // пересчитываем раскладку и FOV
