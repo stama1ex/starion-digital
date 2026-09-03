@@ -19,6 +19,7 @@
 ### 🎯 Key Features
 
 - 🛒 **Online Store** with magnets and license plates catalog
+- 🔮 **WebAR** — scan a QR on a souvenir and watch it come alive (video / 3D / animation) in the browser, no app
 - 🌍 **Multilingual** (EN, RO, RU) via next-intl
 - 👨‍💼 **Admin Dashboard** with detailed analytics
 - 📊 **Order Management System** and partner management
@@ -79,16 +80,19 @@ starion-digital/
 │   │   ├── login/          # Authentication
 │   │   ├── partner/        # Partner management
 │   │   └── admin/          # Admin API
+│   ├── ar/                 # Public WebAR viewer (/ar/[slug])
 │   ├── contacts/           # Contacts page
 │   ├── magnets/            # Magnets catalog
 │   ├── plates/             # License plates catalog
 │   ├── partnership/        # Partnership page
 │   └── my-orders/          # User orders
 ├── components/              # React components
+│   ├── ar/                 # WebAR viewer (MindAR + three)
 │   ├── shared/             # Shared components
 │   └── ui/                 # UI kit (Radix + Tailwind)
 ├── lib/                     # Utilities and helpers
 │   ├── admin/              # Admin utilities
+│   ├── ar/                 # WebAR config, asset paths, marker compiler
 │   ├── export/             # Data export
 │   └── telegram/           # Telegram integration
 ├── prisma/                  # Prisma ORM
@@ -158,6 +162,7 @@ Open [http://localhost:3000](http://localhost:3000) 🎉
 ### Additional Commands
 
 ```bash
+npm run dev:https   # Dev server over HTTPS (required to test AR on a phone)
 npm run build        # Production build
 npm start           # Start production server
 npm run lint        # Lint code
@@ -178,6 +183,7 @@ Core database models:
 - **OrderItem** — Order line items
 - **Price** — Flexible pricing system
 - **Realization** — Partner sales
+- **ARExperience** — WebAR experience for a souvenir (marker, .mind, content, transform)
 
 <details>
 <summary>View ER Diagram</summary>
@@ -240,6 +246,34 @@ Automatic Telegram notifications for:
 - New orders
 - Order status changes
 - New partnership requests
+
+---
+
+## 🔮 WebAR
+
+Scan a QR printed on a souvenir → `/ar/{slug}` opens in the phone browser → the
+camera recognises the souvenir itself as an image target → video, a 3D model or
+an animation is overlaid on it. No app install.
+
+- **Tracking**: [MindAR](https://github.com/hiukim/mind-ar-js) image tracking on
+  bare three.js.
+- **Loaded at runtime from a CDN, not npm.** `mind-ar` depends on the native
+  `canvas` module (no Node 22 prebuilt, needs a C++ toolchain) and targets
+  `three@~0.144`, while this project runs `three@0.182` for R3F. So MindAR and an
+  isolated `three@0.144` are imported from esm.sh inside the `/ar` route only —
+  the main bundle is untouched. Override the CDN with `NEXT_PUBLIC_AR_CDN_BASE`
+  to self-host. See `lib/ar/config.ts`.
+- **Assets** (marker image, compiled `.mind`, video/GLB, texture, poster) live in
+  Dropbox under `/ar/<experience title>/` and are served through a same-origin
+  proxy (`/api/ar/[slug]/asset`) with Range support, so `THREE.VideoTexture` and
+  MindAR load them without CORS issues and Dropbox paths never reach the client.
+- **Marker compilation** runs in the browser inside the admin panel — MindAR's
+  own `Compiler`, so no external web tool and no native dependency.
+- Admin: `/admin` → **🔮 AR** tab (SUPER_ADMIN). See
+  [ADMIN_GUIDE.md](ADMIN_GUIDE.md#ar--оживление-сувениров).
+
+> Camera access requires a secure context. Use `npm run dev:https` and open
+> `https://<lan-ip>:3000` to test from a phone; plain HTTP will not work.
 
 ---
 

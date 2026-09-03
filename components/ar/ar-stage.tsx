@@ -6,6 +6,7 @@ import {
   loadMindAr,
   loadGltfLoaderClass,
   AR_TRACKING_OPTIONS,
+  AR_CAMERA_CONSTRAINTS,
 } from '@/lib/ar/config';
 import { arAssetUrl } from '@/lib/ar/types';
 import type { ARExperienceClient } from '@/lib/ar/types';
@@ -310,21 +311,14 @@ export default function ARStage({
         videoElRef.current?.pause();
       };
 
-      // MindAR запрашивает камеру как { facingMode: 'environment' } без единого
-      // требования к разрешению — Android на этом охотно отдаёт 480x640 (0.3 МП).
-      // Для image-tracking это мало: меньше точек-признаков => грубая и
-      // «плавающая» привязка. Своих опций для конструктора у MindAR нет,
-      // поэтому на время start() подмешиваем желаемое разрешение в getUserMedia
-      // и сразу возвращаем оригинал.
+      // У MindAR нет опции разрешения камеры — он запрашивает поток только по
+      // facingMode. На время start() подмешиваем желаемое разрешение в
+      // getUserMedia (см. AR_CAMERA_CONSTRAINTS) и сразу возвращаем оригинал.
       const media = navigator.mediaDevices;
       const originalGetUserMedia = media.getUserMedia.bind(media);
       media.getUserMedia = (constraints?: MediaStreamConstraints) => {
         if (constraints?.video && typeof constraints.video === 'object') {
-          Object.assign(constraints.video, {
-            width: { ideal: 1280 },
-            height: { ideal: 720 },
-            frameRate: { ideal: 30 },
-          });
+          Object.assign(constraints.video, AR_CAMERA_CONSTRAINTS);
         }
         return originalGetUserMedia(constraints);
       };
