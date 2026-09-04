@@ -53,7 +53,15 @@ export default async function RootLayout({
     // NextIntlClientProvider сериализует переданный словарь прямо в HTML.
     // Вьюеру нужен только его собственный неймспейс: остальные тянут в
     // разметку весь сайт (это и лишние килобайты, и наше имя в открытую).
-    const slug = decodeURIComponent(pathname.split('/')[2] || '');
+    // decodeURIComponent бросает URIError на битом percent-кодировании
+    // (/ar/%), а это публичный маршрут — 500 здесь недопустим.
+    const raw = pathname.split('/')[2] || '';
+    let slug = '';
+    try {
+      slug = decodeURIComponent(raw);
+    } catch {
+      slug = raw;
+    }
     const experience = slug ? await loadARExperienceBySlug(slug) : null;
     const viewer = { ...(messages.ARViewer as Record<string, unknown>) };
 
