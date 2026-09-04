@@ -10,6 +10,9 @@
 // пустая, весь этот код — no-op: ничего не блокируется, ссылки строятся от
 // текущего origin.
 
+// Адрес основного сайта живёт в lib/site.ts — он нужен не только AR-модулю.
+export { SITE_URL } from '@/lib/site';
+
 export const AR_DOMAIN_URL = (process.env.NEXT_PUBLIC_AR_SHORT_URL || '')
   .trim()
   .replace(/\/+$/, '');

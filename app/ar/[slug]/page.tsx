@@ -8,14 +8,11 @@ import {
   loadARExperienceBySlug,
   toARExperienceClient,
 } from '@/lib/ar/experience';
-import { isARDomainHost } from '@/lib/ar/domain';
+import { isARDomainHost, SITE_URL } from '@/lib/ar/domain';
 
 // Свежие данные на каждый запрос: временные ссылки Dropbox короткоживущие,
 // а прокси ассетов и так динамический.
 export const dynamic = 'force-dynamic';
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://starion-digital.com';
 
 type PageProps = { params: Promise<{ slug: string }> };
 
@@ -41,7 +38,11 @@ export async function generateMetadata({
   const title = experience.whiteLabel
     ? experience.title
     : `${experience.title} — AR | Starion Digital`;
-  const description = t('meta.description');
+  // Описание уходит в <meta>, og и twitter — при белой метке оно тоже не
+  // должно упоминать Starion.
+  const description = experience.whiteLabel
+    ? t('meta.descriptionNeutral')
+    : t('meta.description');
 
   // og:image берём с того же хоста, с которого открыли страницу: на отдельном
   // AR-домене абсолютная ссылка на основной сайт выдала бы его в превью

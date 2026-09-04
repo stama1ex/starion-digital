@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Copy, ExternalLink } from 'lucide-react';
-import { AR_DOMAIN_URL } from '@/lib/ar/domain';
+import { AR_DOMAIN_URL, SITE_URL } from '@/lib/ar/domain';
 
 interface ArQrDialogProps {
   open: boolean;
@@ -27,10 +27,7 @@ interface ArQrDialogProps {
 // остаются на основном — там наш адрес как раз к месту. Отдельный домен не
 // настроен — везде текущий origin, работает и на проде, и на превью-деплоях.
 export function arUrl(slug: string, whiteLabel = false) {
-  const own =
-    typeof window !== 'undefined'
-      ? window.location.origin
-      : process.env.NEXT_PUBLIC_SITE_URL || 'https://starion-digital.com';
+  const own = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
   const origin = whiteLabel && AR_DOMAIN_URL ? AR_DOMAIN_URL : own;
   return `${origin}/ar/${slug}`;
 }

@@ -28,7 +28,7 @@
     "contact_title": "Luați legătura",
     "services_title": "Servicii",
     "phone": "Telefon: +373 680 33 007",
-    "email": "Email: stamat2000@gmail.com",
+    "email": "Email: info@stariondigital.com",
     "telegram": "Telegram: @Viar_tech",
     "instagram": "Instagram: @starion_digital",
     "services": {
@@ -168,7 +168,7 @@
       "title": "Modificări",
       "description": "Putem actualiza această politică. Toate modificările vor fi publicate aici."
     },
-    "contact": "Pentru orice întrebări, trimiteți un email la: stamat2000@gmail.com",
+    "contact": "Pentru orice întrebări, trimiteți un email la: info@stariondigital.com",
     "lastUpdated": "Ultima Actualizare"
   },
   "Terms": {
@@ -205,7 +205,7 @@
       "title": "Modificări",
       "description": "Termenii pot fi actualizați. Noua versiune va fi publicată pe această pagină."
     },
-    "contact": "Contactați-ne: stamat2000@gmail.com",
+    "contact": "Contactați-ne: info@stariondigital.com",
     "lastUpdated": "Ultima Actualizare"
   },
   "CookieBanner": {
@@ -446,7 +446,8 @@
   },
   "ARViewer": {
     "meta": {
-      "description": "Îndreaptă camera spre o suvenir Starion și privește-o cum prinde viață — video, 3D și animație direct peste ea."
+      "description": "Îndreaptă camera spre o suvenir Starion și privește-o cum prinde viață — video, 3D și animație direct peste ea.",
+      "descriptionNeutral": "Îndreaptă camera spre suvenir și privește-l cum prinde viață — video, 3D și animație direct peste el."
     },
     "close": "Închide",
     "intro": {

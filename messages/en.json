@@ -28,7 +28,7 @@
     "contact_title": "Get in Touch",
     "services_title": "Services",
     "phone": "Phone: +373 680 33 007",
-    "email": "Email: stamat2000@gmail.com",
+    "email": "Email: info@stariondigital.com",
     "telegram": "Telegram: @Viar_tech",
     "instagram": "Instagram: @starion_digital",
     "services": {
@@ -163,7 +163,7 @@
       "title": "Changes",
       "description": "We may update this policy. All changes will be posted here."
     },
-    "contact": "For any questions, email: stamat2000@gmail.com",
+    "contact": "For any questions, email: info@stariondigital.com",
     "lastUpdated": "Last Updated"
   },
   "Terms": {
@@ -200,7 +200,7 @@
       "title": "Changes",
       "description": "Terms may be updated. The new version will be posted on this page."
     },
-    "contact": "Contact us: stamat2000@gmail.com",
+    "contact": "Contact us: info@stariondigital.com",
     "lastUpdated": "Last Updated"
   },
   "CookieBanner": {
@@ -441,7 +441,8 @@
   },
   "ARViewer": {
     "meta": {
-      "description": "Point your camera at a Starion souvenir and watch it come alive — video, 3D and animation right on top of it."
+      "description": "Point your camera at a Starion souvenir and watch it come alive — video, 3D and animation right on top of it.",
+      "descriptionNeutral": "Point your camera at the souvenir and watch it come alive — video, 3D and animation right on top of it."
     },
     "close": "Close",
     "intro": {
