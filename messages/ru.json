@@ -460,6 +460,9 @@
       "on": "Включить звук",
       "off": "Выключить звук"
     },
+    "audio": {
+      "language": "Язык озвучки"
+    },
     "error": {
       "title": "Не получилось",
       "insecure": "AR работает только по защищённому соединению (https). Откройте ссылку заново.",
@@ -474,7 +477,8 @@
       "retry": "Попробовать снова"
     },
     "cta": {
-      "catalog": "Каталог Starion"
+      "catalog": "Каталог Starion",
+      "website": "Сайт"
     },
     "poweredBy": "AR от Starion Digital",
     "unavailable": {

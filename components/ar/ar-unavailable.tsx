@@ -5,7 +5,11 @@ import { useTranslations } from 'next-intl';
 import { CameraOff } from 'lucide-react';
 
 // Аккуратная заглушка, если опыт не найден или выключен (isActive=false).
-export default function ARUnavailable() {
+export default function ARUnavailable({
+  showHome = true,
+}: {
+  showHome?: boolean;
+}) {
   const t = useTranslations('ARViewer');
 
   return (
@@ -19,12 +23,14 @@ export default function ARUnavailable() {
           {t('unavailable.text')}
         </p>
       </div>
-      <Link
-        href="/"
-        className="inline-flex items-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
-      >
-        {t('unavailable.home')}
-      </Link>
+      {showHome && (
+        <Link
+          href="/"
+          className="inline-flex items-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90"
+        >
+          {t('unavailable.home')}
+        </Link>
+      )}
     </main>
   );
 }

@@ -38,6 +38,10 @@ import {
   ScanEye,
   Image as ImageIcon,
   Wand2,
+  Music,
+  ChevronUp,
+  ChevronDown,
+  RefreshCw,
 } from 'lucide-react';
 import type { ARContentType } from '@prisma/client';
 import {
@@ -55,10 +59,18 @@ import {
   AR_CONTENT_TYPE_HINTS,
   AR_EXPERIENCE_DEFAULTS,
   AR_UPLOAD_LIMITS,
+  AR_AUDIO_LANGS,
   slugifyAr,
   type ARAssetKind,
+  type ARAudioTrack,
 } from '@/lib/ar/constants';
-import { ArQrDialog } from '@/components/ar/ar-qr-dialog';
+import {
+  AR_SOCIAL_KEYS,
+  AR_SOCIAL_META,
+  type ARSocials,
+} from '@/lib/ar/socials';
+import { ArQrDialog, arUrl } from '@/components/ar/ar-qr-dialog';
+import { AR_DOMAIN_URL } from '@/lib/ar/domain';
 import { compileMindFile } from '@/lib/ar/compile-marker';
 
 interface FormState {
@@ -84,6 +96,9 @@ interface FormState {
   loop: boolean;
   sound: boolean;
   isActive: boolean;
+  whiteLabel: boolean;
+  socials: ARSocials;
+  audioTracks: ARAudioTrack[];
 }
 
 const emptyForm = (): FormState => ({
@@ -98,6 +113,8 @@ const emptyForm = (): FormState => ({
   maskUrl: '',
   textureUrl: '',
   posterUrl: '',
+  socials: {},
+  audioTracks: [],
   ...AR_EXPERIENCE_DEFAULTS,
 });
 
@@ -162,6 +179,29 @@ async function uploadArAsset(
   return path as string;
 }
 
+// Выбор аудиофайла + загрузка в Dropbox. Общая часть для «добавить дорожку» и
+// «заменить файл»: возвращает путь либо null, если отменили или файл не прошёл.
+async function pickAndUploadAudio(title: string): Promise<string | null> {
+  if (!title.trim()) {
+    toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+    return null;
+  }
+  const limit = AR_UPLOAD_LIMITS.audio;
+  const file = await new Promise<File | null>((resolve) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = limit.accept;
+    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.click();
+  });
+  if (!file) return null;
+  if (file.size > limit.maxBytes) {
+    toast.error(`Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`);
+    return null;
+  }
+  return uploadArAsset('audio', file, title);
+}
+
 export default function ARManagement() {
   const { experiences, loading, loaded, error, mutate } = useARExperiences();
   const { products } = useProducts();
@@ -171,9 +211,11 @@ export default function ARManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
-  const [qrFor, setQrFor] = useState<{ slug: string; title: string } | null>(
-    null
-  );
+  const [qrFor, setQrFor] = useState<{
+    slug: string;
+    whiteLabel: boolean;
+    title: string;
+  } | null>(null);
   const [filterContentType, setFilterContentType] = useState<string>('ALL');
   const [filterProductType, setFilterProductType] = useState<string>('ALL');
   // файл маркера, выбранный в этой сессии — чтобы компилировать .mind без
@@ -181,8 +223,61 @@ export default function ARManagement() {
   const [markerFile, setMarkerFile] = useState<File | null>(null);
   const [compiling, setCompiling] = useState(false);
   const [compileProgress, setCompileProgress] = useState(0);
+  // какая дорожка сейчас грузится: индекс существующей либо 'new'
+  const [audioBusy, setAudioBusy] = useState<number | 'new' | null>(null);
+  // язык, выбранный для следующей дорожки
+  const [newTrackLang, setNewTrackLang] = useState('');
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
+
+  const patchTracks = (
+    update: (tracks: ARAudioTrack[]) => ARAudioTrack[]
+  ) => setForm((f) => ({ ...f, audioTracks: update(f.audioTracks) }));
+
+  // Порядок важен: первая дорожка — язык по умолчанию во вьюере.
+  const moveTrack = (index: number, delta: number) =>
+    patchTracks((tracks) => {
+      const target = index + delta;
+      if (target < 0 || target >= tracks.length) return tracks;
+      const next = [...tracks];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+
+  const addTrack = async (lang: { code: string; label: string }) => {
+    setAudioBusy('new');
+    try {
+      const path = await pickAndUploadAudio(form.title);
+      if (path) {
+        patchTracks((tracks) => [
+          ...tracks,
+          { lang: lang.code, label: lang.label, path },
+        ]);
+        toast.success(`Дорожка добавлена: ${lang.label}`);
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Ошибка загрузки');
+    } finally {
+      setAudioBusy(null);
+    }
+  };
+
+  const replaceTrackFile = async (index: number) => {
+    setAudioBusy(index);
+    try {
+      const path = await pickAndUploadAudio(form.title);
+      if (path) {
+        patchTracks((tracks) =>
+          tracks.map((it, i) => (i === index ? { ...it, path } : it))
+        );
+        toast.success('Файл заменён');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Ошибка загрузки');
+    } finally {
+      setAudioBusy(null);
+    }
+  };
 
   const openNew = () => {
     setForm(emptyForm());
@@ -215,6 +310,11 @@ export default function ARManagement() {
       loop: exp.loop,
       sound: exp.sound,
       isActive: exp.isActive,
+      whiteLabel: !!exp.whiteLabel,
+      socials: (exp.socials as ARSocials | null) ?? {},
+      audioTracks: Array.isArray(exp.audioTracks)
+        ? (exp.audioTracks as ARAudioTrack[])
+        : [],
     });
     setEditingId(exp.id);
     setMarkerFile(null);
@@ -333,11 +433,9 @@ export default function ARManagement() {
     }
   };
 
-  const copyLink = async (slug: string) => {
+  const copyLink = async (exp: any) => {
     try {
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/ar/${slug}`
-      );
+      await navigator.clipboard.writeText(arUrl(exp.slug, exp.whiteLabel));
       toast.success('Ссылка скопирована');
     } catch {
       toast.error('Не удалось скопировать');
@@ -362,6 +460,17 @@ export default function ARManagement() {
   const isVideo = form.contentType === 'VIDEO';
   const isModel = !isVideo;
   const hasPlayback = isVideo || form.contentType === 'ANIMATION';
+  const socialCount = AR_SOCIAL_KEYS.filter((k) =>
+    form.socials[k]?.trim()
+  ).length;
+  // Языки, которых в этом оживлении ещё нет
+  const freeAudioLangs = AR_AUDIO_LANGS.filter(
+    (l) => !form.audioTracks.some((t) => t.lang === l.code)
+  );
+  // Выбор админа; если выбранный язык успели занять — откатываемся на первый
+  // свободный, чтобы в селекте никогда не висело пустое значение
+  const pendingLang =
+    freeAudioLangs.find((l) => l.code === newTrackLang) ?? freeAudioLangs[0];
 
   const productOptions = products.map((p: any) => ({
     value: String(p.id),
@@ -500,7 +609,13 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    onClick={() => setQrFor({ slug: exp.slug, title: exp.title })}
+                    onClick={() =>
+                      setQrFor({
+                        slug: exp.slug,
+                        whiteLabel: !!exp.whiteLabel,
+                        title: exp.title,
+                      })
+                    }
                   >
                     <QrCode size={14} />
                     <span className="hidden sm:inline">QR</span>
@@ -524,7 +639,7 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    onClick={() => copyLink(exp.slug)}
+                    onClick={() => copyLink(exp)}
                   >
                     <Copy size={14} />
                     <span className="hidden sm:inline">Ссылка</span>
@@ -595,10 +710,16 @@ export default function ARManagement() {
                 }
                 placeholder="chisinau-arch"
               />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ссылка: {typeof window !== 'undefined' ? window.location.origin : ''}
-                /ar/{form.slug || '…'}
+              <p className="mt-1 font-mono text-xs break-all text-muted-foreground">
+                {arUrl(form.slug || '…', form.whiteLabel)}
               </p>
+              {form.whiteLabel && !AR_DOMAIN_URL && (
+                <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
+                  Отдельный домен не настроен (NEXT_PUBLIC_AR_SHORT_URL), поэтому
+                  в QR попадёт основной адрес. Сам вьюер при этом уже без
+                  упоминаний Starion.
+                </p>
+              )}
             </div>
 
             <div>
@@ -765,6 +886,193 @@ export default function ARManagement() {
 
             <details className="rounded-md border p-3">
               <summary className="cursor-pointer text-sm font-medium">
+                Соцсети и контакты — кнопки поверх AR
+                {socialCount > 0 && (
+                  <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-normal">
+                    {socialCount}
+                  </span>
+                )}
+              </summary>
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Показываются только заполненные — пустые поля не рисуют
+                  кнопку. Можно указать и короткий ник (@username), адрес
+                  достроится сам.
+                </p>
+                {AR_SOCIAL_KEYS.map((key) => (
+                  <div key={key}>
+                    <label className="text-xs text-muted-foreground">
+                      {AR_SOCIAL_META[key].label}
+                    </label>
+                    <Input
+                      value={form.socials[key] ?? ''}
+                      placeholder={AR_SOCIAL_META[key].placeholder}
+                      onChange={(e) =>
+                        patch({
+                          socials: { ...form.socials, [key]: e.target.value },
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </details>
+
+            <details className="rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">
+                Озвучка по языкам — необязательно
+                {form.audioTracks.length > 0 && (
+                  <span className="ml-2 rounded bg-secondary px-1.5 py-0.5 text-xs font-normal">
+                    {form.audioTracks.length}
+                  </span>
+                )}
+              </summary>
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Если добавлена хотя бы одна дорожка — собственный звук видео
+                  глушится, играет дорожка, а во вьюере появляется переключатель
+                  языка. Дорожка должна совпадать по длительности с видео:
+                  синхронизация идёт по его времени.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <b>Первая в списке — язык по умолчанию</b>, с него начинается
+                  просмотр. Новые дорожки добавляются в конец; порядок меняется
+                  стрелками слева, файл существующей дорожки — кнопкой с
+                  круговыми стрелками (язык при этом сохраняется).
+                </p>
+
+                {form.audioTracks.map((track, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 rounded-md border p-2"
+                  >
+                    <div className="flex shrink-0 flex-col">
+                      <button
+                        type="button"
+                        aria-label="Выше"
+                        disabled={index === 0}
+                        onClick={() => moveTrack(index, -1)}
+                        className="text-muted-foreground disabled:opacity-25"
+                      >
+                        <ChevronUp size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Ниже"
+                        disabled={index === form.audioTracks.length - 1}
+                        onClick={() => moveTrack(index, 1)}
+                        className="text-muted-foreground disabled:opacity-25"
+                      >
+                        <ChevronDown size={14} />
+                      </button>
+                    </div>
+                    <Music className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Select
+                      value={track.lang}
+                      onValueChange={(lang) => {
+                        const known = AR_AUDIO_LANGS.find(
+                          (l) => l.code === lang
+                        );
+                        patch({
+                          audioTracks: form.audioTracks.map((it, i) =>
+                            i === index
+                              ? { ...it, lang, label: known?.label ?? lang }
+                              : it
+                          ),
+                        });
+                      }}
+                    >
+                      <SelectTrigger className="w-36">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {AR_AUDIO_LANGS.map((l) => (
+                          <SelectItem
+                            key={l.code}
+                            value={l.code}
+                            disabled={form.audioTracks.some(
+                              (it, i) => i !== index && it.lang === l.code
+                            )}
+                          >
+                            {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <span className="flex-1 truncate font-mono text-xs text-muted-foreground">
+                      {track.path.split('/').pop()}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Заменить файл"
+                      disabled={audioBusy !== null}
+                      onClick={() => replaceTrackFile(index)}
+                    >
+                      {audioBusy === index ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RefreshCw size={14} />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-label="Удалить дорожку"
+                      onClick={() =>
+                        patchTracks((tracks) =>
+                          tracks.filter((_, i) => i !== index)
+                        )
+                      }
+                    >
+                      <X size={14} />
+                    </Button>
+                  </div>
+                ))}
+
+                {pendingLang ? (
+                  <div className="flex items-center gap-2">
+                    <Select
+                      value={pendingLang.code}
+                      onValueChange={setNewTrackLang}
+                    >
+                      <SelectTrigger className="w-40 shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {freeAudioLangs.map((l) => (
+                          <SelectItem key={l.code} value={l.code}>
+                            {l.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button
+                      type="button"
+                      disabled={audioBusy !== null}
+                      onClick={() => addTrack(pendingLang)}
+                      className="flex flex-1 items-center gap-2 rounded-md border border-dashed p-2 text-sm text-muted-foreground disabled:opacity-60"
+                    >
+                      {audioBusy === 'new' ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      {audioBusy === 'new' ? 'Загрузка…' : 'Выбрать файл'}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Добавлены дорожки на все доступные языки.
+                  </p>
+                )}
+              </div>
+            </details>
+
+            <details className="rounded-md border p-3">
+              <summary className="cursor-pointer text-sm font-medium">
                 Позиционирование контента
               </summary>
               <div className="mt-3 space-y-3">
@@ -812,9 +1120,11 @@ export default function ARManagement() {
                   onChange={(v) => patch({ loop: v })}
                 />
               )}
-              {isVideo && (
+              {(isVideo || form.audioTracks.length > 0) && (
                 <Toggle
-                  label="Звук"
+                  label={
+                    form.audioTracks.length > 0 ? 'Звук (озвучка)' : 'Звук'
+                  }
                   checked={form.sound}
                   onChange={(v) => patch({ sound: v })}
                 />
@@ -824,7 +1134,21 @@ export default function ARManagement() {
                 checked={form.isActive}
                 onChange={(v) => patch({ isActive: v })}
               />
+              <Toggle
+                label="Скрыть упоминания Starion"
+                checked={form.whiteLabel}
+                onChange={(v) => patch({ whiteLabel: v })}
+              />
             </div>
+            {form.whiteLabel && (
+              <p className="-mt-2 text-xs text-muted-foreground">
+                Белая метка: во вьюере не остаётся ни подписи «AR от Starion
+                Digital», ни ссылки на наш каталог, в заголовке вкладки — только
+                название оживления, иконка вкладки нейтральная. Вместо каталога
+                показывается сайт из блока «Соцсети и контакты»; если он не
+                заполнен, кнопки не будет вовсе.
+              </p>
+            )}
           </div>
 
           <DialogFooter>
@@ -848,6 +1172,7 @@ export default function ARManagement() {
           open={!!qrFor}
           onOpenChange={(o) => !o && setQrFor(null)}
           slug={qrFor.slug}
+          whiteLabel={qrFor.whiteLabel}
           title={qrFor.title}
         />
       )}

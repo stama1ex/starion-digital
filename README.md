@@ -269,6 +269,20 @@ an animation is overlaid on it. No app install.
   MindAR load them without CORS issues and Dropbox paths never reach the client.
 - **Marker compilation** runs in the browser inside the admin panel — MindAR's
   own `Compiler`, so no external web tool and no native dependency.
+- **White-label**: souvenirs are also made under other brands, so each
+  experience has a `whiteLabel` flag that strips every Starion mention from the
+  viewer — footer credit, catalog link (replaced by the client's own site from
+  `socials.website`), tab title and favicon.
+- **Separate AR domain**: set `NEXT_PUBLIC_AR_SHORT_URL` and attach that domain
+  to the same Vercel project (an alias, not a redirect — the viewer really is
+  served there, so the camera gets an ordinary secure-context origin). QR codes
+  then carry it instead of the main address, and `middleware.ts` serves only
+  `/ar/*` and `/api/ar/*` on that host, 404ing the rest of the site.
+- **Social buttons** over the AR view, rendered only for the networks filled in
+  for that experience (`ARExperience.socials`, a JSON column).
+- **Per-language voice-over**: several audio tracks per experience
+  (`ARExperience.audioTracks`); when present, the video's own audio is muted for
+  good and the picked track plays instead, resynced to the video once a second.
 - Admin: `/admin` → **🔮 AR** tab (SUPER_ADMIN). See
   [ADMIN_GUIDE.md](ADMIN_GUIDE.md#ar--оживление-сувениров).
 

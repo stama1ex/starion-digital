@@ -15,6 +15,7 @@ import type { ARErrorKind } from './ar-errors';
 interface ARStageProps {
   experience: ARExperienceClient;
   soundOn: boolean;
+  audioTrackIndex: number;
   onProgress: (value: number) => void;
   onScanning: () => void;
   onTargetFound: () => void;
@@ -89,6 +90,7 @@ function viewportSize() {
 export default function ARStage({
   experience,
   soundOn,
+  audioTrackIndex,
   onProgress,
   onScanning,
   onTargetFound,
@@ -98,6 +100,11 @@ export default function ARStage({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const debugRef = useRef<HTMLPreElement | null>(null);
   const videoElRef = useRef<HTMLVideoElement | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  // индекс держим в ref: init-эффект читает его один раз при старте и не должен
+  // пересоздавать сцену, когда пользователь переключает язык
+  const audioTrackIndexRef = useRef(audioTrackIndex);
+  audioTrackIndexRef.current = audioTrackIndex;
   const mixerRef = useRef<any>(null);
   const isTrackingRef = useRef(false);
 
@@ -246,6 +253,22 @@ export default function ARStage({
 
       const { slug, version } = experience;
 
+      // MindAR вешает свой resize-слушатель на window прямо в конструкторе и
+      // нигде его не снимает — ссылку на bound-функцию он не хранит, поэтому
+      // сами снять её потом нельзя. Без этого каждый монтаж вьюера навсегда
+      // удерживает всю AR-сцену. Перехватываем регистрацию, чтобы снять при
+      // размонтировании.
+      const captured: Array<[string, EventListenerOrEventListenerObject]> = [];
+      const originalAddEventListener = window.addEventListener.bind(window);
+      window.addEventListener = ((
+        type: string,
+        listener: EventListenerOrEventListenerObject,
+        options?: boolean | AddEventListenerOptions
+      ) => {
+        captured.push([type, listener]);
+        return originalAddEventListener(type, listener, options);
+      }) as typeof window.addEventListener;
+
       try {
         mindarThree = new MindARThree({
           container: containerRef.current,
@@ -260,11 +283,26 @@ export default function ARStage({
         console.error('[AR] MindARThree ctor failed', err);
         cb.onError('unknown');
         return;
+      } finally {
+        window.addEventListener = originalAddEventListener;
       }
+      disposables.push(() => {
+        for (const [type, listener] of captured) {
+          window.removeEventListener(type, listener);
+        }
+      });
 
       renderer = mindarThree.renderer;
       scene = mindarThree.scene;
       const camera = mindarThree.camera;
+
+      // MindAR ставит pixelRatio = devicePixelRatio (на телефоне это 3), то есть
+      // прозрачный оверлей рисуется в родном разрешении панели — 2.6 Мпикс,
+      // которые каждый кадр чистятся и вычитываются композитором ради одного
+      // квада. Ограничиваем: раскладка и привязка не затрагиваются, потому что
+      // resize() у MindAR считает fov/aspect только из CSS-размеров контейнера,
+      // а setSize сам домножает на pixelRatio.
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 
       // Свет для 3D-контента (для VIDEO не мешает — там MeshBasicMaterial)
       const hemi = new THREE.HemisphereLight(0xffffff, 0xbbc4d4, 1.15);
@@ -297,11 +335,52 @@ export default function ARStage({
       if (cancelled) return;
       cb.onProgress(0.7);
 
+      // Материал компилируется лениво — в первом кадре, где меш реально
+      // отрисован, то есть ровно в момент захвата маркера. В three r144 линковка
+      // сопровождается блокирующим getProgramParameter, и на Android это
+      // 30-150 мс рывка именно там, где нужна плавность. Компилируем заранее.
+      try {
+        const wasVisible = anchor.group.visible;
+        anchor.group.visible = true;
+        renderer.compile(scene, camera);
+        anchor.group.visible = wasVisible;
+      } catch (err) {
+        console.warn('[AR] shader precompile skipped', err);
+      }
+
+      // Озвучка отдельной дорожкой. Если дорожки заданы, звук видео глушится
+      // навсегда (см. buildContent) и слышно только выбранный язык — иначе они
+      // накладывались бы друг на друга.
+      if (experience.audioTracks.length > 0) {
+        const audio = document.createElement('audio');
+        audio.preload = 'auto';
+        audio.loop = experience.loop;
+        audio.muted = true; // как и видео: звук включает только жест пользователя
+        audio.setAttribute('playsinline', '');
+        audio.src = arAssetUrl(
+          slug,
+          'audio',
+          version,
+          Math.max(0, audioTrackIndexRef.current)
+        );
+        audio.load();
+        audioElRef.current = audio;
+        disposables.push(() => {
+          try {
+            audio.pause();
+            audio.removeAttribute('src');
+            audio.load();
+          } catch {}
+          audioElRef.current = null;
+        });
+      }
+
       anchor.onTargetFound = () => {
         isTrackingRef.current = true;
         cb.onTargetFound();
         if (experience.autoplay) {
           videoElRef.current?.play().catch(() => {});
+          audioElRef.current?.play().catch(() => {});
           startAnimations?.();
         }
       };
@@ -309,6 +388,7 @@ export default function ARStage({
         isTrackingRef.current = false;
         cb.onTargetLost();
         videoElRef.current?.pause();
+        audioElRef.current?.pause();
       };
 
       // У MindAR нет опции разрешения камеры — он запрашивает поток только по
@@ -419,10 +499,35 @@ export default function ARStage({
       cb.onScanning();
 
       const clock = new THREE.Clock();
+      // Пока маркер не найден, сцена пуста, но кадр всё равно чистился и
+      // вычитывался композитором — это отнимало время у распознавания, которое
+      // крутится в том же rAF. Рисуем только когда есть что показать; ещё пара
+      // кадров после потери маркера нужна, чтобы стереть последний показанный
+      // (при preserveDrawingBuffer=false композитор иначе держит старую картинку).
+      let flushFrames = 2;
+      let syncTick = 0;
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
-        if (mixerRef.current && isTrackingRef.current) {
-          mixerRef.current.update(delta);
+        const visible = anchor.group.visible;
+        if (visible) {
+          if (mixerRef.current) mixerRef.current.update(delta);
+          // Видео и озвучка — два независимых элемента и со временем расходятся.
+          // Раз в ~секунду подтягиваем дорожку к видео, если разбежались заметно.
+          if (++syncTick >= 60) {
+            syncTick = 0;
+            const a = audioElRef.current;
+            const v = videoElRef.current;
+            if (a && v && !v.paused && !a.paused && v.duration) {
+              if (Math.abs(a.currentTime - v.currentTime) > 0.3) {
+                a.currentTime = v.currentTime;
+              }
+            }
+          }
+          flushFrames = 2;
+        } else if (flushFrames <= 0) {
+          return;
+        } else {
+          flushFrames--;
         }
         renderer.render(scene, camera);
       });
@@ -495,14 +600,46 @@ export default function ARStage({
 
   // Звук управляется отдельно, без переинициализации сцены. Вызов из обработчика
   // клика по кнопке звука = пользовательский жест, поэтому play() проходит.
+  // Когда заданы озвучки — звучит дорожка, а видео остаётся немым.
+  const hasAudioTracks = experience.audioTracks.length > 0;
   useEffect(() => {
-    const video = videoElRef.current;
-    if (!video) return;
-    video.muted = !soundOn;
+    const media = hasAudioTracks ? audioElRef.current : videoElRef.current;
+    if (!media) return;
+    media.muted = !soundOn;
     if (soundOn && isTrackingRef.current) {
-      video.play().catch(() => {});
+      media.play().catch(() => {});
     }
-  }, [soundOn]);
+  }, [soundOn, hasAudioTracks]);
+
+  // Переключение языка озвучки: подменяем источник, сохраняя позицию
+  // воспроизведения, чтобы фраза не начиналась заново.
+  useEffect(() => {
+    const audio = audioElRef.current;
+    if (!audio) return;
+    const next = arAssetUrl(
+      experience.slug,
+      'audio',
+      experience.version,
+      audioTrackIndex
+    );
+    if (audio.getAttribute('src') === next) return;
+
+    const resumeAt = audio.currentTime;
+    const wasPlaying = !audio.paused;
+    const onReady = () => {
+      audio.removeEventListener('loadedmetadata', onReady);
+      if (Number.isFinite(resumeAt) && resumeAt > 0) {
+        try {
+          audio.currentTime = Math.min(resumeAt, audio.duration || resumeAt);
+        } catch {}
+      }
+      if (wasPlaying) audio.play().catch(() => {});
+    };
+    audio.addEventListener('loadedmetadata', onReady);
+    audio.src = next;
+    audio.load();
+    return () => audio.removeEventListener('loadedmetadata', onReady);
+  }, [audioTrackIndex, experience.slug, experience.version]);
 
   return (
     <>
@@ -571,7 +708,9 @@ async function buildContent({
     video.src = arAssetUrl(slug, 'content', version);
     video.crossOrigin = 'anonymous';
     video.loop = experience.loop;
-    video.muted = true; // старт всегда без звука (autoplay-политика iOS)
+    // Старт всегда без звука (autoplay-политика iOS). Если заданы озвучки,
+    // видео остаётся немым навсегда — звук идёт из выбранной дорожки.
+    video.muted = true;
     video.playsInline = true;
     video.setAttribute('playsinline', '');
     video.setAttribute('webkit-playsinline', '');

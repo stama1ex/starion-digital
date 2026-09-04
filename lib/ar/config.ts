@@ -15,6 +15,8 @@
 // База CDN переопределяется через NEXT_PUBLIC_AR_CDN_BASE, если понадобится
 // self-hosting (см. ADMIN_GUIDE).
 
+// Домен для QR живёт в lib/ar/domain.ts — он же нужен middleware.
+
 export const AR_MINDAR_VERSION = '1.2.5';
 export const AR_THREE_VERSION = '0.144.0';
 

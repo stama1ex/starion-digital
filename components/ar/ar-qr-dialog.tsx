@@ -12,20 +12,26 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Copy, ExternalLink } from 'lucide-react';
+import { AR_DOMAIN_URL } from '@/lib/ar/domain';
 
 interface ArQrDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   slug: string;
+  whiteLabel: boolean;
   title: string;
 }
 
-// Ссылку строим от текущего origin — работает и на проде, и на превью-деплоях.
-function arUrl(slug: string) {
-  const origin =
+// Домен в QR выбирается тем же чекбоксом, что и брендинг во вьюере: белая
+// метка уводит на отдельный домен (NEXT_PUBLIC_AR_SHORT_URL), свои сувениры
+// остаются на основном — там наш адрес как раз к месту. Отдельный домен не
+// настроен — везде текущий origin, работает и на проде, и на превью-деплоях.
+export function arUrl(slug: string, whiteLabel = false) {
+  const own =
     typeof window !== 'undefined'
       ? window.location.origin
       : process.env.NEXT_PUBLIC_SITE_URL || 'https://starion-digital.com';
+  const origin = whiteLabel && AR_DOMAIN_URL ? AR_DOMAIN_URL : own;
   return `${origin}/ar/${slug}`;
 }
 
@@ -33,11 +39,12 @@ export function ArQrDialog({
   open,
   onOpenChange,
   slug,
+  whiteLabel,
   title,
 }: ArQrDialogProps) {
   const [png, setPng] = useState('');
   const [svg, setSvg] = useState('');
-  const url = arUrl(slug);
+  const url = arUrl(slug, whiteLabel);
 
   useEffect(() => {
     if (!open) return;

@@ -29,6 +29,7 @@ export const AR_ASSET_KINDS = [
   'poster',
   'mask',
   'texture',
+  'audio',
 ] as const;
 export type ARAssetKind = (typeof AR_ASSET_KINDS)[number];
 
@@ -71,7 +72,75 @@ export const AR_UPLOAD_LIMITS: Record<
     accept: 'image/jpeg,image/png,image/webp',
     label: 'текстура модели',
   },
+  audio: {
+    maxBytes: 32 * 1024 * 1024,
+    accept: 'audio/mpeg,audio/mp4,audio/aac,audio/ogg,audio/wav,.mp3,.m4a',
+    label: 'аудиодорожка',
+  },
 };
+
+// Языки озвучки. Совпадают с локалями сайта только частично: озвучек может не
+// быть на все языки интерфейса, и наоборот — сувенир под конкретный рынок
+// требует языка, которого на сайте нет. Порядок здесь — только порядок в
+// выпадающем списке; какой язык будет по умолчанию во вьюере, решает порядок
+// дорожек в конкретном оживлении.
+//
+// Нужен ещё язык — допишите строку, больше ничего менять не надо: подпись из
+// label показывается и в админке, и в переключателе вьюера.
+export const AR_AUDIO_LANGS = [
+  { code: 'en', label: 'English' },
+  { code: 'ro', label: 'Română' },
+  { code: 'ru', label: 'Русский' },
+  { code: 'uk', label: 'Українська' },
+  { code: 'es', label: 'Español' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'fr', label: 'Français' },
+  { code: 'pt', label: 'Português' },
+  { code: 'pl', label: 'Polski' },
+  { code: 'nl', label: 'Nederlands' },
+  { code: 'tr', label: 'Türkçe' },
+  { code: 'cs', label: 'Čeština' },
+  { code: 'sk', label: 'Slovenčina' },
+  { code: 'hu', label: 'Magyar' },
+  { code: 'bg', label: 'Български' },
+  { code: 'sr', label: 'Srpski' },
+  { code: 'el', label: 'Ελληνικά' },
+  { code: 'he', label: 'עברית' },
+  { code: 'ar', label: 'العربية' },
+  { code: 'zh', label: '中文' },
+  { code: 'ja', label: '日本語' },
+  { code: 'ko', label: '한국어' },
+] as const;
+
+export interface ARAudioTrack {
+  lang: string; // код языка, напр. 'ru'
+  label: string; // как показать в переключателе
+  path: string; // путь в Dropbox
+}
+
+// Нормализует дорожки из тела запроса: выкидывает пустые, режет длины,
+// схлопывает дубли по языку (в переключателе два «Русский» бессмысленны).
+export function cleanAudioTracks(input: unknown): ARAudioTrack[] | null {
+  if (!Array.isArray(input)) return null;
+  const seen = new Set<string>();
+  const out: ARAudioTrack[] = [];
+  for (const raw of input) {
+    if (!raw || typeof raw !== 'object') continue;
+    const item = raw as Record<string, unknown>;
+    const path = typeof item.path === 'string' ? item.path.trim() : '';
+    const lang = typeof item.lang === 'string' ? item.lang.trim().slice(0, 8) : '';
+    if (!path || !lang || seen.has(lang)) continue;
+    seen.add(lang);
+    const known = AR_AUDIO_LANGS.find((l) => l.code === lang);
+    const label =
+      typeof item.label === 'string' && item.label.trim()
+        ? item.label.trim().slice(0, 40)
+        : (known?.label ?? lang.toUpperCase());
+    out.push({ lang, label, path });
+  }
+  return out.length ? out : null;
+}
 
 // Значения по умолчанию для формы создания опыта
 export const AR_EXPERIENCE_DEFAULTS = {
@@ -86,6 +155,7 @@ export const AR_EXPERIENCE_DEFAULTS = {
   loop: true,
   sound: false,
   isActive: true,
+  whiteLabel: false,
 };
 
 // Приводит произвольную строку к безопасному slug для URL/QR (/ar/{slug})

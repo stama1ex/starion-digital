@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { checkSuperAdminAuth } from '../auth-utils';
 import { AR_CONTENT_TYPES, AR_SLUG_PATTERN, slugifyAr } from '@/lib/ar/constants';
 import { pickARSettings } from '@/lib/ar/payload';
+import { cleanAudioTracks } from '@/lib/ar/constants';
+import { cleanSocials } from '@/lib/ar/socials';
 import { resolveARAssetUrl } from '@/lib/ar/server';
 
 // GET — список всех AR-опытов (для админки)
@@ -114,6 +117,11 @@ export async function POST(request: NextRequest) {
         textureUrl: data.textureUrl ? String(data.textureUrl) : null,
         posterUrl: data.posterUrl ? String(data.posterUrl) : null,
         productId: data.productId ? parseInt(String(data.productId)) : null,
+        // Prisma не выводит типизированные объект/массив как Json — приводим явно
+        socials: (cleanSocials(data.socials) ??
+          undefined) as Prisma.InputJsonValue | undefined,
+        audioTracks: (cleanAudioTracks(data.audioTracks) ??
+          undefined) as Prisma.InputJsonValue | undefined,
         ...pickARSettings(data),
       },
       include: {

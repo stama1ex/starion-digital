@@ -12,7 +12,13 @@ const NUMBER_FIELDS = [
   'offsetZ',
 ] as const;
 
-const BOOLEAN_FIELDS = ['autoplay', 'loop', 'sound', 'isActive'] as const;
+const BOOLEAN_FIELDS = [
+  'autoplay',
+  'loop',
+  'sound',
+  'isActive',
+  'whiteLabel',
+] as const;
 
 export function pickARSettings(data: any): Record<string, number | boolean> {
   const out: Record<string, number | boolean> = {};

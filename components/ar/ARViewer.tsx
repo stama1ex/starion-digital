@@ -12,11 +12,14 @@ import {
   X,
   ArrowRight,
   ScanLine,
+  Languages,
 } from 'lucide-react';
 import { loadMindAr } from '@/lib/ar/config';
 import { arAssetUrl } from '@/lib/ar/types';
 import type { ARExperienceClient } from '@/lib/ar/types';
 import { classifyMediaError, type ARErrorKind } from './ar-errors';
+import { ARSocialLinks } from './ar-socials';
+import { socialHref } from '@/lib/ar/socials';
 
 const ARStage = dynamic(() => import('./ar-stage'), { ssr: false });
 
@@ -29,7 +32,9 @@ interface ARViewerProps {
 
 export default function ARViewer({
   experience,
-  catalogHref = '/',
+  // абсолютный адрес: вьюер может отдаваться и с отдельного AR-домена, где
+  // остального сайта просто нет
+  catalogHref = process.env.NEXT_PUBLIC_SITE_URL || '/',
 }: ARViewerProps) {
   const t = useTranslations('ARViewer');
 
@@ -41,10 +46,28 @@ export default function ARViewer({
   );
   const [stageMounted, setStageMounted] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
+  const [audioTrackIndex, setAudioTrackIndex] = useState(0);
+  const [langOpen, setLangOpen] = useState(false);
   const scanPingedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
-  const showSoundToggle = experience.contentType === 'VIDEO' && experience.sound;
+  const audioTracks = experience.audioTracks;
+  const hasAudioTracks = audioTracks.length > 0;
+
+  // Белая метка: ни подписи, ни ссылки на наш каталог. Вместо каталога — сайт
+  // клиента, если он указан в соцсетях; не указан — кнопки просто нет.
+  const clientSite = experience.socials?.website
+    ? socialHref('website', experience.socials.website)
+    : null;
+  const outboundHref = experience.whiteLabel ? clientSite : catalogHref;
+  const outboundLabel = experience.whiteLabel
+    ? t('cta.website')
+    : t('cta.catalog');
+  // Кнопка звука нужна и когда звук берётся из отдельной озвучки, а не из
+  // видео, — но тумблер «Звук» в админке решает в обоих случаях.
+  const showSoundToggle =
+    experience.sound &&
+    (hasAudioTracks || experience.contentType === 'VIDEO');
 
   // блокируем прокрутку сайта под полноэкранным вьюером
   useEffect(() => {
@@ -179,6 +202,7 @@ export default function ARViewer({
         <ARStage
           experience={experience}
           soundOn={soundOn}
+          audioTrackIndex={audioTrackIndex}
           onProgress={setProgress}
           onScanning={() =>
             setPhase((p) => (p === 'loading' ? 'scanning' : p))
@@ -196,7 +220,7 @@ export default function ARViewer({
         type="button"
         onClick={handleClose}
         aria-label={t('close')}
-        className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/45 backdrop-blur transition hover:bg-black/65"
+        className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 transition hover:bg-black/75"
       >
         <X className="h-5 w-5" />
       </button>
@@ -240,13 +264,21 @@ export default function ARViewer({
             </button>
             <p className="text-xs text-white/45">{t('intro.hint')}</p>
           </div>
-          <ViewerFooter t={t} catalogHref={catalogHref} />
+          <ARSocialLinks
+            socials={experience.socials}
+            className="flex flex-wrap justify-center gap-2 px-6 pb-2"
+          />
+          <ViewerFooter
+            poweredBy={experience.whiteLabel ? null : t('poweredBy')}
+            outboundHref={outboundHref}
+            outboundLabel={outboundLabel}
+          />
         </div>
       )}
 
       {/* ---------- ЗАГРУЗКА ---------- */}
       {phase === 'loading' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/70 px-8 text-center backdrop-blur-sm">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/85 px-8 text-center">
           <Loader2 className="h-9 w-9 animate-spin text-white/80" />
           <div className="space-y-3">
             <p className="text-sm text-white/80">
@@ -275,7 +307,7 @@ export default function ARViewer({
       {phase === 'scanning' && (
         <div className="pointer-events-none absolute inset-0 z-20 flex flex-col">
           <div className="flex justify-center px-6 pt-[calc(env(safe-area-inset-top)+4rem)]">
-            <p className="rounded-full bg-black/45 px-4 py-2 text-sm text-white/90 backdrop-blur">
+            <p className="rounded-full bg-black/60 px-4 py-2 text-sm text-white/90">
               {t('scanning.hint')}
             </p>
           </div>
@@ -290,30 +322,44 @@ export default function ARViewer({
           </div>
           <BottomBar
             t={t}
-            catalogHref={catalogHref}
+            outboundHref={outboundHref}
+            outboundLabel={outboundLabel}
             showSoundToggle={showSoundToggle}
             soundOn={soundOn}
             onToggleSound={() => setSoundOn((s) => !s)}
+            socials={experience.socials}
+            audioTracks={audioTracks}
+            audioTrackIndex={audioTrackIndex}
+            onPickTrack={setAudioTrackIndex}
+            langOpen={langOpen}
+            onToggleLang={() => setLangOpen((v) => !v)}
           />
         </div>
       )}
 
-      {/* ---------- КОНТЕНT НАЙДЕН ---------- */}
+      {/* ---------- КОНТЕНТ НАЙДЕН ---------- */}
       {phase === 'tracking' && (
         <div className="pointer-events-none absolute inset-0 z-20 flex flex-col justify-end">
           <BottomBar
             t={t}
-            catalogHref={catalogHref}
+            outboundHref={outboundHref}
+            outboundLabel={outboundLabel}
             showSoundToggle={showSoundToggle}
             soundOn={soundOn}
             onToggleSound={() => setSoundOn((s) => !s)}
+            socials={experience.socials}
+            audioTracks={audioTracks}
+            audioTrackIndex={audioTrackIndex}
+            onPickTrack={setAudioTrackIndex}
+            langOpen={langOpen}
+            onToggleLang={() => setLangOpen((v) => !v)}
           />
         </div>
       )}
 
       {/* ---------- ОШИБКА ---------- */}
       {phase === 'error' && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/80 px-8 text-center backdrop-blur">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/90 px-8 text-center">
           <div className="grid h-14 w-14 place-items-center rounded-full bg-white/10">
             <Camera className="h-7 w-7 text-white/70" />
           </div>
@@ -345,57 +391,131 @@ export default function ARViewer({
 
 function BottomBar({
   t,
-  catalogHref,
+  outboundHref,
+  outboundLabel,
   showSoundToggle,
   soundOn,
   onToggleSound,
+  socials,
+  audioTracks,
+  audioTrackIndex,
+  onPickTrack,
+  langOpen,
+  onToggleLang,
 }: {
   t: ReturnType<typeof useTranslations>;
-  catalogHref: string;
+  outboundHref: string | null;
+  outboundLabel: string;
   showSoundToggle: boolean;
   soundOn: boolean;
   onToggleSound: () => void;
+  socials: ARExperienceClient['socials'];
+  audioTracks: ARExperienceClient['audioTracks'];
+  audioTrackIndex: number;
+  onPickTrack: (index: number) => void;
+  langOpen: boolean;
+  onToggleLang: () => void;
 }) {
+  // Переключатель нужен только когда языков реально несколько
+  const showLangPicker = audioTracks.length > 1;
+
   return (
-    <div className="pointer-events-auto flex items-center justify-between gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-      <a
-        href={catalogHref}
-        className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-4 py-2 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20"
-      >
-        {t('cta.catalog')}
-        <ArrowRight className="h-4 w-4" />
-      </a>
-      {showSoundToggle && (
-        <button
-          type="button"
-          onClick={onToggleSound}
-          aria-label={soundOn ? t('sound.off') : t('sound.on')}
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/12 backdrop-blur transition hover:bg-white/20"
-        >
-          {soundOn ? (
-            <Volume2 className="h-5 w-5" />
-          ) : (
-            <VolumeX className="h-5 w-5" />
-          )}
-        </button>
+    <div className="pointer-events-auto flex flex-col gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+      {/* Соцсети — только заполненные при создании оживления */}
+      <ARSocialLinks
+        socials={socials}
+        className="flex flex-wrap justify-center gap-2"
+      />
+
+      {showLangPicker && langOpen && (
+        <div className="mx-auto flex max-w-full flex-wrap justify-center gap-2 rounded-2xl bg-black/70 p-2">
+          {audioTracks.map((track, index) => (
+            <button
+              key={track.lang}
+              type="button"
+              onClick={() => onPickTrack(index)}
+              className={
+                'rounded-full px-3 py-1.5 text-sm transition ' +
+                (index === audioTrackIndex
+                  ? 'bg-white font-semibold text-black'
+                  : 'bg-white/15 text-white hover:bg-white/25')
+              }
+            >
+              {track.label}
+            </button>
+          ))}
+        </div>
       )}
+
+      <div className="flex items-center justify-between gap-3">
+        {outboundHref ? (
+          <a
+            href={outboundHref}
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/30"
+          >
+            {outboundLabel}
+            <ArrowRight className="h-4 w-4" />
+          </a>
+        ) : (
+          <span />
+        )}
+
+        <div className="flex items-center gap-2">
+          {showLangPicker && (
+            <button
+              type="button"
+              onClick={onToggleLang}
+              aria-label={t('audio.language')}
+              aria-expanded={langOpen}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-2 text-sm font-medium text-white transition hover:bg-white/30"
+            >
+              <Languages className="h-5 w-5" />
+              {audioTracks[audioTrackIndex]?.label}
+            </button>
+          )}
+          {showSoundToggle && (
+            <button
+              type="button"
+              onClick={onToggleSound}
+              aria-label={soundOn ? t('sound.off') : t('sound.on')}
+              className="grid h-10 w-10 place-items-center rounded-full bg-white/20 transition hover:bg-white/30"
+            >
+              {soundOn ? (
+                <Volume2 className="h-5 w-5" />
+              ) : (
+                <VolumeX className="h-5 w-5" />
+              )}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
 function ViewerFooter({
-  t,
-  catalogHref,
+  poweredBy,
+  outboundHref,
+  outboundLabel,
 }: {
-  t: ReturnType<typeof useTranslations>;
-  catalogHref: string;
+  poweredBy: string | null;
+  outboundHref: string | null;
+  outboundLabel: string;
 }) {
+  // При белой метке и без сайта клиента подвал пуст — не рисуем его совсем,
+  // чтобы не осталась полоса отступов
+  if (!poweredBy && !outboundHref) return null;
+
   return (
     <div className="flex items-center justify-between gap-3 px-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] text-xs text-white/45">
-      <a href={catalogHref} className="underline underline-offset-4">
-        {t('cta.catalog')}
-      </a>
-      <span>{t('poweredBy')}</span>
+      {outboundHref ? (
+        <a href={outboundHref} className="underline underline-offset-4">
+          {outboundLabel}
+        </a>
+      ) : (
+        <span />
+      )}
+      {poweredBy && <span>{poweredBy}</span>}
     </div>
   );
 }

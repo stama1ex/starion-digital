@@ -460,6 +460,9 @@
       "on": "Turn on sound",
       "off": "Turn off sound"
     },
+    "audio": {
+      "language": "Audio language"
+    },
     "error": {
       "title": "Something went wrong",
       "insecure": "AR only works over a secure (https) connection. Please reopen the link.",
@@ -474,7 +477,8 @@
       "retry": "Try again"
     },
     "cta": {
-      "catalog": "Starion catalog"
+      "catalog": "Starion catalog",
+      "website": "Website"
     },
     "poweredBy": "AR by Starion Digital",
     "unavailable": {
