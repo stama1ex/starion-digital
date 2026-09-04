@@ -1,18 +1,13 @@
 // app/contacts/page.tsx
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { SITE_URL } from '@/lib/site';
 import { Container } from '@/components/shared/container';
 import ContactsContent from './contacts-content';
 
-type PageProps = {
-  params: Promise<{ locale: string }>;
-};
-
 // Metadata generation (server-side)
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const { locale } = await params;
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
   const t = await getTranslations({
     locale,
     namespace: 'ContactsPage',
@@ -35,16 +30,11 @@ export async function generateMetadata({
     openGraph: {
       title: `${t('meta.title')} - Contact Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${locale}/contacts`,
+      url: `${SITE_URL}/contacts`,
       images: [{ url: '/stamat-yuri.webp', width: 400, height: 400 }],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${locale}/contacts`,
-      languages: {
-        ru: `https://starion-digital.com/ru/contacts`,
-        en: `https://starion-digital.com/en/contacts`,
-        ro: `https://starion-digital.com/ro/contacts`,
-      },
+      canonical: `${SITE_URL}/contacts`,
     },
     other: {
       'application/ld+json': JSON.stringify({
@@ -54,7 +44,7 @@ export async function generateMetadata({
         jobTitle: 'Founder of Starion Digital',
         telephone: '+373 680 33 007',
         email: 'stamat2000@gmail.com',
-        url: `https://starion-digital.com/${locale}/contacts`,
+        url: `${SITE_URL}/contacts`,
         sameAs: [
           'https://t.me/Viar_tech',
           'https://www.instagram.com/starion_digital',
@@ -64,8 +54,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function ContactsPage({ params }: PageProps) {
-  const { locale } = await params; // 👈 здесь тоже await
+export default async function ContactsPage() {
+  const locale = await getLocale();
   const t = await getTranslations({
     locale,
     namespace: 'ContactsPage',

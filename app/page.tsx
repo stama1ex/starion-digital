@@ -1,6 +1,7 @@
 // app/page.tsx
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { SITE_URL, SITE_NAME } from '@/lib/site';
 import { Container } from '@/components/shared/container';
 import { prisma } from '@/lib/db';
 import { getModelUrl } from '@/lib/models';
@@ -10,14 +11,8 @@ import ArDemoSection from '@/components/ArDemoSection';
 // Обновляем чаще, т.к. временная ссылка на 3D-модель от Dropbox недолговечна
 export const revalidate = 300;
 
-type PageProps = {
-  params: Promise<{ locale: string }>;
-};
-
-export async function generateMetadata({
-  params,
-}: PageProps): Promise<Metadata> {
-  const { locale } = await params; // 👈 деструктурируем из промиса
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
   const t = await getTranslations({
     locale,
     namespace: 'HomePage',
@@ -35,24 +30,20 @@ export async function generateMetadata({
     openGraph: {
       title: `${t('meta.title')} | Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${locale}`,
+      url: SITE_URL,
       images: [{ url: '/og-image-home.jpg', width: 1200, height: 630 }],
     },
+    // Языковых версий по разным адресам нет: локаль хранится в куке, префикса
+    // в маршруте не существует — поэтому и alternates.languages здесь не место.
     alternates: {
-      canonical: `https://starion-digital.com/${locale}`,
-      languages: {
-        ru: `https://starion-digital.com/ru`,
-        en: `https://starion-digital.com/en`,
-        ro: `https://starion-digital.com/ro`,
-      },
+      canonical: SITE_URL,
     },
     other: {
       'application/ld+json': JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'Organization',
-        name: 'Starion Digital',
-        url: 'https://starion-digital.com',
-        logo: 'https://starion-digital.com/logo.png',
+        name: SITE_NAME,
+        url: SITE_URL,
         contactPoint: {
           '@type': 'ContactPoint',
           telephone: '+373 680 33 007',
@@ -64,8 +55,8 @@ export async function generateMetadata({
   };
 }
 
-export default async function Page({ params }: PageProps) {
-  const { locale } = await params; // 👈 ждём промис
+export default async function Page() {
+  const locale = await getLocale();
   const t = await getTranslations({
     locale,
     namespace: 'HomePage',

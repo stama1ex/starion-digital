@@ -1,22 +1,14 @@
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { SITE_URL } from '@/lib/site';
 import { Container } from '@/components/shared/container';
 import TermsContent from './terms-content';
 
-// Define the params type explicitly
-interface PageParams {
-  locale: string;
-}
-
 // Metadata generation (server-side)
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<PageParams>; // Use Promise<PageParams>
-}): Promise<Metadata> {
-  const resolvedParams = await params; // Await the Promise
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
   const t = await getTranslations({
-    locale: resolvedParams.locale,
+    locale,
     namespace: 'Terms',
   });
   return {
@@ -26,16 +18,16 @@ export async function generateMetadata({
       'Starion Digital terms of use',
       'AR souvenirs terms',
       'website terms',
-      resolvedParams.locale === 'ru'
+      locale === 'ru'
         ? 'Условия использования Starion Digital'
-        : resolvedParams.locale === 'ro'
+        : locale === 'ro'
           ? 'Termeni de utilizare Starion Digital'
           : 'Starion Digital terms of use',
     ],
     openGraph: {
       title: `${t('title')} - Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${resolvedParams.locale}/terms`,
+      url: `${SITE_URL}/terms`,
       type: 'website',
       images: [
         {
@@ -53,12 +45,7 @@ export async function generateMetadata({
       images: ['/og-image-terms.jpg'],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${resolvedParams.locale}/terms`,
-      languages: {
-        ru: `https://starion-digital.com/ru/terms`,
-        en: `https://starion-digital.com/en/terms`,
-        ro: `https://starion-digital.com/ro/terms`,
-      },
+      canonical: `${SITE_URL}/terms`,
     },
     other: {
       'application/ld+json': JSON.stringify({
@@ -66,12 +53,11 @@ export async function generateMetadata({
         '@type': 'WebPage',
         name: t('title'),
         description: t('meta.description'),
-        url: `https://starion-digital.com/${resolvedParams.locale}/terms`,
+        url: `${SITE_URL}/terms`,
         publisher: {
           '@type': 'Organization',
           name: 'Starion Digital',
-          url: 'https://starion-digital.com',
-          logo: 'https://starion-digital.com/logo.png',
+          url: SITE_URL,
           contactPoint: {
             '@type': 'ContactPoint',
             telephone: '+373 680 33 007',
@@ -84,14 +70,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function TermsPage({
-  params,
-}: {
-  params: Promise<PageParams>; // Use Promise<PageParams>
-}) {
-  const resolvedParams = await params; // Await the Promise
+export default async function TermsPage() {
+  const locale = await getLocale();
   const t = await getTranslations({
-    locale: resolvedParams.locale,
+    locale,
     namespace: 'Terms',
   });
 

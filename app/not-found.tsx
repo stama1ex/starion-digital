@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { getLocale, getTranslations } from 'next-intl/server';
+import { SITE_URL, SITE_NAME } from '@/lib/site';
 import { Container } from '@/components/shared/container';
 import NotFoundContent from '@/components/shared/not-found-content';
 
@@ -25,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: `${t('title')} - Starion Digital`,
       description: t('description'),
-      url: `https://starion-digital.com/${locale}/404`,
+      url: `${SITE_URL}/404`,
       type: 'website',
       images: [
         {
@@ -37,12 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
       ],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${locale}/404`,
-      languages: {
-        ru: `https://starion-digital.com/ru/404`,
-        en: `https://starion-digital.com/en/404`,
-        ro: `https://starion-digital.com/ro/404`,
-      },
+      canonical: `${SITE_URL}/404`,
     },
     other: {
       'application/ld+json': JSON.stringify({
@@ -50,12 +46,11 @@ export async function generateMetadata(): Promise<Metadata> {
         '@type': 'WebPage',
         name: t('title'),
         description: t('description'),
-        url: `https://starion-digital.com/${locale}/404`,
+        url: `${SITE_URL}/404`,
         publisher: {
           '@type': 'Organization',
-          name: 'Starion Digital',
-          url: 'https://starion-digital.com',
-          logo: 'https://starion-digital.com/logo.png',
+          name: SITE_NAME,
+          url: SITE_URL,
         },
       }),
     },

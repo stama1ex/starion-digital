@@ -1,22 +1,14 @@
 import { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
+import { SITE_URL } from '@/lib/site';
 import { Container } from '@/components/shared/container';
 import PrivacyPolicyContent from './privacy-policy-content';
 
-// Define the params type explicitly
-interface PageParams {
-  locale: string;
-}
-
 // Metadata generation (server-side)
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<PageParams>; // Use Promise<PageParams>
-}): Promise<Metadata> {
-  const resolvedParams = await params; // Await the Promise
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
   const t = await getTranslations({
-    locale: resolvedParams.locale,
+    locale,
     namespace: 'PrivacyPolicy',
   });
   return {
@@ -27,16 +19,16 @@ export async function generateMetadata({
       'AR souvenirs privacy',
       'data protection',
       'website privacy policy',
-      resolvedParams.locale === 'ru'
+      locale === 'ru'
         ? 'Политика конфиденциальности Starion Digital'
-        : resolvedParams.locale === 'ro'
+        : locale === 'ro'
           ? 'Politica de confidențialitate Starion Digital'
           : 'Starion Digital privacy policy',
     ],
     openGraph: {
       title: `${t('title')} - Starion Digital`,
       description: t('meta.description'),
-      url: `https://starion-digital.com/${resolvedParams.locale}/privacy-policy`,
+      url: `${SITE_URL}/privacy-policy`,
       type: 'website',
       images: [
         {
@@ -54,12 +46,7 @@ export async function generateMetadata({
       images: ['/og-image-privacy.jpg'],
     },
     alternates: {
-      canonical: `https://starion-digital.com/${resolvedParams.locale}/privacy-policy`,
-      languages: {
-        ru: `https://starion-digital.com/ru/privacy-policy`,
-        en: `https://starion-digital.com/en/privacy-policy`,
-        ro: `https://starion-digital.com/ro/privacy-policy`,
-      },
+      canonical: `${SITE_URL}/privacy-policy`,
     },
     other: {
       'application/ld+json': JSON.stringify({
@@ -67,12 +54,11 @@ export async function generateMetadata({
         '@type': 'WebPage',
         name: t('title'),
         description: t('meta.description'),
-        url: `https://starion-digital.com/${resolvedParams.locale}/privacy-policy`,
+        url: `${SITE_URL}/privacy-policy`,
         publisher: {
           '@type': 'Organization',
           name: 'Starion Digital',
-          url: 'https://starion-digital.com',
-          logo: 'https://starion-digital.com/logo.png',
+          url: SITE_URL,
           contactPoint: {
             '@type': 'ContactPoint',
             telephone: '+373 680 33 007',
@@ -85,14 +71,10 @@ export async function generateMetadata({
   };
 }
 
-export default async function PrivacyPolicyPage({
-  params,
-}: {
-  params: Promise<PageParams>; // Use Promise<PageParams>
-}) {
-  const resolvedParams = await params; // Await the Promise
+export default async function PrivacyPolicyPage() {
+  const locale = await getLocale();
   const t = await getTranslations({
-    locale: resolvedParams.locale,
+    locale,
     namespace: 'PrivacyPolicy',
   });
 
