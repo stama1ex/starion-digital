@@ -446,7 +446,8 @@
   },
   "ARViewer": {
     "meta": {
-      "description": "Îndreaptă camera spre o suvenir Starion și privește-o cum prinde viață — video, 3D și animație direct peste ea."
+      "description": "Îndreaptă camera spre o suvenir Starion și privește-o cum prinde viață — video, 3D și animație direct peste ea.",
+      "descriptionNeutral": "Îndreaptă camera spre suvenir și privește-l cum prinde viață — video, 3D și animație direct peste el."
     },
     "close": "Închide",
     "intro": {

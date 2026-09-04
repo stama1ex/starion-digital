@@ -441,7 +441,8 @@
   },
   "ARViewer": {
     "meta": {
-      "description": "Point your camera at a Starion souvenir and watch it come alive — video, 3D and animation right on top of it."
+      "description": "Point your camera at a Starion souvenir and watch it come alive — video, 3D and animation right on top of it.",
+      "descriptionNeutral": "Point your camera at the souvenir and watch it come alive — video, 3D and animation right on top of it."
     },
     "close": "Close",
     "intro": {

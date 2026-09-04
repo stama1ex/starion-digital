@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { headers } from 'next/headers';
+import { loadARExperienceBySlug } from '@/lib/ar/experience';
 import { Header } from '@/components/shared/header';
 import { Footer } from '@/components/shared/footer';
 import { ThemeProvider } from '@/components/theme-provider';
@@ -27,6 +28,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `Starion Digital | ${t('meta.title')}`,
     description: t('meta.description'),
+    // Иконка объявлена здесь, а не файлом app/favicon.ico: файловая конвенция
+    // Next вставляет свой <link rel=icon> в обход metadata, и на странице
+    // оживления с белой меткой рядом с нейтральной иконкой оказывалась наша.
+    icons: { icon: '/favicon.ico' },
   };
 }
 
@@ -36,13 +41,35 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const locale = await getLocale();
-  const messages = await getMessages();
+  let messages = await getMessages();
 
   // Страница оживления — полноэкранный вьюер: обвязка сайта на ней не видна,
   // но лежала бы в разметке, а при белой метке этого быть не должно.
   // Путь приходит из middleware — сюда он иначе не попадает.
   const pathname = (await headers()).get('x-pathname') || '';
   const bare = pathname.startsWith('/ar/');
+
+  if (bare) {
+    // NextIntlClientProvider сериализует переданный словарь прямо в HTML.
+    // Вьюеру нужен только его собственный неймспейс: остальные тянут в
+    // разметку весь сайт (это и лишние килобайты, и наше имя в открытую).
+    const slug = decodeURIComponent(pathname.split('/')[2] || '');
+    const experience = slug ? await loadARExperienceBySlug(slug) : null;
+    const viewer = { ...(messages.ARViewer as Record<string, unknown>) };
+
+    if (experience?.whiteLabel) {
+      // Единственные места в неймспейсе, где есть наше имя. Вьюер их при
+      // белой метке не запрашивает, так что удалять безопасно: meta.* вообще
+      // читается только в generateMetadata, то есть на сервере.
+      delete viewer.poweredBy;
+      delete viewer.meta;
+      const cta = { ...(viewer.cta as Record<string, unknown>) };
+      delete cta.catalog;
+      viewer.cta = cta;
+    }
+
+    messages = { ARViewer: viewer } as typeof messages;
+  }
 
   return (
     <html lang={locale} suppressHydrationWarning>
