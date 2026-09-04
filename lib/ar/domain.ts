@@ -25,12 +25,16 @@ export const AR_DOMAIN_HOST = (() => {
   }
 })();
 
+// www.ar3d.io и ar3d.io — для нас один и тот же AR-домен. Без этого стоит
+// завести в Vercel www-вариант, и на нём откроется весь сайт в обход замка.
+const bare = (host: string) => host.replace(/^www\./, '');
+
 // На AR-домене отдаётся только вьюер: /ar/* и прокси ассетов /api/ar/*.
 // Остальной сайт там недоступен — иначе на нём открывался бы весь каталог со
 // всем брендингом, да ещё и дублировал бы основной домен для поисковиков.
 export function isARDomainHost(host: string | null | undefined): boolean {
   if (!AR_DOMAIN_HOST || !host) return false;
-  return host.toLowerCase().split(':')[0] === AR_DOMAIN_HOST;
+  return bare(host.toLowerCase().split(':')[0]) === bare(AR_DOMAIN_HOST);
 }
 
 export function isARDomainPath(pathname: string): boolean {
