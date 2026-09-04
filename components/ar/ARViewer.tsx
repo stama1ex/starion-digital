@@ -20,6 +20,7 @@ import type { ARExperienceClient } from '@/lib/ar/types';
 import { classifyMediaError, type ARErrorKind } from './ar-errors';
 import { ARSocialLinks } from './ar-socials';
 import { socialHref } from '@/lib/ar/socials';
+import { SITE_URL } from '@/lib/ar/domain';
 
 const ARStage = dynamic(() => import('./ar-stage'), { ssr: false });
 
@@ -33,8 +34,8 @@ interface ARViewerProps {
 export default function ARViewer({
   experience,
   // абсолютный адрес: вьюер может отдаваться и с отдельного AR-домена, где
-  // остального сайта просто нет
-  catalogHref = process.env.NEXT_PUBLIC_SITE_URL || '/',
+  // остального сайта просто нет, и относительная ссылка там даст 404
+  catalogHref = SITE_URL,
 }: ARViewerProps) {
   const t = useTranslations('ARViewer');
 

@@ -8,14 +8,11 @@ import {
   loadARExperienceBySlug,
   toARExperienceClient,
 } from '@/lib/ar/experience';
-import { isARDomainHost } from '@/lib/ar/domain';
+import { isARDomainHost, SITE_URL } from '@/lib/ar/domain';
 
 // Свежие данные на каждый запрос: временные ссылки Dropbox короткоживущие,
 // а прокси ассетов и так динамический.
 export const dynamic = 'force-dynamic';
-
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || 'https://starion-digital.com';
 
 type PageProps = { params: Promise<{ slug: string }> };
 

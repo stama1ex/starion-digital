@@ -10,6 +10,13 @@
 // пустая, весь этот код — no-op: ничего не блокируется, ссылки строятся от
 // текущего origin.
 
+// Канонический адрес основного сайта. В Vercel Production-доменом стоит
+// www.stariondigital.com, апекс на него редиректит. Значение переопределяется
+// переменной NEXT_PUBLIC_SITE_URL; фолбэк — на случай, если её забыли.
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || 'https://www.stariondigital.com'
+).replace(/\/+$/, '');
+
 export const AR_DOMAIN_URL = (process.env.NEXT_PUBLIC_AR_SHORT_URL || '')
   .trim()
   .replace(/\/+$/, '');
