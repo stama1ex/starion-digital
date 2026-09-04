@@ -48,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
           '@type': 'ContactPoint',
           telephone: '+373 680 33 007',
           contactType: 'Customer Service',
-          email: 'stamat2000@gmail.com',
+          email: 'info@stariondigital.com',
         },
       }),
     },

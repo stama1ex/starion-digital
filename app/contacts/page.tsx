@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
         name: 'Yuri Stamat',
         jobTitle: 'Founder of Starion Digital',
         telephone: '+373 680 33 007',
-        email: 'stamat2000@gmail.com',
+        email: 'info@stariondigital.com',
         url: `${SITE_URL}/contacts`,
         sameAs: [
           'https://t.me/Viar_tech',
