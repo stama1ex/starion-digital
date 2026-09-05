@@ -596,9 +596,15 @@ export default function ARStage({
               AR_STABILIZER.followMax,
               AR_STABILIZER.followMin + speed
             );
+            // Поворот идёт по своему, более медленному коэффициенту: при
+            // съёмке под углом качает именно плоскость, а не центр.
+            const kRot = Math.min(
+              AR_STABILIZER.followMax,
+              AR_STABILIZER.followMinRot + speed
+            );
             posePos.lerp(targetPos, k);
-            poseQuat.slerp(targetQuat, k);
-            poseScale.lerp(targetScale, k);
+            poseQuat.slerp(targetQuat, kRot);
+            poseScale.lerp(targetScale, kRot);
           }
         }
 
