@@ -179,10 +179,26 @@ export default function ARViewer({
     setPhase('intro');
   }, []);
 
+  // Крестик уводит назад по истории, а если её нет (обычный случай при
+  // переходе по QR — вкладка открывается пустой) — на внешнюю ссылку. Раньше
+  // ею всегда был наш каталог, поэтому при белой метке кнопка выбрасывала
+  // человека на stariondigital.com. Теперь адрес тот же, что и у кнопки внизу.
+  const [canGoBack, setCanGoBack] = useState(false);
+  useEffect(() => {
+    setCanGoBack(window.history.length > 1);
+  }, []);
+
   const handleClose = useCallback(() => {
-    if (window.history.length > 1) window.history.back();
-    else window.location.href = catalogHref;
-  }, [catalogHref]);
+    if (canGoBack) {
+      window.history.back();
+      return;
+    }
+    if (outboundHref) window.location.href = outboundHref;
+  }, [canGoBack, outboundHref]);
+
+  // Белая метка без сайта клиента и без истории: уходить некуда, и кнопка,
+  // которая ничего не делает, хуже её отсутствия.
+  const showClose = canGoBack || !!outboundHref;
 
   const posterUrl = experience.hasPoster
     ? arAssetUrl(experience.slug, 'poster', experience.version)
@@ -217,14 +233,16 @@ export default function ARViewer({
       )}
 
       {/* Кнопка закрытия — поверх всего */}
-      <button
-        type="button"
-        onClick={handleClose}
-        aria-label={t('close')}
-        className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 transition hover:bg-black/75"
-      >
-        <X className="h-5 w-5" />
-      </button>
+      {showClose && (
+        <button
+          type="button"
+          onClick={handleClose}
+          aria-label={t('close')}
+          className="absolute top-[calc(env(safe-area-inset-top)+0.75rem)] right-3 z-30 grid h-10 w-10 place-items-center rounded-full bg-black/60 transition hover:bg-black/75"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      )}
 
       {/* ---------- ИНТРО ---------- */}
       {phase === 'intro' && (
