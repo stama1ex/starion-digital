@@ -46,7 +46,10 @@ export default function ARViewer({
     'camera'
   );
   const [stageMounted, setStageMounted] = useState(false);
-  const [soundOn, setSoundOn] = useState(false);
+  // Звук включён сразу, если админ его разрешил. Мобильные браузеры не дают
+  // запустить его без жеста, но жест уже был — тап по «Навести камеру». Если
+  // браузер всё же откажет, останется кнопка звука, и она сработает наверняка.
+  const [soundOn, setSoundOn] = useState(experience.sound);
   const [audioTrackIndex, setAudioTrackIndex] = useState(0);
   const [langOpen, setLangOpen] = useState(false);
   const scanPingedRef = useRef(false);

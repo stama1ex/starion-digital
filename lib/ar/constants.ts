@@ -153,9 +153,11 @@ export const AR_EXPERIENCE_DEFAULTS = {
   offsetZ: 0,
   autoplay: true,
   loop: true,
-  sound: false,
+  sound: true,
   isActive: true,
-  whiteLabel: false,
+  // По умолчанию оживление обезличено: так QR ведёт на короткий ar3d.io, а
+  // во вьюере нет наших ссылок. Для своих сувениров галочку снимают вручную.
+  whiteLabel: true,
 };
 
 // Приводит произвольную строку к безопасному slug для URL/QR (/ar/{slug})
