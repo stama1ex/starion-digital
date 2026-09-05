@@ -223,6 +223,7 @@ export default function ARViewer({
           experience={experience}
           soundOn={soundOn}
           audioTrackIndex={audioTrackIndex}
+          onSoundBlocked={() => setSoundOn(false)}
           onProgress={setProgress}
           onScanning={() =>
             setPhase((p) => (p === 'loading' ? 'scanning' : p))
