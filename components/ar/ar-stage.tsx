@@ -204,7 +204,8 @@ export default function ARStage({
     let lastH = 0;
     let resizeCount = 0;
     let lastResizeError = '';
-    const debugInfo: { marker?: string; plane?: string } = {};
+    // произвольные строки для панели ?ardebug=1
+    const debugInfo: Record<string, string> = {};
     const syncAndResize = (force = false) => {
       if (cancelled) return;
       syncContainerSize();
@@ -684,7 +685,7 @@ async function buildContent({
   videoElRef: React.MutableRefObject<HTMLVideoElement | null>;
   mixerRef: React.MutableRefObject<any>;
   disposables: Array<() => void>;
-  debugInfo: { marker?: string; plane?: string };
+  debugInfo: Record<string, string>;
   onAssetProgress: (p: number) => void;
 }): Promise<(() => void) | null> {
   const { slug, version, contentType } = experience;
@@ -890,6 +891,16 @@ async function buildContent({
   const model = gltf?.scene || gltf?.scenes?.[0];
   if (!model) throw new Error('glb has no scene');
 
+  let meshCount = 0;
+  model.traverse((o: any) => {
+    if (o.isMesh || o.isSkinnedMesh) meshCount++;
+  });
+  debugInfo.meshes =
+    meshCount + ' | клипов: ' + ((gltf.animations || []).length || 0);
+  if (meshCount === 0) {
+    console.warn('[AR] в GLB нет ни одного меша — показывать нечего');
+  }
+
   // Нормализация: вписываем модель в куб со стороной 1 (= ширина маркера),
   // центрируем по X/Z и ставим «на землю» (низ модели в 0 по Y). Благодаря
   // этому любая модель, независимо от единиц в GLB, появляется соразмерной
@@ -897,8 +908,28 @@ async function buildContent({
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
-  const maxDim = Math.max(size.x, size.y, size.z) || 1;
+  const rawMax = Math.max(size.x, size.y, size.z);
+
+  // Габариты могут не посчитаться: пустой Box3 даёт -Infinity, а скелетная
+  // модель без просчитанного bounding box — NaN. Оба варианта дальше
+  // превращают scale в NaN/0, и модель исчезает бесследно — именно так это и
+  // выглядит: маркер ловится, а показывать нечего. Подстраховываемся.
+  const usable = Number.isFinite(rawMax) && rawMax > 1e-6;
+  if (!usable) {
+    console.warn(
+      '[AR] не удалось измерить модель (габариты ' + rawMax + '), масштаб 1:1'
+    );
+  }
+  const maxDim = usable ? rawMax : 1;
   const k = 1 / maxDim;
+  const safeCenter = usable ? center : new THREE.Vector3(0, 0, 0);
+  const safeMinY = usable ? box.min.y : 0;
+
+  debugInfo.model =
+    'габариты ' +
+    size.x.toFixed(2) + '×' + size.y.toFixed(2) + '×' + size.z.toFixed(2) +
+    ' | k=' + k.toFixed(4) +
+    (usable ? '' : ' | ИЗМЕРИТЬ НЕ УДАЛОСЬ');
 
   // Подгонку вешаем на отдельную группу-обёртку, а не на сам gltf.scene:
   // анимационные клипы могут содержать ключи на трансформе корневого узла
@@ -906,7 +937,7 @@ async function buildContent({
   // scale/position — модель прыгала бы в исходный размер.
   const fit = new THREE.Group();
   fit.scale.setScalar(k);
-  fit.position.set(-center.x * k, -box.min.y * k, -center.z * k);
+  fit.position.set(-safeCenter.x * k, -safeMinY * k, -safeCenter.z * k);
   fit.add(model);
 
   model.traverse((obj: any) => {

@@ -27,7 +27,6 @@ import {
   Edit2,
   Trash2,
   QrCode,
-  ExternalLink,
   Copy,
   Loader2,
   Upload,
@@ -70,6 +69,8 @@ import {
   type ARSocials,
 } from '@/lib/ar/socials';
 import { ArQrDialog, arUrl } from '@/components/ar/ar-qr-dialog';
+import { ArTestDialog } from '@/components/ar/ar-test-dialog';
+import { compressImage, formatBytes } from '@/lib/ar/compress';
 import { AR_DOMAIN_URL } from '@/lib/ar/domain';
 import { compileMindFile } from '@/lib/ar/compile-marker';
 
@@ -202,6 +203,12 @@ async function pickAndUploadAudio(title: string): Promise<string | null> {
   return uploadArAsset('audio', file, title);
 }
 
+// В базе повороты хранятся в радианах — их напрямую ест three.js. Человеку
+// же удобнее градусы, поэтому форма работает в них, а на границе конвертируем.
+const RAD = Math.PI / 180;
+const toDeg = (rad: number) => Math.round((rad / RAD) * 10) / 10;
+const toRad = (deg: number) => deg * RAD;
+
 export default function ARManagement() {
   const { experiences, loading, loaded, error, mutate } = useARExperiences();
   const { products } = useProducts();
@@ -211,10 +218,13 @@ export default function ARManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [saving, setSaving] = useState(false);
-  const [qrFor, setQrFor] = useState<{
+  const [qrFor, setQrFor] = useState<{ slug: string; title: string } | null>(
+    null
+  );
+  const [testFor, setTestFor] = useState<{
     slug: string;
-    whiteLabel: boolean;
     title: string;
+    markerUrl: string | null;
   } | null>(null);
   const [filterContentType, setFilterContentType] = useState<string>('ALL');
   const [filterProductType, setFilterProductType] = useState<string>('ALL');
@@ -300,9 +310,9 @@ export default function ARManagement() {
       textureUrl: exp.textureUrl || '',
       posterUrl: exp.posterUrl || '',
       scale: exp.scale,
-      rotationX: exp.rotationX,
-      rotationY: exp.rotationY,
-      rotationZ: exp.rotationZ,
+      rotationX: toDeg(exp.rotationX),
+      rotationY: toDeg(exp.rotationY),
+      rotationZ: toDeg(exp.rotationZ),
       offsetX: exp.offsetX,
       offsetY: exp.offsetY,
       offsetZ: exp.offsetZ,
@@ -379,6 +389,9 @@ export default function ARManagement() {
       ...form,
       slug,
       productId: form.productId || null,
+      rotationX: toRad(form.rotationX),
+      rotationY: toRad(form.rotationY),
+      rotationZ: toRad(form.rotationZ),
     };
 
     setSaving(true);
@@ -435,7 +448,7 @@ export default function ARManagement() {
 
   const copyLink = async (exp: any) => {
     try {
-      await navigator.clipboard.writeText(arUrl(exp.slug, exp.whiteLabel));
+      await navigator.clipboard.writeText(arUrl(exp.slug));
       toast.success('Ссылка скопирована');
     } catch {
       toast.error('Не удалось скопировать');
@@ -610,11 +623,7 @@ export default function ARManagement() {
                     size="sm"
                     className="h-8 gap-1"
                     onClick={() =>
-                      setQrFor({
-                        slug: exp.slug,
-                        whiteLabel: !!exp.whiteLabel,
-                        title: exp.title,
-                      })
+                      setQrFor({ slug: exp.slug, title: exp.title })
                     }
                   >
                     <QrCode size={14} />
@@ -624,16 +633,16 @@ export default function ARManagement() {
                     variant="outline"
                     size="sm"
                     className="h-8 gap-1"
-                    asChild
+                    onClick={() =>
+                      setTestFor({
+                        slug: exp.slug,
+                        title: exp.title,
+                        markerUrl: exp.markerUrl ?? null,
+                      })
+                    }
                   >
-                    <a
-                      href={`/ar/${exp.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink size={14} />
-                      <span className="hidden sm:inline">Просмотр</span>
-                    </a>
+                    <ScanEye size={14} />
+                    <span className="hidden sm:inline">Просмотр</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -711,13 +720,12 @@ export default function ARManagement() {
                 placeholder="chisinau-arch"
               />
               <p className="mt-1 font-mono text-xs break-all text-muted-foreground">
-                {arUrl(form.slug || '…', form.whiteLabel)}
+                {arUrl(form.slug || '…')}
               </p>
-              {form.whiteLabel && !AR_DOMAIN_URL && (
+              {!AR_DOMAIN_URL && (
                 <p className="mt-1 text-xs text-amber-600 dark:text-amber-500">
                   Отдельный домен не настроен (NEXT_PUBLIC_AR_SHORT_URL), поэтому
-                  в QR попадёт основной адрес. Сам вьюер при этом уже без
-                  упоминаний Starion.
+                  в QR попадёт адрес текущего сайта.
                 </p>
               )}
             </div>
@@ -754,8 +762,8 @@ export default function ARManagement() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   Модель автоматически вписывается в размер маркера и ставится
                   вертикально на него, поэтому «Поворот X = 0» — это уже
-                  стоящая модель. Развернуть её лицом — «Поворот Z»
-                  (π ≈ 3.14 — разворот на 180°). Draco/KTX2-сжатие пока не
+                  стоящая модель. Развернуть её лицом — «Поворот Z», значение
+                  180. Draco/KTX2-сжатие пока не
                   поддерживается — экспортируйте обычный .glb.
                 </p>
               )}
@@ -1083,14 +1091,14 @@ export default function ARManagement() {
                   step={0.05}
                 />
                 <NumberRow
-                  label="Поворот X / Y / Z (рад)"
+                  label="Поворот X / Y / Z (градусы)"
                   values={[
                     ['rotationX', form.rotationX],
                     ['rotationY', form.rotationY],
                     ['rotationZ', form.rotationZ],
                   ]}
                   onChange={patch}
-                  step={0.05}
+                  step={15}
                 />
                 <NumberRow
                   label="Смещение X / Y / Z"
@@ -1167,12 +1175,21 @@ export default function ARManagement() {
         </DialogContent>
       </Dialog>
 
+      {testFor && (
+        <ArTestDialog
+          open={!!testFor}
+          onOpenChange={(o) => !o && setTestFor(null)}
+          slug={testFor.slug}
+          title={testFor.title}
+          markerPath={testFor.markerUrl}
+        />
+      )}
+
       {qrFor && (
         <ArQrDialog
           open={!!qrFor}
           onOpenChange={(o) => !o && setQrFor(null)}
           slug={qrFor.slug}
-          whiteLabel={qrFor.whiteLabel}
           title={qrFor.title}
         />
       )}
@@ -1262,9 +1279,18 @@ function AssetField({
     }
     setBusy(true);
     try {
-      const path = await uploadArAsset(kind, file, title);
+      // Картинки ужимаем прямо здесь: они качаются на телефон перед стартом
+      // AR, и лишние мегабайты — это прямое ожидание у клиента.
+      const packed = await compressImage(kind, file);
+      if (packed.changed) {
+        toast.success(
+          `Сжато: ${formatBytes(packed.before)} → ${formatBytes(packed.after)}` +
+            ` (${packed.width}×${packed.height})`
+        );
+      }
+      const path = await uploadArAsset(kind, packed.file, title);
       onChange(path);
-      onFilePicked?.(file);
+      onFilePicked?.(packed.changed ? packed.file : file);
       toast.success('Загружено');
     } catch (error: any) {
       toast.error(error?.message || 'Ошибка загрузки');

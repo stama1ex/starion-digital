@@ -18,30 +18,27 @@ interface ArQrDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   slug: string;
-  whiteLabel: boolean;
   title: string;
 }
 
-// Домен в QR выбирается тем же чекбоксом, что и брендинг во вьюере: белая
-// метка уводит на отдельный домен (NEXT_PUBLIC_AR_SHORT_URL), свои сувениры
-// остаются на основном — там наш адрес как раз к месту. Отдельный домен не
-// настроен — везде текущий origin, работает и на проде, и на превью-деплоях.
-export function arUrl(slug: string, whiteLabel = false) {
+// В QR всегда уходит короткий AR-домен: он вдвое короче основного, поэтому код
+// получается проще и увереннее читается с маленькой наклейки, и заодно не
+// светит наш адрес на чужих сувенирах. Домен не настроен — текущий origin,
+// чтобы работало и на превью-деплоях.
+export function arUrl(slug: string) {
   const own = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
-  const origin = whiteLabel && AR_DOMAIN_URL ? AR_DOMAIN_URL : own;
-  return `${origin}/ar/${slug}`;
+  return `${AR_DOMAIN_URL || own}/ar/${slug}`;
 }
 
 export function ArQrDialog({
   open,
   onOpenChange,
   slug,
-  whiteLabel,
   title,
 }: ArQrDialogProps) {
   const [png, setPng] = useState('');
   const [svg, setSvg] = useState('');
-  const url = arUrl(slug, whiteLabel);
+  const url = arUrl(slug);
 
   useEffect(() => {
     if (!open) return;
