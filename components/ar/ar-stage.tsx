@@ -17,6 +17,7 @@ interface ARStageProps {
   experience: ARExperienceClient;
   soundOn: boolean;
   audioTrackIndex: number;
+  onSoundBlocked: () => void;
   onProgress: (value: number) => void;
   onScanning: () => void;
   onTargetFound: () => void;
@@ -92,6 +93,7 @@ export default function ARStage({
   experience,
   soundOn,
   audioTrackIndex,
+  onSoundBlocked,
   onProgress,
   onScanning,
   onTargetFound,
@@ -106,6 +108,13 @@ export default function ARStage({
   // пересоздавать сцену, когда пользователь переключает язык
   const audioTrackIndexRef = useRef(audioTrackIndex);
   audioTrackIndexRef.current = audioTrackIndex;
+  const soundOnRef = useRef(soundOn);
+  soundOnRef.current = soundOn;
+  const onSoundBlockedRef = useRef(onSoundBlocked);
+  onSoundBlockedRef.current = onSoundBlocked;
+  // Заполняется при инициализации сцены: снаружи её нет, а применять звук
+  // нужно и по кнопке, и в момент, когда медиаэлемент только что создан.
+  const applySoundRef = useRef<(() => void) | null>(null);
   const mixerRef = useRef<any>(null);
   const isTrackingRef = useRef(false);
 
@@ -391,6 +400,32 @@ export default function ARStage({
         });
       }
 
+      // Звук включается не только кнопкой: медиаэлемент создаётся уже после
+      // монтирования, и состояние звука надо применить к нему при появлении.
+      const applySound = () => {
+        const media = experience.audioTracks.length
+          ? audioElRef.current
+          : videoElRef.current;
+        if (!media) return;
+        const want = soundOnRef.current;
+        media.muted = !want;
+        if (!want || !isTrackingRef.current) return;
+
+        const started = media.play();
+        started?.catch?.(() => {
+          // Браузер не пустил звук без жеста. Возвращаем немой режим —
+          // иначе видео не запустится вовсе, — и сообщаем наружу, чтобы
+          // кнопка показывала правду и следующий тап сработал.
+          media.muted = true;
+          media.play().catch(() => {});
+          onSoundBlockedRef.current();
+        });
+      };
+      applySoundRef.current = applySound;
+      disposables.push(() => {
+        applySoundRef.current = null;
+      });
+
       anchor.onTargetFound = () => {
         isTrackingRef.current = true;
         cb.onTargetFound();
@@ -399,6 +434,8 @@ export default function ARStage({
           audioElRef.current?.play().catch(() => {});
           startAnimations?.();
         }
+        // после старта воспроизведения — снять немой режим, если звук нужен
+        applySound();
       };
       anchor.onTargetLost = () => {
         isTrackingRef.current = false;
@@ -693,17 +730,12 @@ export default function ARStage({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [experience.slug, experience.version]);
 
-  // Звук управляется отдельно, без переинициализации сцены. Вызов из обработчика
-  // клика по кнопке звука = пользовательский жест, поэтому play() проходит.
-  // Когда заданы озвучки — звучит дорожка, а видео остаётся немым.
+  // Кнопка звука: применяем состояние к уже созданному элементу. Сам вызов
+  // приходит из обработчика клика, то есть это пользовательский жест —
+  // браузер такое воспроизведение пропускает.
   const hasAudioTracks = experience.audioTracks.length > 0;
   useEffect(() => {
-    const media = hasAudioTracks ? audioElRef.current : videoElRef.current;
-    if (!media) return;
-    media.muted = !soundOn;
-    if (soundOn && isTrackingRef.current) {
-      media.play().catch(() => {});
-    }
+    applySoundRef.current?.();
   }, [soundOn, hasAudioTracks]);
 
   // Переключение языка озвучки: подменяем источник, сохраняя позицию
