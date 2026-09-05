@@ -19,7 +19,15 @@ const MAX_EDGE: Partial<Record<ARAssetKind, number>> = {
   texture: 2048,
 };
 
-const QUALITY = 0.9;
+// Маркер жмём почти без потерь: из него компилируются признаки распознавания,
+// и артефакты сжатия напрямую бьют по качеству трекинга. Остальным картинкам
+// такая точность не нужна.
+const QUALITY: Partial<Record<ARAssetKind, number>> = {
+  marker: 0.98,
+  mask: 0.98,
+  poster: 0.88,
+  texture: 0.9,
+};
 
 export function isCompressibleImage(kind: ARAssetKind, file: File): boolean {
   if (!MAX_EDGE[kind]) return false;
@@ -94,7 +102,7 @@ export async function compressImage(
     if ('close' in src) src.close();
 
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/webp', QUALITY)
+      canvas.toBlob(resolve, 'image/webp', QUALITY[kind] ?? 0.9)
     );
     if (!blob) return asIs;
 

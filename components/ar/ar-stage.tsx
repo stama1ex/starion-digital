@@ -6,6 +6,7 @@ import {
   loadMindAr,
   loadGltfLoaderClass,
   AR_TRACKING_OPTIONS,
+  AR_STABILIZER,
   AR_CAMERA_CONSTRAINTS,
 } from '@/lib/ar/config';
 import { arAssetUrl } from '@/lib/ar/types';
@@ -193,8 +194,9 @@ export default function ARStage({
               ' fit ' +
               getComputedStyle(v).objectFit
             : '-'),
-        'marker    ' + (debugInfo.marker || '-'),
-        'plane     ' + (debugInfo.plane || '-'),
+        ...Object.entries(debugInfo).map(
+          ([k, val]) => k.padEnd(10, ' ') + val
+        ),
       ].join('\n');
     };
 
@@ -315,11 +317,24 @@ export default function ARStage({
 
       const anchor = mindarThree.addAnchor(0);
 
+      // Контент живёт не на группе MindAR, а на своей. Движок каждый кадр
+      // пишет в anchor.group сырую оценку позы со всем её шумом, и если
+      // подвесить контент туда, этот шум видно один в один. Наша группа
+      // подтягивается к позе маркера в цикле рендера — с мёртвой зоной,
+      // адаптивным следованием и удержанием при кратком срыве.
+      const stage = new THREE.Group();
+      stage.matrixAutoUpdate = false;
+      stage.visible = false;
+      scene.add(stage);
+      disposables.push(() => {
+        scene.remove(stage);
+      });
+
       let startAnimations: (() => void) | null = null;
       try {
         startAnimations = await buildContent({
           THREE,
-          anchor,
+          contentGroup: stage,
           experience,
           videoElRef,
           mixerRef,
@@ -341,10 +356,10 @@ export default function ARStage({
       // сопровождается блокирующим getProgramParameter, и на Android это
       // 30-150 мс рывка именно там, где нужна плавность. Компилируем заранее.
       try {
-        const wasVisible = anchor.group.visible;
-        anchor.group.visible = true;
+        const wasVisible = stage.visible;
+        stage.visible = true;
         renderer.compile(scene, camera);
-        anchor.group.visible = wasVisible;
+        stage.visible = wasVisible;
       } catch (err) {
         console.warn('[AR] shader precompile skipped', err);
       }
@@ -500,6 +515,60 @@ export default function ARStage({
       cb.onScanning();
 
       const clock = new THREE.Clock();
+
+      // Рабочие объекты стабилизатора — создаём один раз, а не каждый кадр
+      const targetPos = new THREE.Vector3();
+      const targetQuat = new THREE.Quaternion();
+      const targetScale = new THREE.Vector3(1, 1, 1);
+      const posePos = new THREE.Vector3();
+      const poseQuat = new THREE.Quaternion();
+      const poseScale = new THREE.Vector3(1, 1, 1);
+      let hasPose = false;
+      let lostFrames = 0;
+      let stabTick = 0;
+      // ?arraw=1 — отключить стабилизацию и смотреть сырую позу движка.
+      // Нужно, чтобы сравнить «до и после» на живом сувенире.
+      const rawMode =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).get('arraw') === '1';
+
+      const followPose = () => {
+        const g = anchor.group;
+        // MindAR может писать матрицу напрямую (matrixAutoUpdate=false) либо
+        // выставлять position/quaternion — во втором случае матрицу надо
+        // пересобрать самим, иначе прочитаем прошлый кадр.
+        if (g.matrixAutoUpdate) g.updateMatrix();
+        g.matrix.decompose(targetPos, targetQuat, targetScale);
+        if (!Number.isFinite(targetPos.x) || !Number.isFinite(targetScale.x)) {
+          return false;
+        }
+
+        if (!hasPose || rawMode) {
+          posePos.copy(targetPos);
+          poseQuat.copy(targetQuat);
+          poseScale.copy(targetScale);
+          hasPose = true;
+        } else {
+          const dist = posePos.distanceTo(targetPos);
+          const ang = poseQuat.angleTo(targetQuat);
+          // Мёртвая зона: пока маркер дрожит в пределах порога, не двигаемся
+          // вовсе. Именно это дрожание и заметно глазу как «плавает видео».
+          if (dist > AR_STABILIZER.posDeadzone || ang > AR_STABILIZER.rotDeadzone) {
+            const speed = dist * AR_STABILIZER.speedGain + ang;
+            const k = Math.min(
+              AR_STABILIZER.followMax,
+              AR_STABILIZER.followMin + speed
+            );
+            posePos.lerp(targetPos, k);
+            poseQuat.slerp(targetQuat, k);
+            poseScale.lerp(targetScale, k);
+          }
+        }
+
+        stage.matrix.compose(posePos, poseQuat, poseScale);
+        stage.matrixWorldNeedsUpdate = true;
+        return true;
+      };
       // Пока маркер не найден, сцена пуста, но кадр всё равно чистился и
       // вычитывался композитором — это отнимало время у распознавания, которое
       // крутится в том же rAF. Рисуем только когда есть что показать; ещё пара
@@ -509,7 +578,32 @@ export default function ARStage({
       let syncTick = 0;
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
-        const visible = anchor.group.visible;
+
+        // Поза обновляется, пока движок держит маркер; после потери держим
+        // последнюю ещё несколько кадров — короткие провалы при наклоне и
+        // бликах иначе читаются как обрыв.
+        const tracked = anchor.group.visible;
+        if (tracked) {
+          followPose();
+          lostFrames = 0;
+        } else if (hasPose) {
+          lostFrames++;
+        }
+        const hold = rawMode ? 0 : AR_STABILIZER.holdFrames;
+        const visible = hasPose && (tracked || lostFrames <= hold);
+        stage.visible = visible;
+
+        // раз в ~четверть секунды пишем в панель, что делает стабилизатор
+        if (debugOn && ++stabTick >= 15) {
+          stabTick = 0;
+          debugInfo.track =
+            (rawMode ? 'СЫРАЯ ПОЗА' : 'стабилизация') +
+            ' | ' +
+            (tracked
+              ? 'маркер в кадре'
+              : 'удержание ' + lostFrames + '/' + hold);
+        }
+
         if (visible) {
           if (mixerRef.current) mixerRef.current.update(delta);
           // Видео и озвучка — два независимых элемента и со временем расходятся.
@@ -671,7 +765,7 @@ export default function ARStage({
  */
 async function buildContent({
   THREE,
-  anchor,
+  contentGroup,
   experience,
   videoElRef,
   mixerRef,
@@ -680,7 +774,7 @@ async function buildContent({
   onAssetProgress,
 }: {
   THREE: any;
-  anchor: any;
+  contentGroup: any;
   experience: ARExperienceClient;
   videoElRef: React.MutableRefObject<HTMLVideoElement | null>;
   mixerRef: React.MutableRefObject<any>;
@@ -846,7 +940,7 @@ async function buildContent({
 
     const mesh = new THREE.Mesh(geometry, material);
     applyTransform(mesh);
-    anchor.group.add(mesh);
+    contentGroup.add(mesh);
 
     videoElRef.current = video;
     disposables.push(() => {
@@ -1007,7 +1101,7 @@ async function buildContent({
   const holder = new THREE.Group();
   holder.add(stand);
   applyTransform(holder);
-  anchor.group.add(holder);
+  contentGroup.add(holder);
 
   let startAnimations: (() => void) | null = null;
   if (contentType === 'ANIMATION') {
