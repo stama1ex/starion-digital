@@ -67,7 +67,7 @@ export function ArTestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Проверка с экрана: {title}</DialogTitle>
           <DialogDescription>
@@ -78,13 +78,13 @@ export function ArTestDialog({
 
         {/* маркер — крупно, на светлой подложке: на тёмном фоне монитора
             контраст падает и распознавание идёт хуже */}
-        <div className="grid min-h-56 place-items-center rounded-lg border bg-white p-3">
+        <div className="grid min-h-72 place-items-center rounded-lg border bg-white p-3">
           {markerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={markerUrl}
               alt={`Маркер: ${title}`}
-              className="max-h-80 w-auto max-w-full"
+              className="max-h-[26rem] w-auto max-w-full"
               onError={() => setMarkerFailed(true)}
             />
           ) : markerFailed || !markerPath ? (
