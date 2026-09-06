@@ -54,6 +54,7 @@ export function toARExperienceClient(
       ({ lang, label }) => ({ lang, label })
     ),
     whiteLabel: experience.whiteLabel,
+    animationClip: experience.animationClip,
     version: String(experience.updatedAt.getTime()),
   };
 }

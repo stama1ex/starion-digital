@@ -1159,8 +1159,19 @@ async function buildContent({
           (clip.tracks || []).map((t: any) => String(t.name).split('.')[0])
         );
 
-      let playable = clips;
-      if (clips.length > 1) {
+      // Явно выбранный админом клип имеет приоритет над любой эвристикой.
+      const wanted = (experience.animationClip || '').trim();
+      const picked = wanted
+        ? clips.find((c: any) => c.name === wanted)
+        : null;
+      if (wanted && !picked) {
+        console.warn(
+          '[AR] клип «' + wanted + '» не найден в файле, играем по умолчанию'
+        );
+      }
+
+      let playable = picked ? [picked] : clips;
+      if (!picked && clips.length > 1) {
         const seen = new Set<string>();
         let overlap = false;
         for (const clip of clips) {
@@ -1183,8 +1194,8 @@ async function buildContent({
       }
 
       debugInfo.clips =
-        playable.length + ' из ' + clips.length + ' | ' +
-        clips.map((c: any) => c.name || '?').join(', ');
+        (picked ? 'выбран «' + picked.name + '»' : playable.length + ' из ' + clips.length) +
+        ' | всего: ' + clips.map((c: any) => c.name || '?').join(', ');
 
       const mixer = new THREE.AnimationMixer(model);
       const actions = playable.map((clip: any) => {
