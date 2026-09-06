@@ -218,13 +218,23 @@ const XML_ENTITIES: Record<string, string> = {
   '&apos;': "'",
 };
 
-// Список ключей с заданным префиксом. Нужен, чтобы при удалении оживления
-// вымести всю его папку целиком, включая файлы, на которые запись уже не
-// ссылается (заменённые маркеры, брошенные загрузки).
-export async function listObjectKeys(prefix: string): Promise<string[]> {
+export interface R2Object {
+  key: string;
+  size: number;
+  lastModified: Date | null;
+}
+
+const unescapeXml = (s: string) =>
+  s.replace(/&(?:amp|lt|gt|quot|apos);/g, (e) => XML_ENTITIES[e]);
+
+// Содержимое папки. Нужно, чтобы при удалении оживления вымести её целиком,
+// включая файлы, на которые запись уже не ссылается (заменённые маркеры,
+// брошенные загрузки). Дата нужна отдельно: скрипт разбора мусора не должен
+// трогать файл, который прямо сейчас заливают.
+export async function listObjects(prefix: string): Promise<R2Object[]> {
   if (!isR2Configured()) throw new Error('R2 не настроен');
 
-  const keys: string[] = [];
+  const objects: R2Object[] = [];
   let token: string | undefined;
 
   do {
@@ -251,12 +261,25 @@ export async function listObjectKeys(prefix: string): Promise<string[]> {
     }
 
     const xml = await res.text();
-    for (const m of xml.matchAll(/<Key>([\s\S]*?)<\/Key>/g)) {
-      keys.push(m[1].replace(/&(?:amp|lt|gt|quot|apos);/g, (e) => XML_ENTITIES[e]));
+    for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {
+      const chunk = m[1];
+      const key = chunk.match(/<Key>([\s\S]*?)<\/Key>/);
+      if (!key) continue;
+      const size = chunk.match(/<Size>(\d+)<\/Size>/);
+      const modified = chunk.match(/<LastModified>([\s\S]*?)<\/LastModified>/);
+      objects.push({
+        key: unescapeXml(key[1]),
+        size: size ? Number(size[1]) : 0,
+        lastModified: modified ? new Date(modified[1]) : null,
+      });
     }
     const next = xml.match(/<NextContinuationToken>([\s\S]*?)<\/NextContinuationToken>/);
     token = /<IsTruncated>true<\/IsTruncated>/.test(xml) && next ? next[1] : undefined;
   } while (token);
 
-  return keys;
+  return objects;
+}
+
+export async function listObjectKeys(prefix: string): Promise<string[]> {
+  return (await listObjects(prefix)).map((o) => o.key);
 }
