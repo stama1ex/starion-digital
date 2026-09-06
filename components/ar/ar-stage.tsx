@@ -590,6 +590,8 @@ export default function ARStage({
       let hasPose = false;
       let lostFrames = 0;
       let stabTick = 0;
+      let flipFrames = 0;
+      let flipsRejected = 0;
       // ?arraw=1 — отключить стабилизацию и смотреть сырую позу движка.
       // Нужно, чтобы сравнить «до и после» на живом сувенире.
       const rawMode =
@@ -639,7 +641,27 @@ export default function ARStage({
           // Поворот: в плоскости быстро, наклон плоскости медленно.
           splitPose(targetQuat, tTwist, tSwing);
           cTwist.slerp(tTwist, kTwist);
-          cSwing.slerp(tSwing, kSwing);
+
+          // Переворот плоскости: наклон скакнул, а положение и поворот в
+          // плоскости стоят. Настоящий наклон так не выглядит, поэтому кадр
+          // по наклону пропускаем. Если это повторяется долго — значит
+          // сувенир правда повернули, и мы принимаем новую ориентацию.
+          const swingJump = cSwing.angleTo(tSwing);
+          const twistJump = cTwist.angleTo(tTwist);
+          const looksFlipped =
+            !flat &&
+            swingJump > AR_STABILIZER.flipAngle &&
+            dist < AR_STABILIZER.flipPos &&
+            twistJump < AR_STABILIZER.flipTwist;
+
+          if (looksFlipped && flipFrames < AR_STABILIZER.flipPatience) {
+            flipFrames++;
+            flipsRejected++;
+          } else {
+            if (!looksFlipped) flipFrames = 0;
+            cSwing.slerp(tSwing, kSwing);
+          }
+
           poseQuat.copy(cSwing).multiply(cTwist);
 
           // Масштаб идёт вместе с глубиной — они об одном и том же.
@@ -682,7 +704,8 @@ export default function ARStage({
             ' | ' +
             (tracked
               ? 'маркер в кадре'
-              : 'удержание ' + lostFrames + '/' + hold);
+              : 'удержание ' + lostFrames + '/' + hold) +
+            ' | перевороты отброшено: ' + flipsRejected;
         }
 
         if (visible) {
