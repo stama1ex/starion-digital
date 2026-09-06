@@ -1145,8 +1145,49 @@ async function buildContent({
     if (clips.length === 0) {
       console.warn('[AR] GLB has no animation clips — showing static model');
     } else {
+      // Несколько клипов нельзя запускать вслепую. Если они трогают одни и те
+      // же узлы (а так бывает почти всегда: в GLB лежит несколько вариантов
+      // одной анимации), AnimationMixer смешает их с полным весом, кости
+      // получат противоречивые трансформы — и модель начнёт дёргаться. Со
+      // стороны это неотличимо от плохого трекинга, хотя маркер держится
+      // отлично.
+      //
+      // Пересечения нет только когда каждый клип анимирует свой объект — тогда
+      // они дополняют друг друга и играть надо все.
+      const nodesOf = (clip: any) =>
+        new Set<string>(
+          (clip.tracks || []).map((t: any) => String(t.name).split('.')[0])
+        );
+
+      let playable = clips;
+      if (clips.length > 1) {
+        const seen = new Set<string>();
+        let overlap = false;
+        for (const clip of clips) {
+          for (const node of nodesOf(clip)) {
+            if (seen.has(node)) {
+              overlap = true;
+              break;
+            }
+            seen.add(node);
+          }
+          if (overlap) break;
+        }
+        if (overlap) {
+          playable = [clips[0]];
+          console.warn(
+            '[AR] клипы пересекаются по узлам — играем только первый:',
+            clips.map((c: any) => c.name).join(', ')
+          );
+        }
+      }
+
+      debugInfo.clips =
+        playable.length + ' из ' + clips.length + ' | ' +
+        clips.map((c: any) => c.name || '?').join(', ');
+
       const mixer = new THREE.AnimationMixer(model);
-      const actions = clips.map((clip: any) => {
+      const actions = playable.map((clip: any) => {
         const action = mixer.clipAction(clip);
         action.setLoop(
           experience.loop ? THREE.LoopRepeat : THREE.LoopOnce,
