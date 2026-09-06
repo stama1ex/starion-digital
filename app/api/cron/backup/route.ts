@@ -6,6 +6,13 @@ import {
   listDropboxFolder,
   deleteDropboxFile,
 } from '@/lib/dropbox';
+import {
+  BACKUPS_DIR,
+  backupsInR2,
+  deleteBackup,
+  listBackups,
+  putBackup,
+} from '@/lib/backups/storage';
 
 const BACKUP_FOLDER = '/backups';
 const BACKUP_FILENAME = 'starion-backup.zip';
@@ -37,6 +44,32 @@ export async function GET(req: NextRequest) {
   try {
     const { buffer, manifest } = await createBackupZip();
 
+    // Копии базы лежат в закрытом бакете R2, а не в публичном: тот раздаётся
+    // целиком через cdn.ar3d.io. Пока ключи R2_BACKUP_* не заданы — уходит
+    // в Dropbox, как раньше.
+    if (backupsInR2()) {
+      const key = `${BACKUPS_DIR}/${BACKUP_FILENAME}`;
+
+      // фиксированное имя: каждый запуск просто заменяет предыдущую копию
+      await putBackup(key, buffer);
+
+      const existing = await listBackups();
+      const sorted = [...existing].sort(
+        (a, b) =>
+          (b.lastModified?.getTime() ?? 0) - (a.lastModified?.getTime() ?? 0),
+      );
+      const stale = sorted.slice(RETENTION_COUNT);
+      await Promise.all(stale.map((file) => deleteBackup(file.key)));
+
+      return NextResponse.json({
+        ok: true,
+        storage: 'r2',
+        path: key,
+        manifest,
+        deletedOldBackups: stale.length,
+      });
+    }
+
     const path = `${BACKUP_FOLDER}/${BACKUP_FILENAME}`;
 
     // overwrite: фиксированное имя файла - каждый запуск просто заменяет
@@ -52,6 +85,7 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      storage: 'dropbox',
       path,
       manifest,
       deletedOldBackups: toDelete.length,

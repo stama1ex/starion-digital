@@ -28,14 +28,40 @@ export {
   R2_PUBLIC_URL,
 } from './r2-public';
 
-// S3-эндпоинт аккаунта — сюда идут подписанные запросы на запись.
-const ENDPOINT_HOST = ACCOUNT_ID ? `${ACCOUNT_ID}.r2.cloudflarestorage.com` : '';
 const REGION = 'auto'; // R2 не использует регионы, но подпись их требует
 const SERVICE = 's3';
 
-export function isR2Configured(): boolean {
-  return Boolean(ACCOUNT_ID && ACCESS_KEY && SECRET_KEY && BUCKET);
+// Куда идёт запрос. Бакетов у нас два: публичный (картинки, AR) и закрытый
+// для бэкапов базы — у него отдельные ключи, чтобы код, обслуживающий
+// загрузки от админа, физически не мог дотянуться до дампов.
+export interface R2Target {
+  accountId: string;
+  accessKey: string;
+  secretKey: string;
+  bucket: string;
 }
+
+const defaultTarget: R2Target = {
+  accountId: ACCOUNT_ID,
+  accessKey: ACCESS_KEY,
+  secretKey: SECRET_KEY,
+  bucket: BUCKET,
+};
+
+export function isTargetConfigured(target: R2Target): boolean {
+  return Boolean(
+    target.accountId && target.accessKey && target.secretKey && target.bucket
+  );
+}
+
+export function isR2Configured(): boolean {
+  return isTargetConfigured(defaultTarget);
+}
+
+const hostOf = (target: R2Target) =>
+  target.accountId ? `${target.accountId}.r2.cloudflarestorage.com` : '';
+
+const ENDPOINT_HOST = hostOf(defaultTarget);
 
 // ---------------------------------------------------------------- подпись
 
@@ -45,8 +71,8 @@ const sha256hex = (data: string | Buffer) =>
 const hmac = (key: Buffer | string, data: string) =>
   createHmac('sha256', key).update(data).digest();
 
-function signingKey(dateStamp: string): Buffer {
-  const kDate = hmac(`AWS4${SECRET_KEY}`, dateStamp);
+function signingKey(dateStamp: string, secretKey: string): Buffer {
+  const kDate = hmac(`AWS4${secretKey}`, dateStamp);
   const kRegion = hmac(kDate, REGION);
   const kService = hmac(kRegion, SERVICE);
   return hmac(kService, 'aws4_request');
@@ -106,7 +132,10 @@ export function presignPutUrl(key: string, expiresSeconds = 3600): string {
     sha256hex(canonicalRequest),
   ].join('\n');
 
-  const signature = hmac(signingKey(dateStamp), stringToSign).toString('hex');
+  const signature = hmac(
+    signingKey(dateStamp, SECRET_KEY),
+    stringToSign
+  ).toString('hex');
   return `https://${ENDPOINT_HOST}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 }
 
@@ -117,14 +146,15 @@ function authorize(
   canonicalUri: string,
   canonicalQuery: string,
   payloadHash: string,
-  extra: Array<[string, string]> = []
+  extra: Array<[string, string]> = [],
+  target: R2Target = defaultTarget
 ): Record<string, string> {
   const { amzDate, dateStamp } = stamps();
 
   // подписываемые заголовки обязаны идти в алфавитном порядке
   const headers: Array<[string, string]> = [
     ...extra,
-    ['host', ENDPOINT_HOST],
+    ['host', hostOf(target)],
     ['x-amz-content-sha256', payloadHash],
     ['x-amz-date', amzDate],
   ];
@@ -147,8 +177,11 @@ function authorize(
     sha256hex(canonicalRequest),
   ].join('\n');
 
-  const signature = hmac(signingKey(dateStamp), stringToSign).toString('hex');
-  const credential = `${ACCESS_KEY}/${dateStamp}/${REGION}/${SERVICE}/aws4_request`;
+  const signature = hmac(
+    signingKey(dateStamp, target.secretKey),
+    stringToSign
+  ).toString('hex');
+  const credential = `${target.accessKey}/${dateStamp}/${REGION}/${SERVICE}/aws4_request`;
 
   const out: Record<string, string> = {
     'x-amz-content-sha256': payloadHash,
@@ -165,17 +198,23 @@ function authorize(
 export async function putObject(
   key: string,
   body: Buffer,
-  contentType?: string
+  contentType?: string,
+  target: R2Target = defaultTarget
 ): Promise<void> {
-  if (!isR2Configured()) throw new Error('R2 не настроен');
+  if (!isTargetConfigured(target)) throw new Error('R2 не настроен');
 
-  const canonicalUri = `/${BUCKET}${encodeKeyPath(key)}`;
+  const canonicalUri = `/${target.bucket}${encodeKeyPath(key)}`;
   const type = contentType || 'application/octet-stream';
-  const headers = authorize('PUT', canonicalUri, '', sha256hex(body), [
-    ['content-type', type],
-  ]);
+  const headers = authorize(
+    'PUT',
+    canonicalUri,
+    '',
+    sha256hex(body),
+    [['content-type', type]],
+    target
+  );
 
-  const res = await fetch(`https://${ENDPOINT_HOST}${canonicalUri}`, {
+  const res = await fetch(`https://${hostOf(target)}${canonicalUri}`, {
     method: 'PUT',
     headers,
     body: new Uint8Array(body),
@@ -192,13 +231,16 @@ const EMPTY_HASH = sha256hex('');
 // Удаление объекта. Отсутствующий объект — не ошибка: R2 на DELETE
 // несуществующего ключа отвечает 204, и нам это подходит, потому что чистка
 // вызывается «на всякий случай» и не должна ронять запрос админки.
-export async function deleteObject(key: string): Promise<void> {
-  if (!isR2Configured()) throw new Error('R2 не настроен');
+export async function deleteObject(
+  key: string,
+  target: R2Target = defaultTarget
+): Promise<void> {
+  if (!isTargetConfigured(target)) throw new Error('R2 не настроен');
 
-  const canonicalUri = `/${BUCKET}${encodeKeyPath(key)}`;
-  const res = await fetch(`https://${ENDPOINT_HOST}${canonicalUri}`, {
+  const canonicalUri = `/${target.bucket}${encodeKeyPath(key)}`;
+  const res = await fetch(`https://${hostOf(target)}${canonicalUri}`, {
     method: 'DELETE',
-    headers: authorize('DELETE', canonicalUri, '', EMPTY_HASH),
+    headers: authorize('DELETE', canonicalUri, '', EMPTY_HASH, [], target),
   });
 
   if (!res.ok && res.status !== 404) {
@@ -228,8 +270,11 @@ const unescapeXml = (s: string) =>
 // включая файлы, на которые запись уже не ссылается (заменённые маркеры,
 // брошенные загрузки). Дата нужна отдельно: скрипт разбора мусора не должен
 // трогать файл, который прямо сейчас заливают.
-export async function listObjects(prefix: string): Promise<R2Object[]> {
-  if (!isR2Configured()) throw new Error('R2 не настроен');
+export async function listObjects(
+  prefix: string,
+  target: R2Target = defaultTarget
+): Promise<R2Object[]> {
+  if (!isTargetConfigured(target)) throw new Error('R2 не настроен');
 
   const objects: R2Object[] = [];
   let token: string | undefined;
@@ -246,11 +291,20 @@ export async function listObjects(prefix: string): Promise<R2Object[]> {
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
       .sort()
       .join('&');
-    const canonicalUri = `/${BUCKET}`;
+    const canonicalUri = `/${target.bucket}`;
 
     const res = await fetch(
-      `https://${ENDPOINT_HOST}${canonicalUri}?${canonicalQuery}`,
-      { headers: authorize('GET', canonicalUri, canonicalQuery, EMPTY_HASH) }
+      `https://${hostOf(target)}${canonicalUri}?${canonicalQuery}`,
+      {
+        headers: authorize(
+          'GET',
+          canonicalUri,
+          canonicalQuery,
+          EMPTY_HASH,
+          [],
+          target
+        ),
+      }
     );
     if (!res.ok) {
       const text = await res.text().catch(() => '');
@@ -277,6 +331,9 @@ export async function listObjects(prefix: string): Promise<R2Object[]> {
   return objects;
 }
 
-export async function listObjectKeys(prefix: string): Promise<string[]> {
-  return (await listObjects(prefix)).map((o) => o.key);
+export async function listObjectKeys(
+  prefix: string,
+  target: R2Target = defaultTarget
+): Promise<string[]> {
+  return (await listObjects(prefix, target)).map((o) => o.key);
 }
