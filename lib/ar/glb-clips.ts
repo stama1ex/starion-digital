@@ -5,12 +5,18 @@
 // он в самом начале файла. Поэтому весь файл качать не нужно: у моделей это
 // десятки мегабайт, а JSON — обычно десятки килобайт.
 
+export interface GlbClip {
+  name: string;
+  // длительность в секундах; 0 означает статичную позу из одного кадра
+  duration: number;
+}
+
 const GLB_MAGIC = 0x46546c67; // 'glTF'
 const CHUNK_JSON = 0x4e4f534a; // 'JSON'
 const PROBE = 256 * 1024;
 
 function parseJsonChunk(buf: ArrayBuffer): {
-  names: string[] | null;
+  names: GlbClip[] | null;
   needBytes?: number;
 } {
   if (buf.byteLength < 20) return { names: null };
@@ -28,15 +34,34 @@ function parseJsonChunk(buf: ArrayBuffer): {
   try {
     const gltf = JSON.parse(json);
     const anims = Array.isArray(gltf.animations) ? gltf.animations : [];
-    return {
-      names: anims.map((a: { name?: string }, i: number) => a?.name || `Клип ${i + 1}`),
-    };
+    const accessors = Array.isArray(gltf.accessors) ? gltf.accessors : [];
+
+    // Длительность клипа — разброс времён в его входных сэмплерах. Она важна
+    // администратору: короткий цикл (бег на месте за полсекунды) на
+    // неподвижном сувенире читается как дрожание, а нулевая длительность
+    // означает вообще не анимацию, а одну статичную позу.
+    type RawAnim = { name?: string; samplers?: Array<{ input?: number }> };
+    const names: GlbClip[] = anims.map((a: RawAnim, i: number) => {
+      let lo: number | null = null;
+      let hi: number | null = null;
+      for (const sampler of a?.samplers || []) {
+        const acc = accessors[sampler?.input ?? -1];
+        if (!acc || !Array.isArray(acc.min) || !Array.isArray(acc.max)) continue;
+        lo = lo === null ? acc.min[0] : Math.min(lo, acc.min[0]);
+        hi = hi === null ? acc.max[0] : Math.max(hi, acc.max[0]);
+      }
+      return {
+        name: a?.name || `Клип ${i + 1}`,
+        duration: lo !== null && hi !== null ? Math.max(0, hi - lo) : 0,
+      };
+    });
+    return { names };
   } catch {
     return { names: null };
   }
 }
 
-export async function readGlbClipNamesFromFile(file: File): Promise<string[]> {
+export async function readGlbClipNamesFromFile(file: File): Promise<GlbClip[]> {
   try {
     let buf = await file.slice(0, PROBE).arrayBuffer();
     let res = parseJsonChunk(buf);
@@ -51,7 +76,7 @@ export async function readGlbClipNamesFromFile(file: File): Promise<string[]> {
 }
 
 // Тот же разбор, но по ссылке: тянем только начало файла Range-запросом.
-export async function readGlbClipNamesFromUrl(url: string): Promise<string[]> {
+export async function readGlbClipNamesFromUrl(url: string): Promise<GlbClip[]> {
   const fetchHead = async (bytes: number) => {
     const r = await fetch(url, { headers: { Range: `bytes=0-${bytes - 1}` } });
     if (!r.ok && r.status !== 206) throw new Error(`HTTP ${r.status}`);

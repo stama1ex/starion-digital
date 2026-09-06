@@ -74,6 +74,7 @@ import { compressImage, formatBytes } from '@/lib/ar/compress';
 import {
   readGlbClipNamesFromFile,
   readGlbClipNamesFromUrl,
+  type GlbClip,
 } from '@/lib/ar/glb-clips';
 import { AR_DOMAIN_URL } from '@/lib/ar/domain';
 import { compileMindFile } from '@/lib/ar/compile-marker';
@@ -244,7 +245,7 @@ export default function ARManagement() {
   // язык, выбранный для следующей дорожки
   const [newTrackLang, setNewTrackLang] = useState('');
   // имена анимационных клипов из загруженного GLB
-  const [clipNames, setClipNames] = useState<string[]>([]);
+  const [clipNames, setClipNames] = useState<GlbClip[]>([]);
   const [clipsLoading, setClipsLoading] = useState(false);
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
@@ -862,7 +863,10 @@ export default function ARManagement() {
                   .then((names) => {
                     setClipNames(names);
                     // если выбранного клипа в новом файле нет — сбрасываем
-                    if (form.animationClip && !names.includes(form.animationClip)) {
+                    if (
+                      form.animationClip &&
+                      !names.some((c) => c.name === form.animationClip)
+                    ) {
                       patch({ animationClip: '' });
                     }
                   })
@@ -931,18 +935,24 @@ export default function ARManagement() {
                         <SelectItem value="__auto__">
                           Автоматически (первый подходящий)
                         </SelectItem>
-                        {clipNames.map((name) => (
-                          <SelectItem key={name} value={name}>
-                            {name}
+                        {clipNames.map((clip) => (
+                          <SelectItem key={clip.name} value={clip.name}>
+                            {clip.name}
+                            {clip.duration > 0
+                              ? ` — ${clip.duration.toFixed(1).replace('.', ',')} с`
+                              : ' — статичная поза'}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <p className="mt-1 text-xs text-muted-foreground">
                       В файле {clipNames.length}{' '}
-                      {clipNames.length === 1 ? 'клип' : 'клипа'}. Если они
-                      анимируют один и тот же скелет, одновременно играть их
-                      нельзя — модель будет дёргаться, поэтому выберите нужный.
+                      {clipNames.length === 1 ? 'клип' : 'клипа'}. Одновременно
+                      играть их нельзя, если они двигают один скелет — выберите
+                      нужный. Рядом с именем указана длительность цикла:{' '}
+                      <b>короткий цикл на неподвижном сувенире выглядит как
+                      дрожание</b>, потому что модель успевает повторить
+                      движение несколько раз в секунду.
                     </p>
                   </>
                 ) : (
