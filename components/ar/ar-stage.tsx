@@ -9,7 +9,6 @@ import {
   AR_STABILIZER,
   AR_CAMERA_CONSTRAINTS,
 } from '@/lib/ar/config';
-import { arAssetUrl } from '@/lib/ar/types';
 import type { ARExperienceClient } from '@/lib/ar/types';
 import type { ARErrorKind } from './ar-errors';
 
@@ -263,8 +262,6 @@ export default function ARStage({
       cb.onProgress(0.25);
       syncContainerSize();
 
-      const { slug, version } = experience;
-
       // MindAR вешает свой resize-слушатель на window прямо в конструкторе и
       // нигде его не снимает — ссылку на bound-функцию он не хранит, поэтому
       // сами снять её потом нельзя. Без этого каждый монтаж вьюера навсегда
@@ -284,7 +281,7 @@ export default function ARStage({
       try {
         mindarThree = new MindARThree({
           container: containerRef.current,
-          imageTargetSrc: arAssetUrl(slug, 'mind', version),
+          imageTargetSrc: experience.assets.mind,
           uiLoading: 'no',
           uiScanning: 'no',
           uiError: 'no',
@@ -382,12 +379,8 @@ export default function ARStage({
         audio.loop = experience.loop;
         audio.muted = true; // как и видео: звук включает только жест пользователя
         audio.setAttribute('playsinline', '');
-        audio.src = arAssetUrl(
-          slug,
-          'audio',
-          version,
-          Math.max(0, audioTrackIndexRef.current)
-        );
+        audio.src =
+          experience.assets.audio[Math.max(0, audioTrackIndexRef.current)] || '';
         audio.load();
         audioElRef.current = audio;
         disposables.push(() => {
@@ -899,12 +892,7 @@ export default function ARStage({
   useEffect(() => {
     const audio = audioElRef.current;
     if (!audio) return;
-    const next = arAssetUrl(
-      experience.slug,
-      'audio',
-      experience.version,
-      audioTrackIndex
-    );
+    const next = experience.assets.audio[audioTrackIndex] || '';
     if (audio.getAttribute('src') === next) return;
 
     const resumeAt = audio.currentTime;
@@ -922,7 +910,7 @@ export default function ARStage({
     audio.src = next;
     audio.load();
     return () => audio.removeEventListener('loadedmetadata', onReady);
-  }, [audioTrackIndex, experience.slug, experience.version]);
+  }, [audioTrackIndex, experience.assets.audio]);
 
   return (
     <>
@@ -970,7 +958,7 @@ async function buildContent({
   debugInfo: Record<string, string>;
   onAssetProgress: (p: number) => void;
 }): Promise<(() => void) | null> {
-  const { slug, version, contentType } = experience;
+  const { contentType } = experience;
 
   const applyTransform = (obj: any) => {
     obj.scale.multiplyScalar(experience.scale || 1);
@@ -988,7 +976,7 @@ async function buildContent({
 
   if (contentType === 'VIDEO') {
     const video = document.createElement('video');
-    video.src = arAssetUrl(slug, 'content', version);
+    video.src = experience.assets.content;
     video.crossOrigin = 'anonymous';
     video.loop = experience.loop;
     // Старт всегда без звука (autoplay-политика iOS). Если заданы озвучки,
@@ -1023,7 +1011,7 @@ async function buildContent({
     onAssetProgress(0.6);
 
     const markerImage = await loadImage(
-      arAssetUrl(slug, 'marker', version)
+      experience.assets.marker
     ).catch(() => null);
 
     const markerAspect = markerImage?.naturalHeight
@@ -1064,7 +1052,7 @@ async function buildContent({
     if (experience.hasMask) {
       try {
         maskTexture = await Promise.race([
-          new THREE.TextureLoader().loadAsync(arAssetUrl(slug, 'mask', version)),
+          new THREE.TextureLoader().loadAsync(experience.assets.mask),
           new Promise((resolve) => setTimeout(() => resolve(null), 8000)),
         ]);
         if (!maskTexture) {
@@ -1151,7 +1139,7 @@ async function buildContent({
     throw new Error('gltf loader failed');
   }
 
-  const modelUrl = arAssetUrl(slug, 'content', version);
+  const modelUrl = experience.assets.content;
   const gltf: any = await Promise.race([
     new Promise((resolve, reject) => {
       new GLTFLoader().load(
@@ -1238,7 +1226,7 @@ async function buildContent({
     try {
       modelTexture = await Promise.race([
         new THREE.TextureLoader().loadAsync(
-          arAssetUrl(slug, 'texture', version)
+          experience.assets.texture
         ),
         new Promise((resolve) => setTimeout(() => resolve(null), 20000)),
       ]);
