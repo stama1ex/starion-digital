@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkAnyAdminAuth, checkProductAdminAuth } from '../auth-utils';
 import { naturalCompare } from '@/lib/naturalSort';
+import { releaseStorageObjects } from '@/lib/storage/cleanup';
 
 // GET all products - доступно любому админу (нужно и для формы заказа, и
 // для управления товарами)
@@ -110,12 +111,26 @@ export async function PUT(request: NextRequest) {
       updateData.image = data.imageUrl || '';
     }
 
+    // Старую картинку помним до записи: если её заменили, файл в хранилище
+    // больше не нужен, но узнать это можно только сравнив «до» и «после».
+    const before = await prisma.product.findUnique({
+      where: { id: data.id },
+      select: { image: true },
+    });
+
     const product = await prisma.product.update({
       where: { id: data.id },
       data: updateData,
     });
 
-    return NextResponse.json(product);
+    let removedFiles = 0;
+    if (before && before.image && before.image !== product.image) {
+      // Считается уже по новому состоянию базы, поэтому вызов идёт после
+      // update. Файл, на который ссылается другой товар, не тронется.
+      removedFiles = (await releaseStorageObjects([before.image])).deleted;
+    }
+
+    return NextResponse.json({ ...product, removedFiles });
   } catch (error) {
     console.error('Error updating product:', error);
     return NextResponse.json(
@@ -170,11 +185,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    const doomed = await prisma.product.findUnique({
+      where: { id },
+      select: { image: true },
+    });
+
     await prisma.product.delete({
       where: { id },
     });
 
-    return NextResponse.json({ success: true });
+    const removed = await releaseStorageObjects([doomed?.image]);
+
+    return NextResponse.json({ success: true, removedFiles: removed.deleted });
   } catch (error) {
     console.error('Error deleting product:', error);
     return NextResponse.json(

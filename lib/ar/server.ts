@@ -7,18 +7,19 @@
 // префиксом в пути: 'r2:ar/...' против '/ar/...'. Благодаря этому переносить
 // можно по одному файлу и в любой момент остановиться.
 import { getTemporaryLink, getTemporaryUploadLink } from '@/lib/dropbox';
-import { isR2Configured, presignPutUrl, r2PublicUrl } from '@/lib/r2';
+import {
+  isR2Configured,
+  isR2Path,
+  presignPutUrl,
+  r2Key,
+  r2PublicUrl,
+  R2_PREFIX,
+} from '@/lib/r2';
 import { AR_DROPBOX_DIR, type ARAssetKind } from './constants';
 
-export const R2_PREFIX = 'r2:';
-
-export function isR2Path(path: string | null | undefined): boolean {
-  return typeof path === 'string' && path.startsWith(R2_PREFIX);
-}
-
-export function r2Key(path: string): string {
-  return path.slice(R2_PREFIX.length);
-}
+// Пометка хранилища переехала в lib/r2 — она нужна не только AR, но и
+// картинкам товаров. Здесь оставлен реэкспорт, чтобы не переписывать импорты.
+export { isR2Path, r2Key, R2_PREFIX };
 
 function sanitizeFilename(name: string) {
   const cleaned = name
