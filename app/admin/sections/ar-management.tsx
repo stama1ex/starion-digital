@@ -71,6 +71,7 @@ import {
 import { ArQrDialog, arUrl } from '@/components/ar/ar-qr-dialog';
 import { ArTestDialog } from '@/components/ar/ar-test-dialog';
 import { compressImage, formatBytes } from '@/lib/ar/compress';
+import { probeMp4, isMp4 } from '@/lib/ar/mp4-probe';
 import {
   readGlbClipNamesFromFile,
   readGlbClipNamesFromUrl,
@@ -1364,6 +1365,27 @@ function AssetField({
         `Файл больше ${Math.round(limit.maxBytes / (1024 * 1024))} МБ`
       );
       return;
+    }
+    // Видео проверяем до отправки: неудачный файл потом виден только по
+    // жалобам «долго грузится», а причина неочевидна.
+    if (kind === 'content' && isMp4(file)) {
+      const info = await probeMp4(file);
+      if (info.layout === 'moov-last') {
+        toast.warning(
+          'В этом mp4 оглавление (moov) лежит в конце файла. Браузер не сможет ' +
+            'начать показ, пока не скачает ролик целиком. Перекодируйте с ' +
+            'faststart — размер и качество не изменятся.',
+          { duration: 12000 }
+        );
+      }
+      if (file.size > 15 * 1024 * 1024) {
+        toast.warning(
+          `Ролик весит ${formatBytes(file.size)}. Он качается на телефон по ` +
+            'мобильной сети перед показом; держитесь в пределах 10–15 МБ, ' +
+            'иначе человек устанет ждать.',
+          { duration: 12000 }
+        );
+      }
     }
     if (kind === 'mask' && !(await maskLooksLikeCutout(file))) {
       toast.warning(
