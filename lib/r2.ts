@@ -113,33 +113,32 @@ export function presignPutUrl(key: string, expiresSeconds = 3600): string {
   return `https://${ENDPOINT_HOST}${canonicalUri}?${canonicalQuery}&X-Amz-Signature=${signature}`;
 }
 
-// Прямая запись с сервера — нужна скрипту переноса из Dropbox.
-export async function putObject(
-  key: string,
-  body: Buffer,
-  contentType?: string
-): Promise<void> {
-  if (!isR2Configured()) throw new Error('R2 не настроен');
-
+// Заголовки для запроса от нашего сервера. Общая часть всех операций ниже:
+// SigV4 требует подписать метод, путь, строку запроса и набор заголовков.
+function authorize(
+  method: string,
+  canonicalUri: string,
+  canonicalQuery: string,
+  payloadHash: string,
+  extra: Array<[string, string]> = []
+): Record<string, string> {
   const { amzDate, dateStamp } = stamps();
-  const canonicalUri = `/${BUCKET}${encodeKeyPath(key)}`;
-  const payloadHash = sha256hex(body);
-  const type = contentType || 'application/octet-stream';
 
+  // подписываемые заголовки обязаны идти в алфавитном порядке
   const headers: Array<[string, string]> = [
-    ['content-type', type],
+    ...extra,
     ['host', ENDPOINT_HOST],
     ['x-amz-content-sha256', payloadHash],
     ['x-amz-date', amzDate],
   ];
-  const signedHeaders = headers.map(([k]) => k).join(';');
-  const canonicalHeaders = headers.map(([k, v]) => `${k}:${v}\n`).join('');
+  headers.sort((a, b) => (a[0] < b[0] ? -1 : 1));
 
+  const signedHeaders = headers.map(([k]) => k).join(';');
   const canonicalRequest = [
-    'PUT',
+    method,
     canonicalUri,
-    '',
-    canonicalHeaders,
+    canonicalQuery,
+    headers.map(([k, v]) => `${k}:${v}\n`).join(''),
     signedHeaders,
     payloadHash,
   ].join('\n');
@@ -154,16 +153,34 @@ export async function putObject(
   const signature = hmac(signingKey(dateStamp), stringToSign).toString('hex');
   const credential = `${ACCESS_KEY}/${dateStamp}/${REGION}/${SERVICE}/aws4_request`;
 
+  const out: Record<string, string> = {
+    'x-amz-content-sha256': payloadHash,
+    'x-amz-date': amzDate,
+    Authorization:
+      `AWS4-HMAC-SHA256 Credential=${credential}, ` +
+      `SignedHeaders=${signedHeaders}, Signature=${signature}`,
+  };
+  for (const [k, v] of extra) out[k] = v;
+  return out;
+}
+
+// Прямая запись с сервера — нужна скрипту переноса из Dropbox.
+export async function putObject(
+  key: string,
+  body: Buffer,
+  contentType?: string
+): Promise<void> {
+  if (!isR2Configured()) throw new Error('R2 не настроен');
+
+  const canonicalUri = `/${BUCKET}${encodeKeyPath(key)}`;
+  const type = contentType || 'application/octet-stream';
+  const headers = authorize('PUT', canonicalUri, '', sha256hex(body), [
+    ['content-type', type],
+  ]);
+
   const res = await fetch(`https://${ENDPOINT_HOST}${canonicalUri}`, {
     method: 'PUT',
-    headers: {
-      'content-type': type,
-      'x-amz-content-sha256': payloadHash,
-      'x-amz-date': amzDate,
-      Authorization:
-        `AWS4-HMAC-SHA256 Credential=${credential}, ` +
-        `SignedHeaders=${signedHeaders}, Signature=${signature}`,
-    },
+    headers,
     body: new Uint8Array(body),
   });
 
@@ -171,4 +188,75 @@ export async function putObject(
     const text = await res.text().catch(() => '');
     throw new Error(`R2 PUT ${res.status}: ${text.slice(0, 300)}`);
   }
+}
+
+const EMPTY_HASH = sha256hex('');
+
+// Удаление объекта. Отсутствующий объект — не ошибка: R2 на DELETE
+// несуществующего ключа отвечает 204, и нам это подходит, потому что чистка
+// вызывается «на всякий случай» и не должна ронять запрос админки.
+export async function deleteObject(key: string): Promise<void> {
+  if (!isR2Configured()) throw new Error('R2 не настроен');
+
+  const canonicalUri = `/${BUCKET}${encodeKeyPath(key)}`;
+  const res = await fetch(`https://${ENDPOINT_HOST}${canonicalUri}`, {
+    method: 'DELETE',
+    headers: authorize('DELETE', canonicalUri, '', EMPTY_HASH),
+  });
+
+  if (!res.ok && res.status !== 404) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`R2 DELETE ${res.status}: ${text.slice(0, 300)}`);
+  }
+}
+
+const XML_ENTITIES: Record<string, string> = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&apos;': "'",
+};
+
+// Список ключей с заданным префиксом. Нужен, чтобы при удалении оживления
+// вымести всю его папку целиком, включая файлы, на которые запись уже не
+// ссылается (заменённые маркеры, брошенные загрузки).
+export async function listObjectKeys(prefix: string): Promise<string[]> {
+  if (!isR2Configured()) throw new Error('R2 не настроен');
+
+  const keys: string[] = [];
+  let token: string | undefined;
+
+  do {
+    const params: Array<[string, string]> = [
+      ['list-type', '2'],
+      ['max-keys', '1000'],
+      ['prefix', prefix],
+    ];
+    if (token) params.push(['continuation-token', token]);
+
+    const canonicalQuery = params
+      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+      .sort()
+      .join('&');
+    const canonicalUri = `/${BUCKET}`;
+
+    const res = await fetch(
+      `https://${ENDPOINT_HOST}${canonicalUri}?${canonicalQuery}`,
+      { headers: authorize('GET', canonicalUri, canonicalQuery, EMPTY_HASH) }
+    );
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`R2 LIST ${res.status}: ${text.slice(0, 300)}`);
+    }
+
+    const xml = await res.text();
+    for (const m of xml.matchAll(/<Key>([\s\S]*?)<\/Key>/g)) {
+      keys.push(m[1].replace(/&(?:amp|lt|gt|quot|apos);/g, (e) => XML_ENTITIES[e]));
+    }
+    const next = xml.match(/<NextContinuationToken>([\s\S]*?)<\/NextContinuationToken>/);
+    token = /<IsTruncated>true<\/IsTruncated>/.test(xml) && next ? next[1] : undefined;
+  } while (token);
+
+  return keys;
 }

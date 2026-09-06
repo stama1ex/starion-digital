@@ -7,6 +7,11 @@ import { AR_CONTENT_TYPES, AR_SLUG_PATTERN, slugifyAr } from '@/lib/ar/constants
 import { pickARSettings } from '@/lib/ar/payload';
 import { cleanAudioTracks } from '@/lib/ar/constants';
 import { cleanSocials } from '@/lib/ar/socials';
+import {
+  experienceAssetPaths,
+  releaseARAssets,
+  staleAssetPaths,
+} from '@/lib/ar/cleanup';
 
 // PATCH — обновить AR-опыт (частично)
 export async function PATCH(
@@ -117,7 +122,13 @@ export async function PATCH(
       },
     });
 
-    return NextResponse.json(experience);
+    // Заменили маркер/контент/озвучку — старый файл в R2 больше не нужен.
+    // Считаем уже по новому состоянию базы, поэтому вызов идёт после update.
+    const removed = await releaseARAssets(
+      staleAssetPaths(existing, experience)
+    );
+
+    return NextResponse.json({ ...experience, removedFiles: removed.deleted });
   } catch (error) {
     console.error('Error updating AR experience:', error);
     return NextResponse.json(
@@ -127,8 +138,10 @@ export async function PATCH(
   }
 }
 
-// DELETE — удалить AR-опыт. Файлы в Dropbox не трогаем (как и при удалении
-// товара), чтобы случайно не потерять ассеты, переиспользуемые в другом опыте.
+// DELETE — удалить AR-опыт вместе с его папкой в R2. Файлы, на которые
+// ссылается другое оживление, остаются: один маркер может быть у нескольких
+// сувениров. Старые файлы в Dropbox не трогаем — там же лежат картинки
+// товаров, а оживления после переезда на R2 туда уже не ссылаются.
 export async function DELETE(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -142,8 +155,19 @@ export async function DELETE(
 
   try {
     const { id } = await context.params;
+
+    const existing = await prisma.aRExperience.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Опыт не найден' }, { status: 404 });
+    }
+
     await prisma.aRExperience.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+
+    const removed = await releaseARAssets(experienceAssetPaths(existing), {
+      sweepFolder: true,
+    });
+
+    return NextResponse.json({ success: true, removedFiles: removed.deleted });
   } catch (error) {
     console.error('Error deleting AR experience:', error);
     return NextResponse.json(
