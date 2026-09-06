@@ -31,8 +31,10 @@ export async function generateMetadata({
     };
   }
 
-  const version = String(experience.updatedAt.getTime());
-  const ogImage = arAssetUrl(slug, 'poster', version); // резолвится через metadataBase
+  // Постер для превью берём тем же путём, что и вьюер: для файлов в R2 это
+  // прямая ссылка, для оставшихся в Dropbox — прокси (он относительный и
+  // достраивается через metadataBase).
+  const ogImage = toARExperienceClient(experience).assets.poster;
   // При белой метке ни в заголовке вкладки, ни в превью для мессенджеров не
   // должно быть нашего имени, а иконка вкладки — нейтральная вместо favicon.
   const title = experience.whiteLabel
