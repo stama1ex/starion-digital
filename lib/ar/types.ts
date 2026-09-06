@@ -36,6 +36,21 @@ export interface ARExperienceClient {
   animationClip: string | null;
   // метка версии (updatedAt) для инвалидации CDN-кэша прокси при замене ассета
   version: string;
+  // Готовые адреса файлов. Для нового хранилища (R2) это прямые публичные
+  // ссылки — браузер качает их мимо нашего сервера, и раздача нам ничего не
+  // стоит. Для файлов, оставшихся в Dropbox, здесь адрес нашего прокси, как
+  // и раньше. Пустая строка означает, что ассет не задан.
+  assets: ARAssetUrls;
+}
+
+export interface ARAssetUrls {
+  marker: string;
+  mind: string;
+  content: string;
+  poster: string;
+  mask: string;
+  texture: string;
+  audio: string[];
 }
 
 export function arAssetUrl(

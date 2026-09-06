@@ -175,15 +175,23 @@ async function uploadArAsset(
     const data = await linkRes.json().catch(() => ({}));
     throw new Error(data.error || 'Не удалось получить ссылку для загрузки');
   }
-  const { uploadUrl, path } = await linkRes.json();
+  const { uploadUrl, path, method } = await linkRes.json();
 
+  // R2 принимает файл PUT-запросом, Dropbox — POST. Тип содержимого для R2
+  // важен: он сохраняется у объекта и потом отдаётся браузеру, а с
+  // octet-stream видео не проиграется.
+  const isPut = method === 'PUT';
   const up = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
+    method: isPut ? 'PUT' : 'POST',
+    headers: {
+      'Content-Type': isPut
+        ? file.type || 'application/octet-stream'
+        : 'application/octet-stream',
+    },
     body: file,
   });
   if (!up.ok) {
-    throw new Error(`Dropbox отклонил загрузку (${up.status})`);
+    throw new Error(`Хранилище отклонило загрузку (${up.status})`);
   }
   return path as string;
 }

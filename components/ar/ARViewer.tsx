@@ -15,7 +15,6 @@ import {
   Languages,
 } from 'lucide-react';
 import { loadMindAr } from '@/lib/ar/config';
-import { arAssetUrl } from '@/lib/ar/types';
 import type { ARExperienceClient } from '@/lib/ar/types';
 import { classifyMediaError, type ARErrorKind } from './ar-errors';
 import { ARSocialLinks } from './ar-socials';
@@ -204,7 +203,7 @@ export default function ARViewer({
   const showClose = canGoBack || !!outboundHref;
 
   const posterUrl = experience.hasPoster
-    ? arAssetUrl(experience.slug, 'poster', experience.version)
+    ? experience.assets.poster
     : null;
 
   return (

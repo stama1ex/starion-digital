@@ -36,13 +36,14 @@ export async function POST(request: NextRequest) {
     }
 
     const safeName = String(filename || 'asset').slice(0, 120);
-    const { uploadUrl, path } = await createARUploadLink(
+    const { uploadUrl, path, method } = await createARUploadLink(
       kind as ARAssetKind,
       safeName,
       typeof title === 'string' ? title : undefined
     );
 
-    return NextResponse.json({ uploadUrl, path });
+    // method говорит браузеру, как класть файл: R2 ждёт PUT, Dropbox POST
+    return NextResponse.json({ uploadUrl, path, method });
   } catch (error) {
     console.error('Error creating AR upload link:', error);
     return NextResponse.json(
