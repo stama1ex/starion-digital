@@ -760,8 +760,23 @@ export default function ARStage({
           debugInfo.rawStep =
             'скачок/кадр ср ' +
             (rawSteps ? rawStepSum / rawSteps : 0).toFixed(2) +
-            '° макс ' + rawStepMax.toFixed(1) + '°' +
-            ' | глубина ±' + (d.d / 2).toFixed(3);
+            '° макс ' + rawStepMax.toFixed(1) + '°';
+          // Абсолютные значения: разброс сам по себе не говорит, гуляет ли
+          // оценка вокруг разумной величины или уезжает в бессмыслицу.
+          debugInfo.rawZ =
+            'z ' + targetPos.z.toFixed(2) +
+            ' (от ' + (rawDepth.length ? Math.min(...rawDepth).toFixed(2) : '-') +
+            ' до ' + (rawDepth.length ? Math.max(...rawDepth).toFixed(2) : '-') + ')' +
+            ' | размах ' + d.d.toFixed(2);
+          debugInfo.rawXY =
+            'x ' + targetPos.x.toFixed(3) +
+            ' y ' + targetPos.y.toFixed(3) +
+            ' | масштаб ' + targetScale.x.toFixed(4);
+          // максимум скачка копится с начала сессии и быстро становится
+          // бесполезным — сбрасываем на каждом отчёте
+          rawStepMax = 0;
+          rawStepSum = 0;
+          rawSteps = 0;
         }
 
         if (visible) {
