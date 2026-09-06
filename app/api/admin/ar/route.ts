@@ -116,6 +116,7 @@ export async function POST(request: NextRequest) {
         maskUrl: data.maskUrl ? String(data.maskUrl) : null,
         textureUrl: data.textureUrl ? String(data.textureUrl) : null,
         posterUrl: data.posterUrl ? String(data.posterUrl) : null,
+        animationClip: data.animationClip ? String(data.animationClip) : null,
         productId: data.productId ? parseInt(String(data.productId)) : null,
         // Prisma не выводит типизированные объект/массив как Json — приводим явно
         socials: (cleanSocials(data.socials) ??

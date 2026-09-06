@@ -71,6 +71,10 @@ import {
 import { ArQrDialog, arUrl } from '@/components/ar/ar-qr-dialog';
 import { ArTestDialog } from '@/components/ar/ar-test-dialog';
 import { compressImage, formatBytes } from '@/lib/ar/compress';
+import {
+  readGlbClipNamesFromFile,
+  readGlbClipNamesFromUrl,
+} from '@/lib/ar/glb-clips';
 import { AR_DOMAIN_URL } from '@/lib/ar/domain';
 import { compileMindFile } from '@/lib/ar/compile-marker';
 
@@ -100,6 +104,7 @@ interface FormState {
   whiteLabel: boolean;
   socials: ARSocials;
   audioTracks: ARAudioTrack[];
+  animationClip: string;
 }
 
 const emptyForm = (): FormState => ({
@@ -116,6 +121,7 @@ const emptyForm = (): FormState => ({
   posterUrl: '',
   socials: {},
   audioTracks: [],
+  animationClip: '',
   ...AR_EXPERIENCE_DEFAULTS,
 });
 
@@ -237,6 +243,9 @@ export default function ARManagement() {
   const [audioBusy, setAudioBusy] = useState<number | 'new' | null>(null);
   // язык, выбранный для следующей дорожки
   const [newTrackLang, setNewTrackLang] = useState('');
+  // имена анимационных клипов из загруженного GLB
+  const [clipNames, setClipNames] = useState<string[]>([]);
+  const [clipsLoading, setClipsLoading] = useState(false);
 
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
 
@@ -293,6 +302,7 @@ export default function ARManagement() {
     setForm(emptyForm());
     setEditingId(null);
     setMarkerFile(null);
+    setClipNames([]);
     setDialogOpen(true);
   };
 
@@ -321,6 +331,7 @@ export default function ARManagement() {
       sound: exp.sound,
       isActive: exp.isActive,
       whiteLabel: !!exp.whiteLabel,
+      animationClip: exp.animationClip || '',
       socials: (exp.socials as ARSocials | null) ?? {},
       audioTracks: Array.isArray(exp.audioTracks)
         ? (exp.audioTracks as ARAudioTrack[])
@@ -328,7 +339,19 @@ export default function ARManagement() {
     });
     setEditingId(exp.id);
     setMarkerFile(null);
+    setClipNames([]);
     setDialogOpen(true);
+    // Имена клипов лежат в JSON-заголовке GLB, в самом начале файла: тянем
+    // только его, а не всю модель (у них бывает и по 30 МБ).
+    if (exp.contentType !== 'VIDEO' && exp.contentUrl) {
+      setClipsLoading(true);
+      fetch(`/api/admin/ar/preview?path=${encodeURIComponent(exp.contentUrl)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => (d?.url ? readGlbClipNamesFromUrl(d.url) : []))
+        .then(setClipNames)
+        .catch(() => setClipNames([]))
+        .finally(() => setClipsLoading(false));
+    }
   };
 
   // Выбор картинки через скрытый input, когда маркер ещё не грузили в этой сессии
@@ -832,6 +855,19 @@ export default function ARManagement() {
             </div>
             <AssetField
               kind="content"
+              onFilePicked={(file) => {
+                if (isVideo) return;
+                setClipsLoading(true);
+                readGlbClipNamesFromFile(file)
+                  .then((names) => {
+                    setClipNames(names);
+                    // если выбранного клипа в новом файле нет — сбрасываем
+                    if (form.animationClip && !names.includes(form.animationClip)) {
+                      patch({ animationClip: '' });
+                    }
+                  })
+                  .finally(() => setClipsLoading(false));
+              }}
               label={
                 isVideo ? 'Видео (mp4/webm)' : 'Модель GLB'
               }
@@ -870,6 +906,53 @@ export default function ARManagement() {
                   />
                 </div>
               </details>
+            )}
+            {form.contentType === 'ANIMATION' && (
+              <div>
+                <label className="text-sm font-medium">
+                  Анимация из файла
+                </label>
+                {clipsLoading ? (
+                  <p className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" /> читаем клипы…
+                  </p>
+                ) : clipNames.length > 0 ? (
+                  <>
+                    <Select
+                      value={form.animationClip || '__auto__'}
+                      onValueChange={(v) =>
+                        patch({ animationClip: v === '__auto__' ? '' : v })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__auto__">
+                          Автоматически (первый подходящий)
+                        </SelectItem>
+                        {clipNames.map((name) => (
+                          <SelectItem key={name} value={name}>
+                            {name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      В файле {clipNames.length}{' '}
+                      {clipNames.length === 1 ? 'клип' : 'клипа'}. Если они
+                      анимируют один и тот же скелет, одновременно играть их
+                      нельзя — модель будет дёргаться, поэтому выберите нужный.
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {form.contentUrl
+                      ? 'Клипы в файле не найдены — модель будет статичной.'
+                      : 'Загрузите GLB, и здесь появится список анимаций из него.'}
+                  </p>
+                )}
+              </div>
             )}
             {isModel && (
               <AssetField

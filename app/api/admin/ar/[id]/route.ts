@@ -90,6 +90,12 @@ export async function PATCH(
       }
     }
 
+    if (data.animationClip !== undefined) {
+      updateData.animationClip = data.animationClip
+        ? String(data.animationClip)
+        : null;
+    }
+
     if (data.socials !== undefined) {
       updateData.socials = cleanSocials(data.socials) ?? Prisma.DbNull;
     }
