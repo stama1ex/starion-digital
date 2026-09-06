@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,6 +126,19 @@ const emptyForm = (): FormState => ({
   animationClip: '',
   ...AR_EXPERIENCE_DEFAULTS,
 });
+
+// Все пути к файлам, на которые ссылается форма прямо сейчас
+function formAssetPaths(form: FormState): string[] {
+  return [
+    form.markerUrl,
+    form.mindFileUrl,
+    form.contentUrl,
+    form.maskUrl,
+    form.textureUrl,
+    form.posterUrl,
+    ...form.audioTracks.map((t) => t.path),
+  ].filter(Boolean);
+}
 
 // Быстрая проверка, что у PNG-маски вообще есть прозрачные пиксели по краям.
 // Иначе (непрозрачный фон) маска не обрежет видео, а ошибки никакой не будет —
@@ -257,7 +270,71 @@ export default function ARManagement() {
   const [clipNames, setClipNames] = useState<GlbClip[]>([]);
   const [clipsLoading, setClipsLoading] = useState(false);
 
+  // Файлы уезжают в хранилище сразу при выборе, а не при сохранении. Если
+  // закрыть окно, не сохранив, они останутся лежать мёртвым грузом — ссылки
+  // на них не будет нигде. Поэтому запоминаем всё залитое в этой сессии окна
+  // и при закрытии без сохранения просим сервер их убрать.
+  const uploadedRef = useRef<string[]>([]);
+
+  const trackUpload = useCallback((path: string) => {
+    if (path) uploadedRef.current.push(path);
+  }, []);
+
+  // После сохранения мусором остаётся то, что залили, но что в итоговую форму
+  // не попало: например, маркер загрузили дважды — первый файл уже никому не
+  // нужен. Всё, что в форме есть, из списка на удаление убираем.
+  const forgetSavedUploads = useCallback((saved: FormState) => {
+    const kept = new Set(formAssetPaths(saved));
+    uploadedRef.current = uploadedRef.current.filter((p) => !kept.has(p));
+  }, []);
+
+  const discardUploads = useCallback(async () => {
+    const paths = uploadedRef.current;
+    uploadedRef.current = [];
+    if (!paths.length) return;
+    try {
+      const res = await fetch('/api/admin/ar/discard-uploads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paths }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data?.removedFiles) {
+        toast.info(`Лишние файлы убраны из хранилища: ${data.removedFiles}`);
+      }
+    } catch {
+      // не страшно: файл останется мусором, но работе это не мешает
+    }
+  }, []);
+
+  // Закрытие вкладки прямо поверх незасохранённой формы. Обычный fetch тут
+  // уже не успевает — браузер оставляет только sendBeacon.
+  useEffect(() => {
+    const flush = () => {
+      const paths = uploadedRef.current;
+      if (!paths.length) return;
+      uploadedRef.current = [];
+      navigator.sendBeacon?.(
+        '/api/admin/ar/discard-uploads',
+        new Blob([JSON.stringify({ paths })], { type: 'application/json' })
+      );
+    };
+    window.addEventListener('beforeunload', flush);
+    return () => window.removeEventListener('beforeunload', flush);
+  }, []);
+
+  const closeDialog = () => {
+    setDialogOpen(false);
+    void discardUploads();
+  };
+
   const patch = (p: Partial<FormState>) => setForm((f) => ({ ...f, ...p }));
+
+  // Загруженный ассет: и запоминаем для возможной отмены, и кладём в форму
+  const setAsset = (field: keyof FormState) => (path: string) => {
+    trackUpload(path);
+    patch({ [field]: path } as Partial<FormState>);
+  };
 
   const patchTracks = (
     update: (tracks: ARAudioTrack[]) => ARAudioTrack[]
@@ -278,6 +355,7 @@ export default function ARManagement() {
     try {
       const path = await pickAndUploadAudio(form.title);
       if (path) {
+        trackUpload(path);
         patchTracks((tracks) => [
           ...tracks,
           { lang: lang.code, label: lang.label, path },
@@ -296,6 +374,7 @@ export default function ARManagement() {
     try {
       const path = await pickAndUploadAudio(form.title);
       if (path) {
+        trackUpload(path);
         patchTracks((tracks) =>
           tracks.map((it, i) => (i === index ? { ...it, path } : it))
         );
@@ -391,7 +470,7 @@ export default function ARManagement() {
         slugifyAr(form.slug || form.title) || 'marker'
       );
       const path = await uploadArAsset('mind', mind, form.title);
-      patch({ mindFileUrl: path });
+      setAsset('mindFileUrl')(path);
       toast.success('.mind скомпилирован и загружен');
     } catch (error: any) {
       console.error('[AR] compile failed', error);
@@ -439,6 +518,8 @@ export default function ARManagement() {
       } else {
         await AdminAPI.createARExperience(payload);
       }
+      forgetSavedUploads(form);
+      void discardUploads();
       setDialogOpen(false);
       await mutate();
       toast.success(
@@ -732,7 +813,10 @@ export default function ARManagement() {
         </div>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
@@ -838,7 +922,7 @@ export default function ARManagement() {
               label="Изображение-маркер (сам сувенир)"
               hint="Контрастная детальная картинка. Из неё компилируется .mind. Если сувенир фигурный — заливайте PNG-высечку с прозрачным фоном: по её альфе видео само обрежется по силуэту."
               value={form.markerUrl}
-              onChange={(path) => patch({ markerUrl: path })}
+              onChange={setAsset('markerUrl')}
               title={form.title}
               onFilePicked={setMarkerFile}
               preview
@@ -848,7 +932,7 @@ export default function ARManagement() {
                 kind="mind"
                 label=".mind файл (скомпилированный маркер)"
                 value={form.mindFileUrl}
-                onChange={(path) => patch({ mindFileUrl: path })}
+                onChange={setAsset('mindFileUrl')}
                 title={form.title}
               />
               <div className="mt-2 flex flex-col gap-1">
@@ -907,7 +991,7 @@ export default function ARManagement() {
                     : 'glTF Binary (.glb), статичная модель.'
               }
               value={form.contentUrl}
-              onChange={(path) => patch({ contentUrl: path })}
+              onChange={setAsset('contentUrl')}
               title={form.title}
             />
             {isVideo && (
@@ -928,7 +1012,7 @@ export default function ARManagement() {
                     label="Маска-силуэт"
                     hint="PNG: силуэт непрозрачный, фон полностью прозрачный. Если видео свешивается за край — сожмите силуэт внутрь на 1–2%."
                     value={form.maskUrl}
-                    onChange={(path) => patch({ maskUrl: path })}
+                    onChange={setAsset('maskUrl')}
                     preview
                     title={form.title}
                   />
@@ -994,7 +1078,7 @@ export default function ARManagement() {
                 label="Текстура модели — необязательно"
                 hint="Если .glb без встроенных текстур (частый случай у фотограмметрии) — загрузите сюда атлас (jpg/png). Он натянется на все материалы модели по её UV-развёртке."
                 value={form.textureUrl}
-                onChange={(path) => patch({ textureUrl: path })}
+                onChange={setAsset('textureUrl')}
                 preview
                 title={form.title}
               />
@@ -1004,7 +1088,7 @@ export default function ARManagement() {
               label="Постер (экран загрузки, превью при шеринге) — необязательно"
               hint="Если не задан — используется маркер."
               value={form.posterUrl}
-              onChange={(path) => patch({ posterUrl: path })}
+              onChange={setAsset('posterUrl')}
               title={form.title}
               preview
             />
@@ -1279,7 +1363,7 @@ export default function ARManagement() {
           <DialogFooter>
             <Button
               variant="outline"
-              onClick={() => setDialogOpen(false)}
+              onClick={closeDialog}
               disabled={saving}
             >
               Отмена
