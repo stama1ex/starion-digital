@@ -1170,11 +1170,18 @@ async function buildContent({
         );
       }
 
-      let playable = picked ? [picked] : clips;
-      if (!picked && clips.length > 1) {
+      // Клип нулевой длительности — это не анимация, а одна статичная поза
+      // (в экспортах Blender такой часто идёт первым как baselayer). В
+      // автоматическом режиме брать его нельзя: модель замрёт в странном виде,
+      // и со стороны это выглядит как сломанная анимация.
+      const moving = clips.filter((c: any) => (c.duration || 0) > 0.01);
+      const auto = moving.length ? moving : clips;
+
+      let playable = picked ? [picked] : auto;
+      if (!picked && auto.length > 1) {
         const seen = new Set<string>();
         let overlap = false;
-        for (const clip of clips) {
+        for (const clip of auto) {
           for (const node of nodesOf(clip)) {
             if (seen.has(node)) {
               overlap = true;
@@ -1185,7 +1192,7 @@ async function buildContent({
           if (overlap) break;
         }
         if (overlap) {
-          playable = [clips[0]];
+          playable = [auto[0]];
           console.warn(
             '[AR] клипы пересекаются по узлам — играем только первый:',
             clips.map((c: any) => c.name).join(', ')
