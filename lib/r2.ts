@@ -17,11 +17,16 @@ const ACCESS_KEY = process.env.R2_ACCESS_KEY_ID || '';
 const SECRET_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
 const BUCKET = process.env.R2_BUCKET || '';
 
-// Публичный адрес бакета: свой поддомен (cdn.ar3d.io) либо выданный
-// Cloudflare r2.dev-адрес. Именно отсюда браузер качает файлы напрямую.
-export const R2_PUBLIC_URL = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || '')
-  .trim()
-  .replace(/\/+$/, '');
+// Публичная часть (адрес файла, пометка хранилища) вынесена отдельно: её
+// тянут и клиентские компоненты, а сюда нельзя — здесь node:crypto и секреты.
+export {
+  isR2Path,
+  r2Key,
+  r2Path,
+  r2PublicUrl,
+  R2_PREFIX,
+  R2_PUBLIC_URL,
+} from './r2-public';
 
 // S3-эндпоинт аккаунта — сюда идут подписанные запросы на запись.
 const ENDPOINT_HOST = ACCOUNT_ID ? `${ACCOUNT_ID}.r2.cloudflarestorage.com` : '';
@@ -30,14 +35,6 @@ const SERVICE = 's3';
 
 export function isR2Configured(): boolean {
   return Boolean(ACCOUNT_ID && ACCESS_KEY && SECRET_KEY && BUCKET);
-}
-
-export function r2PublicUrl(key: string): string {
-  const clean = key.replace(/^\/+/, '');
-  if (!R2_PUBLIC_URL) return '';
-  // каждый сегмент кодируем отдельно, чтобы слэши остались слэшами
-  const encoded = clean.split('/').map(encodeURIComponent).join('/');
-  return `${R2_PUBLIC_URL}/${encoded}`;
 }
 
 // ---------------------------------------------------------------- подпись

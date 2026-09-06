@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { uploadImage } from '@/lib/dropbox';
+import { isR2Configured, putObject, r2Path } from '@/lib/r2';
+import {
+  buildProductImageKey,
+  sanitizeProductFilename,
+} from '@/lib/products/images';
 import { checkProductAdminAuth } from '../auth-utils';
-
-function sanitizeFilename(name: string) {
-  return (
-    name
-      .normalize('NFKD')
-      .replace(/[^\x00-\x7F]/g, '')
-      .replace(/\s+/g, '_')
-      .replace(/[^a-zA-Z0-9._-]/g, '') || `file_${Date.now()}`
-  );
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,13 +57,25 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = await file.arrayBuffer();
-    const safeName = sanitizeFilename(file.name);
-    const filename = `${Date.now()}_${safeName}`;
 
-    console.log('[UPLOAD] Sanitized filename:', filename);
-    console.log('[UPLOAD] Buffer size:', buffer.byteLength);
-    console.log('[UPLOAD] Uploading to Dropbox...');
+    // Новые картинки кладём в R2: адрес получается постоянный, и каталог
+    // потом рисуется без похода в чужое API за временной ссылкой. Если R2 не
+    // настроен (например, на чьей-то локальной копии) — работает как раньше.
+    if (isR2Configured()) {
+      const key = buildProductImageKey(file.name);
+      console.log('[UPLOAD] Uploading to R2:', key, buffer.byteLength, 'bytes');
+      await putObject(
+        key,
+        Buffer.from(buffer),
+        file.type || 'application/octet-stream'
+      );
+      const path = r2Path(key);
+      console.log('[UPLOAD] Upload successful, path:', path);
+      return NextResponse.json({ success: true, path });
+    }
 
+    const filename = `${Date.now()}_${sanitizeProductFilename(file.name)}`;
+    console.log('[UPLOAD] R2 не настроен, грузим в Dropbox:', filename);
     const { path } = await uploadImage(buffer, filename);
 
     console.log('[UPLOAD] Upload successful, path:', path);

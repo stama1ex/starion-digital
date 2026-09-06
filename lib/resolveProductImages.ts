@@ -1,4 +1,5 @@
 import { getAccessToken, getTemporaryLink } from './dropbox';
+import { isR2Path, r2Key, r2PublicUrl } from './r2-public';
 
 function toLocalPath(path: string) {
   const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
@@ -16,6 +17,12 @@ export async function resolveImageUrl(
 
   if (image.startsWith('http')) {
     return image;
+  }
+
+  // R2: адрес постоянный и публичный, ходить за ним никуда не надо —
+  // в отличие от Dropbox, где на каждую картинку нужен запрос к их API.
+  if (isR2Path(image)) {
+    return r2PublicUrl(r2Key(image));
   }
 
   if (image.startsWith('public/')) {
@@ -42,7 +49,11 @@ export async function resolveProductImages<T extends { image: string }>(
 ): Promise<T[]> {
   if (products.length === 0) return products;
 
-  const accessToken = await getAccessToken();
+  // Токен Dropbox спрашиваем только если среди картинок ещё остались его
+  // пути: после переезда на R2 этот запрос — лишняя задержка на каждой
+  // отрисовке каталога.
+  const needsDropbox = products.some((p) => p.image?.startsWith('/products/'));
+  const accessToken = needsDropbox ? await getAccessToken() : '';
   return Promise.all(
     products.map(async (p) => ({
       ...p,

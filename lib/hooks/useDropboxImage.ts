@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { isR2Path, r2Key, r2PublicUrl } from '@/lib/r2-public';
 
 function toLocalPath(path: string) {
   const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
@@ -20,6 +21,13 @@ export function useDropboxImage(imagePath: string | null | undefined) {
       // Если это уже HTTP URL (старые данные)
       if (imagePath.startsWith('http')) {
         setImgSrc(imagePath);
+        return;
+      }
+
+      // R2: адрес постоянный, считается на месте — ни запроса к серверу,
+      // ни ожидания, ни срока годности у ссылки.
+      if (isR2Path(imagePath)) {
+        setImgSrc(r2PublicUrl(r2Key(imagePath)));
         return;
       }
 
