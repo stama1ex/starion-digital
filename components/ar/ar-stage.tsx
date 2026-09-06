@@ -592,6 +592,36 @@ export default function ARStage({
       let stabTick = 0;
       let flipFrames = 0;
       let flipsRejected = 0;
+
+      // --- измерение сырой позы, до всякого сглаживания ---
+      // Нужно, чтобы отличить «движок плохо считает» от «мы плохо фильтруем».
+      // Копим наклон плоскости и глубину за последние ~3 секунды и смотрим
+      // разброс: если сырой наклон гуляет на градусы, никакой фильтр не спасёт.
+      const RAW_WINDOW = 90;
+      const rawTilt: number[] = [];
+      const rawDepth: number[] = [];
+      let rawStepSum = 0;
+      let rawStepMax = 0;
+      let rawSteps = 0;
+      let prevTilt: number | null = null;
+      const markerNormal = new THREE.Vector3(0, 0, 1);
+      const normalNow = new THREE.Vector3();
+
+      const spread = (arr: number[]) => {
+        if (arr.length < 2) return { d: 0, sd: 0 };
+        let lo = Infinity;
+        let hi = -Infinity;
+        let sum = 0;
+        for (const v of arr) {
+          if (v < lo) lo = v;
+          if (v > hi) hi = v;
+          sum += v;
+        }
+        const mean = sum / arr.length;
+        let acc = 0;
+        for (const v of arr) acc += (v - mean) * (v - mean);
+        return { d: hi - lo, sd: Math.sqrt(acc / arr.length) };
+      };
       // ?arraw=1 — отключить стабилизацию и смотреть сырую позу движка.
       // Нужно, чтобы сравнить «до и после» на живом сувенире.
       const rawMode =
@@ -608,6 +638,21 @@ export default function ARStage({
         if (!Number.isFinite(targetPos.x) || !Number.isFinite(targetScale.x)) {
           return false;
         }
+
+        // угол между нормалью маркера и осью камеры — это и есть «наклон»
+        normalNow.copy(markerNormal).applyQuaternion(targetQuat);
+        const tiltDeg = (Math.acos(Math.min(1, Math.abs(normalNow.z))) * 180) / Math.PI;
+        rawTilt.push(tiltDeg);
+        rawDepth.push(targetPos.z);
+        if (rawTilt.length > RAW_WINDOW) rawTilt.shift();
+        if (rawDepth.length > RAW_WINDOW) rawDepth.shift();
+        if (prevTilt !== null) {
+          const step = Math.abs(tiltDeg - prevTilt);
+          rawStepSum += step;
+          rawSteps++;
+          if (step > rawStepMax) rawStepMax = step;
+        }
+        prevTilt = tiltDeg;
 
         if (!hasPose || rawMode) {
           posePos.copy(targetPos);
@@ -706,6 +751,17 @@ export default function ARStage({
               ? 'маркер в кадре'
               : 'удержание ' + lostFrames + '/' + hold) +
             ' | перевороты отброшено: ' + flipsRejected;
+
+          const t = spread(rawTilt);
+          const d = spread(rawDepth);
+          debugInfo.raw =
+            'наклон ' + (prevTilt ?? 0).toFixed(1) + '° | ' +
+            'разброс ' + t.d.toFixed(1) + '° (ско ' + t.sd.toFixed(2) + '°)';
+          debugInfo.rawStep =
+            'скачок/кадр ср ' +
+            (rawSteps ? rawStepSum / rawSteps : 0).toFixed(2) +
+            '° макс ' + rawStepMax.toFixed(1) + '°' +
+            ' | глубина ±' + (d.d / 2).toFixed(3);
         }
 
         if (visible) {
