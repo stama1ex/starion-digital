@@ -575,6 +575,12 @@ export default function ARStage({
       const depthRate = flat
         ? AR_STABILIZER.videoDepth
         : AR_STABILIZER.followDepth;
+      const planeRate = flat
+        ? AR_STABILIZER.videoFollow
+        : AR_STABILIZER.followMin;
+      const twistRate = flat
+        ? AR_STABILIZER.videoFollow
+        : AR_STABILIZER.followTwist;
 
       // Разложение поворота относительно нормали маркера (его локальная +Z):
       // q = swing * twist, где twist — вращение вокруг нормали.
@@ -679,8 +685,8 @@ export default function ARStage({
           const slow = 1 + speed * AR_STABILIZER.boostSlow;
           const clamp = (v: number) => Math.min(AR_STABILIZER.followMax, v);
 
-          const k = clamp(AR_STABILIZER.followMin * fast);
-          const kTwist = clamp(AR_STABILIZER.followTwist * fast);
+          const k = clamp(planeRate * fast);
+          const kTwist = clamp(twistRate * fast);
           // Наклон и глубина разгоняются слабо: их «движение» наполовину шум
           const kSwing = clamp(swingRate * (flat ? fast : slow));
           const kDepth = clamp(depthRate * (flat ? fast : slow));
