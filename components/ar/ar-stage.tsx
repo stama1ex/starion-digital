@@ -665,7 +665,14 @@ export default function ARStage({
           // процента ширины маркера) почти не двигает контент, а реальное
           // движение руки отрабатывается за пару кадров. Порога нет намеренно
           // — см. комментарий у AR_STABILIZER.
-          const dist = posePos.distanceTo(targetPos);
+          // ВАЖНО про единицы. Координаты MindAR не нормированы: масштаб
+          // группы бывает порядка тысячи, а позиции — в тысячах единиц.
+          // Все пороги ниже заданы в долях ширины маркера, поэтому расстояния
+          // нужно приводить к ней, иначе они завышены в тысячу раз: разгон
+          // улетает в сотни, следование каждый кадр упирается в максимум, и
+          // сглаживания фактически нет. Ровно это и происходило.
+          const unit = Math.max(1e-6, Math.abs(targetScale.x));
+          const dist = posePos.distanceTo(targetPos) / unit;
           const ang = poseQuat.angleTo(targetQuat);
           const speed = dist * AR_STABILIZER.speedGain + ang * 2;
           const fast = 1 + speed * AR_STABILIZER.boostFast;
@@ -682,6 +689,7 @@ export default function ARStage({
           posePos.x += (targetPos.x - posePos.x) * k;
           posePos.y += (targetPos.y - posePos.y) * k;
           posePos.z += (targetPos.z - posePos.z) * kDepth;
+          // масштаб сглаживаем вместе с глубиной — это одна и та же величина
 
           // Поворот: в плоскости быстро, наклон плоскости медленно.
           splitPose(targetQuat, tTwist, tSwing);
@@ -771,7 +779,11 @@ export default function ARStage({
           debugInfo.rawXY =
             'x ' + targetPos.x.toFixed(3) +
             ' y ' + targetPos.y.toFixed(3) +
-            ' | масштаб ' + targetScale.x.toFixed(4);
+            ' | масштаб ' + targetScale.x.toFixed(2);
+          debugInfo.follow =
+            'единица ' + Math.abs(targetScale.x).toFixed(1) +
+            ' | сдвиг ' + (posePos.distanceTo(targetPos) / Math.max(1e-6, Math.abs(targetScale.x))).toFixed(4) +
+            ' шир.маркера';
           // максимум скачка копится с начала сессии и быстро становится
           // бесполезным — сбрасываем на каждом отчёте
           rawStepMax = 0;
