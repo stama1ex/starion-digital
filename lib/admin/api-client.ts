@@ -57,7 +57,9 @@ export async function patchData<T>(endpoint: string, data: any): Promise<T> {
   return res.json();
 }
 
-export async function deleteData(endpoint: string): Promise<void> {
+// Тело ответа разбираем, но не требуем: большинству вызовов достаточно самого
+// факта успеха, а некоторым (удаление AR-опыта) важно, сколько файлов убрано.
+export async function deleteData<T = void>(endpoint: string): Promise<T> {
   const res = await fetch(endpoint, {
     method: 'DELETE',
   });
@@ -66,6 +68,8 @@ export async function deleteData(endpoint: string): Promise<void> {
     const error = await res.json().catch(() => ({ error: 'Unknown error' }));
     throw new Error(error.error || `Failed to delete from ${endpoint}`);
   }
+
+  return res.json().catch(() => undefined as T);
 }
 
 /**
@@ -126,7 +130,8 @@ export const AdminAPI = {
   createARExperience: (data: any) => postData('/api/admin/ar', data),
   updateARExperience: (id: string, data: any) =>
     patchData(`/api/admin/ar/${id}`, data),
-  deleteARExperience: (id: string) => deleteData(`/api/admin/ar/${id}`),
+  deleteARExperience: (id: string) =>
+    deleteData<{ removedFiles?: number }>(`/api/admin/ar/${id}`),
 
   // Current user
   getCurrentUser: () => fetchData<any>('/api/me'),

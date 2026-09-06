@@ -429,14 +429,23 @@ export default function ARManagement() {
 
     setSaving(true);
     try {
+      let removed = 0;
       if (editingId) {
-        await AdminAPI.updateARExperience(editingId, payload);
+        const saved: any = await AdminAPI.updateARExperience(
+          editingId,
+          payload
+        );
+        removed = saved?.removedFiles ?? 0;
       } else {
         await AdminAPI.createARExperience(payload);
       }
       setDialogOpen(false);
       await mutate();
-      toast.success('AR-опыт сохранён');
+      toast.success(
+        removed
+          ? `AR-опыт сохранён · заменённых файлов убрано: ${removed}`
+          : 'AR-опыт сохранён'
+      );
     } catch (error) {
       toast.error('Ошибка сохранения: ' + (await handleApiError(error)));
     } finally {
@@ -446,7 +455,10 @@ export default function ARManagement() {
 
   const handleDelete = async (exp: any) => {
     const ok = await confirm({
-      description: `Удалить AR-опыт «${exp.title}»? QR-коды на печати перестанут работать.`,
+      description:
+        `Удалить AR-опыт «${exp.title}»? QR-коды на печати перестанут ` +
+        `работать, а файлы (маркер, контент, озвучки) будут удалены из ` +
+        `хранилища без возможности восстановить.`,
       confirmText: 'Удалить',
       variant: 'destructive',
     });
@@ -457,8 +469,11 @@ export default function ARManagement() {
       { revalidate: false }
     );
     try {
-      await AdminAPI.deleteARExperience(exp.id);
-      toast.success('Удалено');
+      const res = await AdminAPI.deleteARExperience(exp.id);
+      const removed = res?.removedFiles ?? 0;
+      toast.success(
+        removed ? `Удалено · файлов убрано из хранилища: ${removed}` : 'Удалено'
+      );
     } catch (error) {
       await mutate();
       toast.error('Ошибка удаления: ' + (await handleApiError(error)));
