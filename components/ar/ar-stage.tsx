@@ -560,6 +560,33 @@ export default function ARStage({
       const posePos = new THREE.Vector3();
       const poseQuat = new THREE.Quaternion();
       const poseScale = new THREE.Vector3(1, 1, 1);
+      // рабочие кватернионы для разложения поворота на twist/swing
+      const tTwist = new THREE.Quaternion();
+      const tSwing = new THREE.Quaternion();
+      const cTwist = new THREE.Quaternion();
+      const cSwing = new THREE.Quaternion();
+      const tmpQ = new THREE.Quaternion();
+      // Видео лежит в плоскости маркера, и сильное сглаживание наклона там
+      // видно как сползание. Модель стоит над плоскостью — ей наоборот нужно.
+      const flat = experience.contentType === 'VIDEO';
+      const swingRate = flat
+        ? AR_STABILIZER.videoSwing
+        : AR_STABILIZER.followSwing;
+      const depthRate = flat
+        ? AR_STABILIZER.videoDepth
+        : AR_STABILIZER.followDepth;
+
+      // Разложение поворота относительно нормали маркера (его локальная +Z):
+      // q = swing * twist, где twist — вращение вокруг нормали.
+      const splitPose = (q: any, twist: any, swing: any) => {
+        twist.set(0, 0, q.z, q.w);
+        if (twist.lengthSq() < 1e-8) {
+          twist.set(0, 0, 0, 1);
+        } else {
+          twist.normalize();
+        }
+        swing.copy(q).multiply(tmpQ.copy(twist).invert());
+      };
       let hasPose = false;
       let lostFrames = 0;
       let stabTick = 0;
@@ -584,6 +611,7 @@ export default function ARStage({
           posePos.copy(targetPos);
           poseQuat.copy(targetQuat);
           poseScale.copy(targetScale);
+          splitPose(poseQuat, cTwist, cSwing);
           hasPose = true;
         } else {
           // Скорость сближения растёт с величиной расхождения: шум (доли
@@ -593,17 +621,27 @@ export default function ARStage({
           const dist = posePos.distanceTo(targetPos);
           const ang = poseQuat.angleTo(targetQuat);
           const speed = dist * AR_STABILIZER.speedGain + ang * 2;
-          const k = Math.min(
-            AR_STABILIZER.followMax,
-            AR_STABILIZER.followMin * (1 + speed * 6)
-          );
-          const kRot = Math.min(
-            AR_STABILIZER.followMax,
-            AR_STABILIZER.followMinRot * (1 + speed * 6)
-          );
-          posePos.lerp(targetPos, k);
-          poseQuat.slerp(targetQuat, kRot);
-          poseScale.lerp(targetScale, kRot);
+          const boost = 1 + speed * 6;
+          const clamp = (v: number) => Math.min(AR_STABILIZER.followMax, v);
+
+          const k = clamp(AR_STABILIZER.followMin * boost);
+          const kTwist = clamp(AR_STABILIZER.followTwist * boost);
+          const kSwing = clamp(swingRate * boost);
+          const kDepth = clamp(depthRate * boost);
+
+          // Сдвиг в плоскости маркера — быстро, глубина — медленно.
+          posePos.x += (targetPos.x - posePos.x) * k;
+          posePos.y += (targetPos.y - posePos.y) * k;
+          posePos.z += (targetPos.z - posePos.z) * kDepth;
+
+          // Поворот: в плоскости быстро, наклон плоскости медленно.
+          splitPose(targetQuat, tTwist, tSwing);
+          cTwist.slerp(tTwist, kTwist);
+          cSwing.slerp(tSwing, kSwing);
+          poseQuat.copy(cSwing).multiply(cTwist);
+
+          // Масштаб идёт вместе с глубиной — они об одном и том же.
+          poseScale.lerp(targetScale, kDepth);
         }
 
         stage.matrix.compose(posePos, poseQuat, poseScale);
