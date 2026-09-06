@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import ARViewer from '@/components/ar/ARViewer';
 import ARUnavailable from '@/components/ar/ar-unavailable';
-import { arAssetUrl } from '@/lib/ar/types';
 import {
   loadARExperienceBySlug,
   toARExperienceClient,
