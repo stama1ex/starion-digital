@@ -586,26 +586,24 @@ export default function ARStage({
           poseScale.copy(targetScale);
           hasPose = true;
         } else {
+          // Скорость сближения растёт с величиной расхождения: шум (доли
+          // процента ширины маркера) почти не двигает контент, а реальное
+          // движение руки отрабатывается за пару кадров. Порога нет намеренно
+          // — см. комментарий у AR_STABILIZER.
           const dist = posePos.distanceTo(targetPos);
           const ang = poseQuat.angleTo(targetQuat);
-          // Мёртвая зона: пока маркер дрожит в пределах порога, не двигаемся
-          // вовсе. Именно это дрожание и заметно глазу как «плавает видео».
-          if (dist > AR_STABILIZER.posDeadzone || ang > AR_STABILIZER.rotDeadzone) {
-            const speed = dist * AR_STABILIZER.speedGain + ang;
-            const k = Math.min(
-              AR_STABILIZER.followMax,
-              AR_STABILIZER.followMin + speed
-            );
-            // Поворот идёт по своему, более медленному коэффициенту: при
-            // съёмке под углом качает именно плоскость, а не центр.
-            const kRot = Math.min(
-              AR_STABILIZER.followMax,
-              AR_STABILIZER.followMinRot + speed
-            );
-            posePos.lerp(targetPos, k);
-            poseQuat.slerp(targetQuat, kRot);
-            poseScale.lerp(targetScale, kRot);
-          }
+          const speed = dist * AR_STABILIZER.speedGain + ang * 2;
+          const k = Math.min(
+            AR_STABILIZER.followMax,
+            AR_STABILIZER.followMin * (1 + speed * 6)
+          );
+          const kRot = Math.min(
+            AR_STABILIZER.followMax,
+            AR_STABILIZER.followMinRot * (1 + speed * 6)
+          );
+          posePos.lerp(targetPos, k);
+          poseQuat.slerp(targetQuat, kRot);
+          poseScale.lerp(targetScale, kRot);
         }
 
         stage.matrix.compose(posePos, poseQuat, poseScale);
