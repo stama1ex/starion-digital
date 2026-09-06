@@ -621,13 +621,15 @@ export default function ARStage({
           const dist = posePos.distanceTo(targetPos);
           const ang = poseQuat.angleTo(targetQuat);
           const speed = dist * AR_STABILIZER.speedGain + ang * 2;
-          const boost = 1 + speed * 6;
+          const fast = 1 + speed * AR_STABILIZER.boostFast;
+          const slow = 1 + speed * AR_STABILIZER.boostSlow;
           const clamp = (v: number) => Math.min(AR_STABILIZER.followMax, v);
 
-          const k = clamp(AR_STABILIZER.followMin * boost);
-          const kTwist = clamp(AR_STABILIZER.followTwist * boost);
-          const kSwing = clamp(swingRate * boost);
-          const kDepth = clamp(depthRate * boost);
+          const k = clamp(AR_STABILIZER.followMin * fast);
+          const kTwist = clamp(AR_STABILIZER.followTwist * fast);
+          // Наклон и глубина разгоняются слабо: их «движение» наполовину шум
+          const kSwing = clamp(swingRate * (flat ? fast : slow));
+          const kDepth = clamp(depthRate * (flat ? fast : slow));
 
           // Сдвиг в плоскости маркера — быстро, глубина — медленно.
           posePos.x += (targetPos.x - posePos.x) * k;
