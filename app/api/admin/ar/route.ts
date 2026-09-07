@@ -26,7 +26,7 @@ export async function GET() {
     });
 
     // Миниатюра для списка: постер, а если его нет — маркер. Резолвим все
-    // временные ссылки одним батчем (общий закэшированный токен Dropbox),
+    // адреса файлов одним проходом,
     // чтобы админка не дёргала /preview на каждую строку отдельно.
     const withThumbs = await Promise.all(
       experiences.map(async (experience) => {

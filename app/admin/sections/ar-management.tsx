@@ -171,7 +171,7 @@ async function maskLooksLikeCutout(file: File): Promise<boolean> {
   }
 }
 
-// Прямая загрузка ассета в Dropbox через одноразовую ссылку (минуя лимит
+// Прямая загрузка ассета в хранилище через подписанную ссылку (минуя лимит
 // тела запроса Vercel).
 async function uploadArAsset(
   kind: ARAssetKind,
@@ -181,26 +181,20 @@ async function uploadArAsset(
   const linkRes = await fetch('/api/admin/ar/upload-link', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // title -> папка опыта в Dropbox: /ar/<Название>/...
+    // title -> папка оживления в хранилище: /ar/<Название>/...
     body: JSON.stringify({ filename: file.name, kind, size: file.size, title }),
   });
   if (!linkRes.ok) {
     const data = await linkRes.json().catch(() => ({}));
     throw new Error(data.error || 'Не удалось получить ссылку для загрузки');
   }
-  const { uploadUrl, path, method } = await linkRes.json();
+  const { uploadUrl, path } = await linkRes.json();
 
-  // R2 принимает файл PUT-запросом, Dropbox — POST. Тип содержимого для R2
-  // важен: он сохраняется у объекта и потом отдаётся браузеру, а с
-  // octet-stream видео не проиграется.
-  const isPut = method === 'PUT';
+  // Тип содержимого важен: он сохраняется у объекта и потом отдаётся
+  // браузеру, а с octet-stream видео не проиграется.
   const up = await fetch(uploadUrl, {
-    method: isPut ? 'PUT' : 'POST',
-    headers: {
-      'Content-Type': isPut
-        ? file.type || 'application/octet-stream'
-        : 'application/octet-stream',
-    },
+    method: 'PUT',
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
     body: file,
   });
   if (!up.ok) {
@@ -209,11 +203,11 @@ async function uploadArAsset(
   return path as string;
 }
 
-// Выбор аудиофайла + загрузка в Dropbox. Общая часть для «добавить дорожку» и
+// Выбор аудиофайла + загрузка в хранилище. Общая часть для «добавить дорожку» и
 // «заменить файл»: возвращает путь либо null, если отменили или файл не прошёл.
 async function pickAndUploadAudio(title: string): Promise<string | null> {
   if (!title.trim()) {
-    toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+    toast.error('Сначала укажите название — по нему создаётся папка в хранилище');
     return null;
   }
   const limit = AR_UPLOAD_LIMITS.audio;
@@ -455,7 +449,7 @@ export default function ARManagement() {
 
   const handleCompileMind = async () => {
     if (!form.title.trim()) {
-      toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+      toast.error('Сначала укажите название — по нему создаётся папка в хранилище');
       return;
     }
     const file = markerFile ?? (await pickImageFile());
@@ -1461,10 +1455,10 @@ function AssetField({
 
   const handleFile = async (file?: File) => {
     if (!file) return;
-    // папка в Dropbox называется по «Названию», поэтому без него загрузка
+    // папка в хранилище называется по «Названию», поэтому без него загрузка
     // ушла бы в /ar/_без-названия и потерялась среди остальных
     if (!title.trim()) {
-      toast.error('Сначала укажите название — по нему создаётся папка в Dropbox');
+      toast.error('Сначала укажите название — по нему создаётся папка в хранилище');
       return;
     }
     if (file.size > limit.maxBytes) {

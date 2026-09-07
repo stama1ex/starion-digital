@@ -8,7 +8,7 @@ import { getModelUrl } from '@/lib/models';
 import HomeContent from './home-content';
 import ArDemoSection from '@/components/ArDemoSection';
 
-// Обновляем чаще, т.к. временная ссылка на 3D-модель от Dropbox недолговечна
+// Обновляем чаще: на главной показываются актуальные товары
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {

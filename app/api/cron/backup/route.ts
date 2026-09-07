@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { checkSuperAdminAuth } from '../../admin/auth-utils';
 import { createBackupZip } from '@/lib/backup/create-backup';
 import {
-  uploadToDropboxPath,
-  listDropboxFolder,
-  deleteDropboxFile,
-} from '@/lib/dropbox';
-import {
   BACKUPS_DIR,
   backupsInR2,
   deleteBackup,
@@ -14,7 +9,6 @@ import {
   putBackup,
 } from '@/lib/backups/storage';
 
-const BACKUP_FOLDER = '/backups';
 const BACKUP_FILENAME = 'starion-backup.zip';
 // Держим только последнюю копию - глубокая история бэкапов не нужна.
 // Retention-очистка ниже удаляет всё, кроме только что загруженного файла
@@ -45,50 +39,34 @@ export async function GET(req: NextRequest) {
     const { buffer, manifest } = await createBackupZip();
 
     // Копии базы лежат в закрытом бакете R2, а не в публичном: тот раздаётся
-    // целиком через cdn.ar3d.io. Пока ключи R2_BACKUP_* не заданы — уходит
-    // в Dropbox, как раньше.
-    if (backupsInR2()) {
-      const key = `${BACKUPS_DIR}/${BACKUP_FILENAME}`;
-
-      // фиксированное имя: каждый запуск просто заменяет предыдущую копию
-      await putBackup(key, buffer);
-
-      const existing = await listBackups();
-      const sorted = [...existing].sort(
-        (a, b) =>
-          (b.lastModified?.getTime() ?? 0) - (a.lastModified?.getTime() ?? 0),
+    // целиком через cdn.ar3d.io, и дамп был бы доступен по прямой ссылке.
+    if (!backupsInR2()) {
+      console.error('[BACKUP] ключи R2_BACKUP_* не заданы — писать некуда');
+      return NextResponse.json(
+        { error: 'Хранилище бэкапов не настроено' },
+        { status: 503 },
       );
-      const stale = sorted.slice(RETENTION_COUNT);
-      await Promise.all(stale.map((file) => deleteBackup(file.key)));
-
-      return NextResponse.json({
-        ok: true,
-        storage: 'r2',
-        path: key,
-        manifest,
-        deletedOldBackups: stale.length,
-      });
     }
 
-    const path = `${BACKUP_FOLDER}/${BACKUP_FILENAME}`;
+    const key = `${BACKUPS_DIR}/${BACKUP_FILENAME}`;
 
-    // overwrite: фиксированное имя файла - каждый запуск просто заменяет
-    // предыдущую копию
-    await uploadToDropboxPath(buffer, path, 'overwrite');
+    // фиксированное имя: каждый запуск просто заменяет предыдущую копию
+    await putBackup(key, buffer);
 
-    const existing = await listDropboxFolder(BACKUP_FOLDER);
-    const sorted = [...existing].sort((a, b) =>
-      b.serverModified.localeCompare(a.serverModified),
+    const existing = await listBackups();
+    const sorted = [...existing].sort(
+      (a, b) =>
+        (b.lastModified?.getTime() ?? 0) - (a.lastModified?.getTime() ?? 0),
     );
-    const toDelete = sorted.slice(RETENTION_COUNT);
-    await Promise.all(toDelete.map((file) => deleteDropboxFile(file.path)));
+    const stale = sorted.slice(RETENTION_COUNT);
+    await Promise.all(stale.map((file) => deleteBackup(file.key)));
 
     return NextResponse.json({
       ok: true,
-      storage: 'dropbox',
-      path,
+      storage: 'r2',
+      path: key,
       manifest,
-      deletedOldBackups: toDelete.length,
+      deletedOldBackups: stale.length,
     });
   } catch (error) {
     console.error('Backup error:', error);

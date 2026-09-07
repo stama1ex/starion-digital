@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // Восстанавливает БД из zip-файла, созданного lib/backup/create-backup.ts
-// (тот же формат, что грузится в Dropbox по /api/cron/backup).
+// (тот же формат, что пишет /api/cron/backup).
 //
 // ⚠️ ДЕСТРУКТИВНО: полностью очищает перечисленные ниже таблицы и
 // заполняет их данными из бэкапа. Использовать только в крайнем случае
 // (потеря БД), не для повседневных операций.
 //
 // Использование:
-//   1. Скачать нужный starion-backup-YYYY-MM-DD.zip из Dropbox (/backups)
+//   1. Скачать starion-backup.zip из закрытого бакета R2 starion-backups
+//      (Cloudflare -> R2 -> starion-backups -> backups/ -> Download)
 //      на локальную машину.
 //   2. ts-node scripts/restore-db-from-backup.ts <путь-к-zip> --yes
 //      (DATABASE_URL должен указывать на БД, которую восстанавливаем)

@@ -7,7 +7,7 @@ import {
   type ARAssetKind,
 } from '@/lib/ar/constants';
 
-// Всегда динамический — резолвит свежую временную ссылку Dropbox на каждый
+// Всегда динамический — отдаёт актуальный адрес файла на каждый
 // запрос (они живут ~4 часа).
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +30,7 @@ const KIND_TO_FIELD: Record<
 
 // Публичный прокси AR-ассетов: /api/ar/{slug}/asset?kind=marker|mind|content|poster|mask|texture|audio(&i=N)
 // Отдаёт файл с того же origin, что и страница — это нужно, чтобы THREE.VideoTexture
-// и MindAR (fetch .mind) работали без CORS-заморочек и без утечки путей Dropbox
+// и MindAR (fetch .mind) работали без CORS-заморочек и без утечки путей
 // на клиент. Поддерживает Range для перемотки видео.
 export async function GET(
   request: NextRequest,
@@ -102,7 +102,7 @@ export async function GET(
   const range = request.headers.get('range');
   const upstream = await fetch(upstreamUrl, {
     headers: range ? { Range: range } : undefined,
-    // временная ссылка Dropbox сама одноразово-подписана, кэш не нужен
+    // адрес файла постоянный, кэшировать редирект незачем
     cache: 'no-store',
   });
 

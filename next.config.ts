@@ -19,15 +19,6 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.dropboxusercontent.com',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '*.dropboxusercontent.com',
-      },
-      {
-        protocol: 'https',
         hostname: r2Hostname(),
         pathname: '/**',
       },

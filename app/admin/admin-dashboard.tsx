@@ -86,7 +86,7 @@ export default function AdminDashboard({
         data.manifest as Record<string, number>,
       ).reduce((sum, count) => sum + count, 0);
       toast.success(
-        `Резервная копия сохранена в Dropbox (${totalRows} записей)`,
+        `Резервная копия сохранена (${totalRows} записей)`,
       );
     } catch (error) {
       console.error('Error running backup:', error);
@@ -312,7 +312,7 @@ export default function AdminDashboard({
           onClick={handleRunBackup}
           disabled={runningBackup}
           className="shadow-lg bg-background"
-          title="Сохранить резервную копию всех данных в Dropbox прямо сейчас (помимо ежедневного автоматического бэкапа)"
+          title="Сохранить резервную копию всех данных прямо сейчас (помимо ежедневного автоматического бэкапа)"
         >
           {runningBackup ? (
             <Loader2 className="h-4 w-4 animate-spin" />

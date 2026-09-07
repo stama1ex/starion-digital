@@ -18,7 +18,7 @@ import { useCartStore } from '@/store/cart-store';
 import { Loader2, ShoppingCart } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
-import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { useImageUrl } from '@/lib/hooks/useImageUrl';
 import { InfoTooltip } from '@/components/ui/info-tooltip';
 import { usePartner } from '@/app/providers/partner-provider';
 import { formatMDL } from '@/lib/format-money';
@@ -28,23 +28,10 @@ interface CartDrawerProps {
 }
 
 function CartItemImage({ image, alt }: { image?: string | null; alt: string }) {
-  const { imgSrc, loading } = useDropboxImage(image);
+  const { imgSrc, loading } = useImageUrl(image);
 
   if (!image || loading || !imgSrc) {
     return <div className="h-15 w-15 rounded-md bg-muted animate-pulse" />;
-  }
-
-  if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://')) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return (
-      <img
-        src={imgSrc}
-        width={60}
-        height={60}
-        className="rounded-md object-cover h-15 w-15"
-        alt={alt}
-      />
-    );
   }
 
   return (

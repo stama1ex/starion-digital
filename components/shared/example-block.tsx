@@ -29,7 +29,7 @@ interface ExampleBlockProps {
   reverse?: boolean;
   className?: string;
   isLoading?: boolean;
-  modelUrl: string; // New prop for the Dropbox temporary URL
+  modelUrl: string; // адрес 3D-заготовки в хранилище
 }
 
 interface SceneSettings {
@@ -46,7 +46,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
   reverse = false,
   className,
   isLoading = false,
-  modelUrl, // Receive the Dropbox URL
+  modelUrl, 
 }) => {
   const t = useTranslations('ExampleBlock');
 
@@ -57,7 +57,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
   // Define scene settings based on souvenir type
   const sceneSettings: Record<string, SceneSettings> = {
     magnet: {
-      modelPath: modelUrl, // Use the passed Dropbox URL
+      modelPath: modelUrl, 
       scale: [5, 5, 5],
       objectPosition: [0, -1.5, 0],
       cameraPosition: [0, 0, 5],
@@ -65,7 +65,7 @@ const ExampleBlock: React.FC<ExampleBlockProps> = ({
       environmentPreset: 'city',
     },
     plate: {
-      modelPath: modelUrl, // Use the passed Dropbox URL
+      modelPath: modelUrl, 
       scale: [3, 3, 3],
       objectPosition: [0, 0, 0],
       cameraPosition: [0, 0, 8],

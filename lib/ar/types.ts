@@ -3,7 +3,7 @@ import type { ARAssetKind, ARAudioTrack } from './constants';
 import type { ARSocials } from './socials';
 
 // Данные AR-опыта в том виде, в каком серверная страница отдаёт их клиентскому
-// ARViewer. Пути Dropbox на клиент не уходят — ассеты берутся через прокси
+// ARViewer. Сырые пути на клиент не уходят — ассеты берутся через прокси
 // /api/ar/{slug}/asset.
 export interface ARExperienceClient {
   slug: string;
@@ -38,7 +38,7 @@ export interface ARExperienceClient {
   version: string;
   // Готовые адреса файлов. Для нового хранилища (R2) это прямые публичные
   // ссылки — браузер качает их мимо нашего сервера, и раздача нам ничего не
-  // стоит. Для файлов, оставшихся в Dropbox, здесь адрес нашего прокси, как
+  // стоит. Если прямой адрес недоступен, здесь адрес нашего прокси, как
   // и раньше. Пустая строка означает, что ассет не задан.
   assets: ARAssetUrls;
 }
