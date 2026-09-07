@@ -7,7 +7,7 @@ import {
   loadARExperienceBySlug,
   toARExperienceClient,
 } from '@/lib/ar/experience';
-import { isARDomainHost, SITE_URL } from '@/lib/ar/domain';
+import { arViewerPath, isARDomainHost, SITE_URL } from '@/lib/ar/domain';
 
 // Свежие данные на каждый запрос:
 // а прокси ассетов и так динамический.
@@ -48,13 +48,19 @@ export async function generateMetadata({
   // og:image берём с того же хоста, с которого открыли страницу: на отдельном
   // AR-домене абсолютная ссылка на основной сайт выдала бы его в превью
   const host = (await headers()).get('host');
-  const base =
-    host && isARDomainHost(host) ? `https://${host}` : SITE_URL;
+  const onArDomain = Boolean(host && isARDomainHost(host));
+  const base = onArDomain ? `https://${host}` : SITE_URL;
+
+  // На своём домене канонический адрес короткий (ar3d.io/test): именно он
+  // уходит в QR, и именно он должен стоять в og:url и canonical, иначе
+  // мессенджеры и поисковики будут показывать другой адрес, чем напечатан.
+  const canonical = onArDomain ? arViewerPath(slug) : `/ar/${slug}`;
 
   return {
     metadataBase: new URL(base),
     title,
     description,
+    alternates: { canonical },
     ...(experience.whiteLabel
       ? { icons: { icon: '/ar-icon.svg' }, robots: { index: false, follow: false } }
       : {}),
@@ -62,7 +68,7 @@ export async function generateMetadata({
       title,
       description,
       type: 'website',
-      url: `/ar/${slug}`,
+      url: canonical,
       images: [{ url: ogImage, width: 1200, height: 630, alt: experience.title }],
     },
     twitter: {

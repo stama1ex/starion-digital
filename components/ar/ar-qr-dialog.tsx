@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Download, Copy, ExternalLink } from 'lucide-react';
-import { AR_DOMAIN_URL, SITE_URL } from '@/lib/ar/domain';
+import { AR_DOMAIN_URL, arViewerPath, SITE_URL } from '@/lib/ar/domain';
 
 interface ArQrDialogProps {
   open: boolean;
@@ -25,9 +25,11 @@ interface ArQrDialogProps {
 // получается проще и увереннее читается с маленькой наклейки, и заодно не
 // светит наш адрес на чужих сувенирах. Домен не настроен — текущий origin,
 // чтобы работало и на превью-деплоях.
+//
+// На своём домене slug лежит прямо в корне (ar3d.io/test), см. arViewerPath.
 export function arUrl(slug: string) {
   const own = typeof window !== 'undefined' ? window.location.origin : SITE_URL;
-  return `${AR_DOMAIN_URL || own}/ar/${slug}`;
+  return `${AR_DOMAIN_URL || own}${arViewerPath(slug)}`;
 }
 
 export function ArQrDialog({
