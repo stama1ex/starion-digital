@@ -40,6 +40,35 @@ export function isARDomainHost(host: string | null | undefined): boolean {
   return bare(host.toLowerCase().split(':')[0]) === bare(AR_DOMAIN_HOST);
 }
 
+// Нейтральная иконка вкладки для белой метки. Без неё браузер по привычке
+// просит /favicon.ico, а он на этом домене закрыт — и вкладка остаётся
+// вообще без значка.
+export const AR_NEUTRAL_ICON = '/ar-icon.svg';
+
 export function isARDomainPath(pathname: string): boolean {
-  return pathname.startsWith('/ar/') || pathname.startsWith('/api/ar/');
+  return (
+    pathname.startsWith('/ar/') ||
+    pathname.startsWith('/api/ar/') ||
+    pathname === AR_NEUTRAL_ICON
+  );
+}
+
+// Короткий адрес вьюера: на своём домене slug лежит прямо в корне
+// (ar3d.io/test вместо ar3d.io/ar/test). Ссылка получается короче, а QR при
+// slug до десяти символов умещается в меньшую версию кода — модули крупнее,
+// и телефон читает его с большего расстояния.
+//
+// Возвращает slug, если путь выглядит как короткий адрес. Условие строгое —
+// ровно один сегмент по правилам slug, поэтому ни /favicon.ico, ни
+// /ar-icon.svg, ни /magnets/catalog сюда не попадают.
+export function arShortSlug(pathname: string): string | null {
+  const match = /^\/([a-z0-9]+(?:-[a-z0-9]+)*)$/.exec(pathname);
+  return match ? match[1] : null;
+}
+
+// Путь вьюера для ссылки. Короткий — только на отдельном AR-домене: на
+// основном сайте в корне живут настоящие страницы (/contacts, /partnership),
+// и slug рано или поздно с одной из них столкнётся.
+export function arViewerPath(slug: string): string {
+  return AR_DOMAIN_URL ? `/${slug}` : `/ar/${slug}`;
 }
