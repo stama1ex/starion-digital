@@ -33,8 +33,8 @@ export const AR_ASSET_KINDS = [
 ] as const;
 export type ARAssetKind = (typeof AR_ASSET_KINDS)[number];
 
-// Папка в Dropbox, куда складываются AR-ассеты
-export const AR_DROPBOX_DIR = '/ar';
+// Папка в хранилище, куда складываются файлы оживлений
+export const AR_STORAGE_DIR = 'ar';
 
 // Ограничения на загрузку (проверяются на клиенте перед выдачей upload-link
 // и ещё раз при выдаче ссылки на сервере)
@@ -116,7 +116,7 @@ export const AR_AUDIO_LANGS = [
 export interface ARAudioTrack {
   lang: string; // код языка, напр. 'ru'
   label: string; // как показать в переключателе
-  path: string; // путь в Dropbox
+  path: string; // путь в хранилище
 }
 
 // Нормализует дорожки из тела запроса: выкидывает пустые, режет длины,

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkSuperAdminAuth } from '../../auth-utils';
 import { resolveARAssetUrl } from '@/lib/ar/server';
-import { AR_DROPBOX_DIR } from '@/lib/ar/constants';
+import { AR_STORAGE_DIR } from '@/lib/ar/constants';
 import { isR2Path, r2Key } from '@/lib/ar/server';
 
 // Временная ссылка на только что загруженный AR-ассет — для предпросмотра в
@@ -14,11 +14,11 @@ export async function GET(request: NextRequest) {
   const path = request.nextUrl.searchParams.get('path') || '';
 
   // Проверка не даёт вытащить произвольный файл из хранилища: разрешаем только
-  // каталог AR. Хранилищ два, и путь у них выглядит по-разному — Dropbox
+  // каталог AR. Путь может быть в двух видах — с пометкой хранилища и без,
   // отдаёт '/ar/...', R2 — 'r2:ar/...'.
   const inArDir = isR2Path(path)
-    ? r2Key(path).startsWith(`${AR_DROPBOX_DIR.replace(/^\//, '')}/`)
-    : path.startsWith(`${AR_DROPBOX_DIR}/`);
+    ? r2Key(path).startsWith(`${AR_STORAGE_DIR}/`)
+    : path.startsWith(`/${AR_STORAGE_DIR}/`);
 
   if (!inArDir || path.includes('..')) {
     return NextResponse.json({ error: 'Invalid path' }, { status: 400 });

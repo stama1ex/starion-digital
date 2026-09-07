@@ -111,7 +111,7 @@ export default function LandingCarousel() {
       .catch((err) => console.error('Error loading plates:', err));
   }, []);
 
-  // Открытки резолвятся через Dropbox и приходят по одной (NDJSON),
+  // Открытки приходят по одной (NDJSON),
   // поэтому показываем анимацию, как только накопится первые 4,
   // не дожидаясь, пока догрузятся остальные.
   useEffect(() => {

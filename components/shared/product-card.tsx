@@ -16,7 +16,7 @@ import { useTranslations } from 'next-intl';
 import { NoImageIcon } from './no-image-icon';
 import { useRouter } from 'next/navigation';
 import { Handshake } from 'lucide-react';
-import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { useImageUrl } from '@/lib/hooks/useImageUrl';
 import { formatMDL } from '@/lib/format-money';
 
 // Types match Prisma enums
@@ -45,7 +45,7 @@ function ProductCardImpl({ product, getPrice }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [imgError, setImgError] = useState(false);
 
-  const { imgSrc, loading } = useDropboxImage(product.image);
+  const { imgSrc, loading } = useImageUrl(product.image);
 
   const { isPartner } = usePartner();
   const addItem = useCartStore((s) => s.addItem);
@@ -65,14 +65,6 @@ function ProductCardImpl({ product, getPrice }: Props) {
       <Tilt scale={1.05} tiltMaxAngleX={15} tiltMaxAngleY={15} className="mb-4">
         {!hasImage || loading || !imgSrc ? (
           <NoImageIcon className="w-full max-w-md h-64 md:h-80 text-primary" />
-        ) : imgSrc.includes('dropboxusercontent.com') ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imgSrc}
-            alt={product.number}
-            className="w-full max-w-md h-64 md:h-80 object-contain"
-            onError={() => setImgError(true)}
-          />
         ) : (
           <Image
             width={800}
@@ -100,14 +92,6 @@ function ProductCardImpl({ product, getPrice }: Props) {
     >
       {!hasImage || loading || !imgSrc ? (
         <NoImageIcon className="md:w-64 md:h-64 w-24 h-24 sm:w-28 sm:h-28 text-primary mb-2" />
-      ) : imgSrc.includes('dropboxusercontent.com') ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={imgSrc}
-          alt={product.number}
-          className="md:w-64 md:h-64 w-24 h-24 sm:w-28 sm:h-28 object-contain mb-2"
-          onError={() => setImgError(true)}
-        />
       ) : (
         <Image
           width={500}

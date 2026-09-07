@@ -34,8 +34,8 @@ export default async function KeychainsCatalogPage({ params }: any) {
     naturalCompare(a.number, b.number),
   );
 
-  // Резолвим Dropbox-картинки одним батчем на сервере, чтобы каталог не
-  // дёргал /api/dropbox/temp-link на каждую карточку отдельно с клиента
+  // Адреса картинок считаем на сервере одним проходом, чтобы каталог не
+  // просил их по одной с клиента
   const products = await resolveProductImages(plainProducts);
 
   let prices: {

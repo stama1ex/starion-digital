@@ -1,63 +1,21 @@
-import { getAccessToken, getTemporaryLink } from './dropbox';
-import { isR2Path, r2Key, r2PublicUrl } from './r2-public';
+import { imageUrl } from './hooks/useImageUrl';
 
-function toLocalPath(path: string) {
-  const normalized = path.replace(/^public\//, '').replace(/^\/+/, '');
-  return `/${normalized}`;
+/**
+ * Адрес картинки товара. Раньше здесь на каждую карточку каталога уходил
+ * запрос к API Dropbox за временной ссылкой — прямо на критическом пути
+ * отрисовки. Теперь все файлы лежат в R2 или в public/, адрес постоянный,
+ * и функция сводится к разбору строки.
+ *
+ * Асинхронной оставлена намеренно: её ждут страницы каталога, и менять
+ * их сигнатуры ради одной снятой сетевой операции незачем.
+ */
+export async function resolveImageUrl(image: string): Promise<string> {
+  return imageUrl(image);
 }
 
-// Резолвит один путь к картинке товара в реальный URL. Для путей Dropbox
-// (/products/...) в случае ошибки возвращает исходный путь как есть, чтобы
-// клиентский useDropboxImage мог сам попробовать его разрешить как fallback.
-export async function resolveImageUrl(
-  image: string,
-  accessToken: string,
-): Promise<string> {
-  if (!image || !image.trim()) return image;
-
-  if (image.startsWith('http')) {
-    return image;
-  }
-
-  // R2: адрес постоянный и публичный, ходить за ним никуда не надо —
-  // в отличие от Dropbox, где на каждую картинку нужен запрос к их API.
-  if (isR2Path(image)) {
-    return r2PublicUrl(r2Key(image));
-  }
-
-  if (image.startsWith('public/')) {
-    return toLocalPath(image);
-  }
-
-  if (image.startsWith('/products/')) {
-    try {
-      return await getTemporaryLink(image, accessToken);
-    } catch (err) {
-      console.error('Error resolving Dropbox link for', image, err);
-      return image;
-    }
-  }
-
-  return toLocalPath(image);
-}
-
-// Резолвит поле image у списка товаров одним батчем (общий access token,
-// параллельно) — чтобы каталог не дёргал /api/dropbox/temp-link на каждую
-// карточку отдельно с клиента.
 export async function resolveProductImages<T extends { image: string }>(
   products: T[],
 ): Promise<T[]> {
   if (products.length === 0) return products;
-
-  // Токен Dropbox спрашиваем только если среди картинок ещё остались его
-  // пути: после переезда на R2 этот запрос — лишняя задержка на каждой
-  // отрисовке каталога.
-  const needsDropbox = products.some((p) => p.image?.startsWith('/products/'));
-  const accessToken = needsDropbox ? await getAccessToken() : '';
-  return Promise.all(
-    products.map(async (p) => ({
-      ...p,
-      image: await resolveImageUrl(p.image, accessToken),
-    })),
-  );
+  return products.map((p) => ({ ...p, image: imageUrl(p.image) }));
 }

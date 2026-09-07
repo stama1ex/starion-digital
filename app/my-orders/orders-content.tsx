@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState } from 'react';
-import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { useImageUrl } from '@/lib/hooks/useImageUrl';
 import { Pencil, History } from 'lucide-react';
 import { formatMoney } from '@/lib/format-money';
 
@@ -38,24 +38,10 @@ interface Order {
 }
 
 function OrderItemImage({ imagePath }: { imagePath: string | null }) {
-  const { imgSrc, loading } = useDropboxImage(imagePath);
+  const { imgSrc, loading } = useImageUrl(imagePath);
 
   if (loading || !imgSrc) {
     return <div className="w-12.5 h-12.5 rounded-md bg-muted animate-pulse" />;
-  }
-
-  // Используем обычный img для Dropbox URL
-  if (imgSrc.includes('dropboxusercontent.com')) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={imgSrc}
-        width={50}
-        height={50}
-        className="rounded-md object-cover"
-        alt=""
-      />
-    );
   }
 
   return (

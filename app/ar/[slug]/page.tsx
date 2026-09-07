@@ -9,7 +9,7 @@ import {
 } from '@/lib/ar/experience';
 import { isARDomainHost, SITE_URL } from '@/lib/ar/domain';
 
-// Свежие данные на каждый запрос: временные ссылки Dropbox короткоживущие,
+// Свежие данные на каждый запрос:
 // а прокси ассетов и так динамический.
 export const dynamic = 'force-dynamic';
 
@@ -31,7 +31,7 @@ export async function generateMetadata({
   }
 
   // Постер для превью берём тем же путём, что и вьюер: для файлов в R2 это
-  // прямая ссылка, для оставшихся в Dropbox — прокси (он относительный и
+  // прямая ссылка, иначе — прокси (он относительный и
   // достраивается через metadataBase).
   const ogImage = toARExperienceClient(experience).assets.poster;
   // При белой метке ни в заголовке вкладки, ни в превью для мессенджеров не

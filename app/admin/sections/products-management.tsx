@@ -41,12 +41,12 @@ import {
   handleApiError,
 } from '@/lib/admin';
 import { NoImageIcon } from '@/components/shared/no-image-icon';
-import { useDropboxImage } from '@/lib/hooks/useDropboxImage';
+import { useImageUrl } from '@/lib/hooks/useImageUrl';
 import { useConfirm } from '@/app/providers/confirm-provider';
 import { formatMDL } from '@/lib/format-money';
 
 function ProductImagePreview({ imagePath }: { imagePath: string }) {
-  const { imgSrc, loading } = useDropboxImage(imagePath);
+  const { imgSrc, loading } = useImageUrl(imagePath);
 
   if (loading) {
     return (
@@ -60,18 +60,6 @@ function ProductImagePreview({ imagePath }: { imagePath: string }) {
   if (!imgSrc) {
     return (
       <NoImageIcon className="w-32 h-32 mx-auto text-muted-foreground/30" />
-    );
-  }
-
-  // Используем обычный img для Dropbox URL
-  if (imgSrc.includes('dropboxusercontent.com')) {
-    return (
-      <img
-        src={imgSrc}
-        alt="Preview"
-        className="w-full max-w-xs mx-auto rounded-lg object-contain"
-        style={{ maxHeight: '200px' }}
-      />
     );
   }
 

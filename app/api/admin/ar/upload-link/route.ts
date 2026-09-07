@@ -3,7 +3,7 @@ import { checkSuperAdminAuth } from '../../auth-utils';
 import { createARUploadLink } from '@/lib/ar/server';
 import { AR_ASSET_KINDS, AR_UPLOAD_LIMITS, type ARAssetKind } from '@/lib/ar/constants';
 
-// Выдаёт одноразовую ссылку Dropbox для прямой загрузки AR-ассета из браузера.
+// Выдаёт подписанную ссылку для прямой загрузки файла оживления из браузера.
 // Так большие видео/GLB обходят лимит тела запроса Vercel (4.5 МБ).
 export async function POST(request: NextRequest) {
   if (!(await checkSuperAdminAuth())) {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       typeof title === 'string' ? title : undefined
     );
 
-    // method говорит браузеру, как класть файл: R2 ждёт PUT, Dropbox POST
+    // method оставлен в ответе ради совместимости со старой вкладкой админки
     return NextResponse.json({ uploadUrl, path, method });
   } catch (error) {
     console.error('Error creating AR upload link:', error);
