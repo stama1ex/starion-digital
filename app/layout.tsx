@@ -65,7 +65,11 @@ export default async function RootLayout({
     const experience = slug ? await loadARExperienceBySlug(slug) : null;
     const viewer = { ...(messages.ARViewer as Record<string, unknown>) };
 
-    if (experience?.whiteLabel) {
+    // Оживления нет — значит, и приписывать нечего: показывается только
+    // заглушка «недоступно». Раз белую метку определить не по чему, наше имя
+    // из разметки убираем. Иначе опечатка в адресе на чужом домене выдавала
+    // бы нас — а домен заведён ровно затем, чтобы этого не было.
+    if (!experience || experience.whiteLabel) {
       // Единственные места в неймспейсе, где есть наше имя. Вьюер их при
       // белой метке не запрашивает, так что удалять безопасно: meta.* вообще
       // читается только в generateMetadata, то есть на сервере.
