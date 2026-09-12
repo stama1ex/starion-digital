@@ -455,12 +455,36 @@ export default function ARManagement() {
       input.click();
     });
 
+  // Забирает уже загруженный маркер через публичный прокси того же origin.
+  // Прямо из хранилища его не взять: у cdn.ar3d.io нет CORS-заголовков, и
+  // холст стал бы «запачканным», а нам нужно читать из него пиксели.
+  const fetchSavedMarker = async (): Promise<File | null> => {
+    if (!editingId || !form.markerUrl) return null;
+    const slug = slugifyAr(form.slug || form.title);
+    if (!slug) return null;
+    try {
+      const response = await fetch(
+        `/api/ar/${encodeURIComponent(slug)}/asset?kind=marker`
+      );
+      if (!response.ok) return null;
+      const blob = await response.blob();
+      if (!blob.size || !blob.type.startsWith('image/')) return null;
+      return new File([blob], 'marker.png', { type: blob.type });
+    } catch {
+      return null;
+    }
+  };
+
   const handleCompileMind = async () => {
     if (!form.title.trim()) {
       toast.error('Сначала укажите название — по нему создаётся папка в хранилище');
       return;
     }
-    const file = markerFile ?? (await pickImageFile());
+    // Порядок важен: свежевыбранный файл, затем уже сохранённый маркер, и
+    // только потом спрашиваем файл у человека. Иначе пересобрать .mind у
+    // старого опыта значило бы искать исходник на диске.
+    const file =
+      markerFile ?? (await fetchSavedMarker()) ?? (await pickImageFile());
     if (!file) return;
 
     setCompiling(true);
@@ -956,7 +980,9 @@ export default function ARManagement() {
                     ? `Компиляция… ${compileProgress}%`
                     : markerFile
                       ? 'Скомпилировать из загруженного маркера'
-                      : 'Скомпилировать из изображения'}
+                      : editingId && form.markerUrl
+                        ? 'Пересобрать .mind из сохранённого маркера'
+                        : 'Скомпилировать из изображения'}
                 </Button>
                 <label className="flex w-fit items-center gap-2 text-xs text-muted-foreground">
                   Отступ от краёв для трекинга
@@ -976,6 +1002,12 @@ export default function ARManagement() {
                   Собирает .mind прямо в браузере и сразу загружает — ходить на
                   веб-компилятор MindAR не нужно. Занимает от нескольких секунд
                   до минуты, вкладку не закрывайте.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Существующие опыты продолжают работать со своим старым .mind
+                  — отступ появится у них только после пересборки. Исходник
+                  искать не нужно: маркер берётся из хранилища, достаточно
+                  нажать кнопку и сохранить.
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Отступ убирает из трекинга внешнюю полосу сувенира. Пальцы
