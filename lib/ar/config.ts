@@ -248,6 +248,10 @@ export function arCameraConstraints(): MediaTrackConstraints {
     constraints.width = { ideal: Math.round(width) };
     constraints.height = { ideal: Math.round((width * 9) / 16) };
   }
+  const fps = Number(new URLSearchParams(window.location.search).get('arcamfps'));
+  if (Number.isFinite(fps) && fps >= 15 && fps <= 240) {
+    constraints.frameRate = { ideal: Math.round(fps) };
+  }
   return constraints;
 }
 
@@ -263,7 +267,18 @@ export function arCameraConstraints(): MediaTrackConstraints {
 export const AR_CAMERA_CONSTRAINTS: MediaTrackConstraints = {
   width: { ideal: 1280 },
   height: { ideal: 720 },
-  frameRate: { ideal: 30 },
+  // Частота кадров здесь нужна не ради частоты, а ради ВЫДЕРЖКИ. Телефон
+  // держат в руке, и при 30 кадрах в секунду выдержка доходит до 33 мс —
+  // признаки смазываются, и поза считается по мыльной картинке. Замер это и
+  // показывает: при одинаковом наклоне, одинаковом размере сувенира в кадре и
+  // том же числе точек углы маркера на телефоне прыгают на 8.52 px против
+  // 1.96 px у ноутбука, камера которого просто привинчена к корпусу и не
+  // трясётся. Просьба о 60 кадрах заставляет камеру укоротить выдержку вдвое.
+  //
+  // Обрабатывать столько кадров движок всё равно не успевает (31 в секунду на
+  // телефоне), но каждый обработанный кадр становится резче — а это ровно то,
+  // что ограничивает точность. Переопределяется через ?arcamfps=N.
+  frameRate: { ideal: 60 },
   // Автофокус — отдельная и частая причина срывов: телефон переводит фокус на
   // фон, кадр уплывает, признаки перестают находиться. Просим непрерывный
   // режим. Свойство нестандартное, поэтому идёт в advanced: браузер, который

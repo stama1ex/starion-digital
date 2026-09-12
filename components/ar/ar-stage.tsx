@@ -801,8 +801,14 @@ export default function ARStage({
             ' | глубина ' + options.depthMinCutoffHz + ' Гц' +
             ' | beta ' + options.angleBeta +
             ' | удержание ' + holdMs + ' мс';
+          // Реальные настройки потока, а не то, что мы попросили: выдержка
+          // напрямую зависит от частоты кадров, а смаз от выдержки.
+          const track = mindarThree.video?.srcObject?.getVideoTracks?.()[0];
+          const settings = track?.getSettings?.() || {};
           debugInfo.camera = 'камера ' + (mindarThree.video?.videoWidth || 0) +
-            'x' + (mindarThree.video?.videoHeight || 0) + ' (?arres=N)';
+            'x' + (mindarThree.video?.videoHeight || 0) +
+            ' @ ' + (settings.frameRate ? Math.round(settings.frameRate) : '?') +
+            ' к/с (?arres=N ?arcamfps=N)';
           trackCount = 0;
           drawCount = 0;
           rateFrom = nowMs;
