@@ -11,6 +11,19 @@ export interface PoseStabilizerOptions {
   angleBeta?: number;
   /** Добавка Hz на marker-width/s скорости перемещения. */
   translationBeta?: number;
+  /**
+   * Приводить ли базис к настоящему вращению.
+   *
+   * Для модели, стоящей НАД плоскостью, это обязательно: скос во входной
+   * оценке иначе перекашивает геометрию. А вот для контента, лежащего В
+   * плоскости маркера (видео), приведение вредно. MindAR уверенно определяет
+   * гомографию — плоское преобразование, кладущее картинку маркера на кадр, —
+   * и сырая матрица воспроизводит её точно. Разложение же на позу неустойчиво,
+   * и ближайшее «честное» вращение проецирует плоскость иначе, чем сама
+   * гомография: видео съезжает с сувенира, тянется и кренится не в ту сторону.
+   * Поэтому для плоского контента скос сохраняем — он часть верного ответа.
+   */
+  rigid?: boolean;
 }
 
 export interface PoseStabilizerDiagnostics {
@@ -59,6 +72,7 @@ export function createPoseStabilizer(
     angleBeta: options.angleBeta ?? 3,
     translationBeta: options.translationBeta ?? 14,
   };
+  const rigid = options.rigid ?? true;
   for (const [key, value] of Object.entries(config)) {
     if (!Number.isFinite(value) || value < 0 || (key.endsWith('Hz') && value === 0)) {
       throw new RangeError(`${key} must be finite and ${key.endsWith('Hz') ? 'positive' : 'nonnegative'}`);
@@ -82,6 +96,10 @@ export function createPoseStabilizer(
   const velocitySample = new THREE.Vector3();
   let basis = new Float64Array(9);
   let nextBasis = new Float64Array(9);
+  // Сырой базис со скосом — его фильтруем, когда приводить к вращению нельзя.
+  const rawBasis = new Float64Array(9);
+  const smoothBasis = new Float64Array(9);
+  let hasSmoothBasis = false;
   let timestamp: number | null = null;
   let centerX = 0;
   let centerY = 0;
@@ -124,6 +142,9 @@ export function createPoseStabilizer(
     basis[0] = e[0] / basisMax; basis[1] = e[4] / basisMax; basis[2] = e[8] / basisMax;
     basis[3] = e[1] / basisMax; basis[4] = e[5] / basisMax; basis[5] = e[9] / basisMax;
     basis[6] = e[2] / basisMax; basis[7] = e[6] / basisMax; basis[8] = e[10] / basisMax;
+    rawBasis[0] = e[0]; rawBasis[1] = e[1]; rawBasis[2] = e[2];
+    rawBasis[3] = e[4]; rawBasis[4] = e[5]; rawBasis[5] = e[6];
+    rawBasis[6] = e[8]; rawBasis[7] = e[9]; rawBasis[8] = e[10];
     const lengthX = Math.hypot(basis[0], basis[3], basis[6]);
     const lengthY = Math.hypot(basis[1], basis[4], basis[7]);
     const lengthZ = Math.hypot(basis[2], basis[5], basis[8]);
@@ -181,6 +202,7 @@ export function createPoseStabilizer(
     rawQuaternion.setFromRotationMatrix(rotationMatrix).normalize();
     rawPosition.set(e[12], e[13], e[14]);
 
+    let angleAlpha = 1;
     if (timestamp === null) {
       position.copy(rawPosition);
       quaternion.copy(rawQuaternion);
@@ -221,12 +243,37 @@ export function createPoseStabilizer(
       angularVelocity.copy(nextAngularVelocity);
       // Общая глубина при восстановлении xyz сохраняет экранный центр при scale/depth шуме.
       position.set(nextX, nextY, -filteredDepth);
-      quaternion.slerp(rawQuaternion, alpha(config.angleMinCutoffHz + config.angleBeta * Math.hypot(angularVelocity.x, angularVelocity.y, angularVelocity.z), dt)).normalize();
+      angleAlpha = alpha(config.angleMinCutoffHz + config.angleBeta * Math.hypot(angularVelocity.x, angularVelocity.y, angularVelocity.z), dt);
+      quaternion.slerp(rawQuaternion, angleAlpha).normalize();
     }
 
-    // Известная ширина маркера не должна зависеть от наклона, shear или длины quaternion.
-    scale.set(markerWidth, markerWidth, markerWidth);
-    matrix.compose(position, quaternion, scale);
+    if (rigid) {
+      // Известная ширина маркера не должна зависеть от наклона, shear или длины quaternion.
+      scale.set(markerWidth, markerWidth, markerWidth);
+      matrix.compose(position, quaternion, scale);
+    } else {
+      // Плоский контент: сохраняем гомографию как есть, сглаживая её той же
+      // адаптивной скоростью, что и поворот. Скос тут не артефакт, а часть
+      // верного ответа, поэтому базис не выпрямляем.
+      if (!hasSmoothBasis) {
+        smoothBasis.set(rawBasis);
+        hasSmoothBasis = true;
+      } else {
+        for (let k = 0; k < 9; k++) {
+          smoothBasis[k] += (rawBasis[k] - smoothBasis[k]) * angleAlpha;
+        }
+      }
+      matrix.set(
+        smoothBasis[0], smoothBasis[3], smoothBasis[6], position.x,
+        smoothBasis[1], smoothBasis[4], smoothBasis[7], position.y,
+        smoothBasis[2], smoothBasis[5], smoothBasis[8], position.z,
+        0, 0, 0, 1,
+      );
+      // Никакого decompose/compose здесь: этот круг заново собрал бы матрицу
+      // из position/quaternion/scale и тем самым выпрямил бы скос обратно,
+      // то есть ровно то, чего мы тут избегаем. position уже отфильтрован
+      // выше, quaternion и scale для плоского пути остаются справочными.
+    }
     previousRawPosition.copy(rawPosition);
     previousRawQuaternion.copy(rawQuaternion);
     timestamp = timestampMs;
@@ -245,6 +292,7 @@ export function createPoseStabilizer(
     centerX = centerY = logDepth = 0;
     linearVelocity.set(0, 0, 0);
     angularVelocity.set(0, 0, 0);
+    hasSmoothBasis = false;
     position.set(0, 0, 0);
     quaternion.identity();
     scale.set(markerWidth, markerWidth, markerWidth);
