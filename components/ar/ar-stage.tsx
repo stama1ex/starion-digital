@@ -10,7 +10,10 @@ import {
   arCameraConstraints,
 } from '@/lib/ar/config';
 import { createPoseStabilizer } from '@/lib/ar/pose-stabilizer';
-import { installMindArPoseSource } from '@/lib/ar/mindar-pose-source';
+import {
+  installMindArPoseSource,
+  installMindArTrackerProbe,
+} from '@/lib/ar/mindar-pose-source';
 import type { ARExperienceClient } from '@/lib/ar/types';
 import type { ARErrorKind } from './ar-errors';
 
@@ -576,7 +579,42 @@ export default function ARStage({
       let debugAt = rateFrom;
       let flushFrames = 2;
       let syncTick = 0;
-      const rawSamples: Array<{ time: number; tilt: number; depth: number; step: number }> = [];
+      const rawSamples: Array<{
+        time: number;
+        tilt: number;
+        depth: number;
+        step: number;
+        corner: number;
+      }> = [];
+      // Углы маркера на кадре — прямой замер устойчивости самой ГОМОГРАФИИ.
+      // Наклон и глубина берутся из её разложения, а оно при взгляде почти в
+      // упор неустойчиво само по себе: нормаль может скакать на градусы, когда
+      // картинка стоит намертво. Для плоского контента важно именно это число.
+      const cornerLocal = new THREE.Vector3();
+      const cornerSigns = [
+        [-1, -1],
+        [1, -1],
+        [1, 1],
+        [-1, 1],
+      ];
+      const prevCorners = new Float64Array(8);
+      let hasPrevCorners = false;
+      // Сколько точек трекер реально сопоставляет. Печать против экрана
+      // отличается именно здесь, а не в размерах и не в фильтрах.
+      let trackPoints = -1;
+      let trackPointsMin = Infinity;
+      let trackPointsSum = 0;
+      let trackPointsCount = 0;
+      if (debugOn) {
+        disposables.push(installMindArTrackerProbe(mindarThree, (points) => {
+          trackPoints = points;
+          if (points >= 0) {
+            trackPointsMin = Math.min(trackPointsMin, points);
+            trackPointsSum += points;
+            trackPointsCount++;
+          }
+        }));
+      }
       const spread = (values: number[]) => {
         if (!values.length) return { range: 0, sd: 0 };
         const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -624,7 +662,35 @@ export default function ARStage({
           previousNormal.copy(normal);
           hasPreviousNormal = true;
           const tilt = Math.acos(Math.min(1, Math.abs(normal.z))) * 180 / Math.PI;
-          rawSamples.push({ time: timestampMs, tilt, depth: -e[14], step });
+          const focal = (mindarThree.video?.videoHeight || 0) / 2 /
+            Math.tan((camera.fov * Math.PI) / 360);
+          let corner = 0;
+          for (let i = 0; i < 4; i++) {
+            cornerLocal
+              .set(
+                cornerSigns[i][0] * 0.5,
+                (cornerSigns[i][1] * 0.5) * markerAspectRatio,
+                0
+              )
+              .applyMatrix4(sourceMatrix);
+            const far = -cornerLocal.z;
+            if (!(far > 0)) {
+              corner = NaN;
+              break;
+            }
+            const px = (focal * cornerLocal.x) / far;
+            const py = (focal * cornerLocal.y) / far;
+            if (hasPrevCorners) {
+              corner = Math.max(
+                corner,
+                Math.hypot(px - prevCorners[i * 2], py - prevCorners[i * 2 + 1])
+              );
+            }
+            prevCorners[i * 2] = px;
+            prevCorners[i * 2 + 1] = py;
+          }
+          hasPrevCorners = true;
+          rawSamples.push({ time: timestampMs, tilt, depth: -e[14], step, corner });
           while (rawSamples.length && rawSamples[0].time < timestampMs - 3000) rawSamples.shift();
           debugInfo.rawXY = 'x ' + e[12].toFixed(2) + ' y ' + e[13].toFixed(2) +
             ' | ширина ' + markerWidth.toFixed(1);
@@ -684,7 +750,7 @@ export default function ARStage({
           const steps = rawSamples.map((sample) => sample.step);
           const last = rawSamples[rawSamples.length - 1];
           const secs = Math.max(0.001, (nowMs - rateFrom) / 1000);
-          debugInfo.track = (rawMode ? 'RAW до OneEuro' : 'жёсткая поза') + ' | ' +
+          debugInfo.track = (rawMode ? 'RAW до OneEuro' : flat ? 'плоский путь' : 'жёсткая поза') + ' | ' +
             (visible ? (freshTracking ? 'трек' : 'краткая потеря') : 'поиск') +
             ' | возраст ' + (Number.isFinite(ageMs) ? ageMs.toFixed(0) : '-') + ' мс';
           debugInfo.raw = 'наклон ' + (last?.tilt ?? 0).toFixed(2) + '° | размах ' +
@@ -694,6 +760,18 @@ export default function ARStage({
             '° макс ' + (steps.length ? Math.max(...steps) : 0).toFixed(2) + '°';
           debugInfo.rawZ = 'глубина ' + (last?.depth ?? 0).toFixed(2) +
             ' | размах ' + depth.range.toFixed(2) + ' | окно ' + rawSamples.length + ' поз / 3 с';
+          const corners = rawSamples
+            .map((sample) => sample.corner)
+            .filter((value) => Number.isFinite(value));
+          debugInfo.corner = 'УГЛЫ МАРКЕРА/кадр ср ' +
+            (corners.length ? corners.reduce((a, b) => a + b, 0) / corners.length : 0).toFixed(2) +
+            ' px макс ' + (corners.length ? Math.max(...corners) : 0).toFixed(2) + ' px';
+          debugInfo.points = 'ТОЧЕК ТРЕКЕРА ' + trackPoints +
+            ' | ср ' + (trackPointsCount ? trackPointsSum / trackPointsCount : 0).toFixed(1) +
+            ' | мин ' + (Number.isFinite(trackPointsMin) ? trackPointsMin : '-');
+          trackPointsMin = Infinity;
+          trackPointsSum = 0;
+          trackPointsCount = 0;
           debugInfo.rate = 'трекинг ' + (trackCount / secs).toFixed(1) + '/с | отрисовка ' +
             (drawCount / secs).toFixed(1) + '/с';
           debugInfo.filter = 'угол ' + options.angleMinCutoffHz + ' Гц | beta ' + options.angleBeta +
