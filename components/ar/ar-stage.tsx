@@ -566,6 +566,11 @@ export default function ARStage({
       const stabilizer = createPoseStabilizer(THREE, markerWidth, {
         ...options,
         rigid: !flat,
+        // Модель стоит над плоскостью, и ошибка наклона умножается на её
+        // высоту — ей нужен заметно более низкий срез, чем видео.
+        angleMinCutoffHz: flat
+          ? options.angleMinCutoffHz
+          : options.modelAngleMinCutoffHz,
       });
       const sourceMatrix = new THREE.Matrix4();
       const normal = new THREE.Vector3();
@@ -790,7 +795,8 @@ export default function ARStage({
           trackPointsCount = 0;
           debugInfo.rate = 'трекинг ' + (trackCount / secs).toFixed(1) + '/с | отрисовка ' +
             (drawCount / secs).toFixed(1) + '/с';
-          debugInfo.filter = 'угол ' + options.angleMinCutoffHz +
+          debugInfo.filter = 'угол ' +
+            (flat ? options.angleMinCutoffHz : options.modelAngleMinCutoffHz) +
             ' | плоскость ' + options.planeMinCutoffHz +
             ' | глубина ' + options.depthMinCutoffHz + ' Гц' +
             ' | beta ' + options.angleBeta +
