@@ -555,7 +555,14 @@ export default function ARStage({
       const markerWidth = mindarThree.controller.markerDimensions[0][0];
       const markerAspectRatio =
         mindarThree.controller.markerDimensions[0][1] / markerWidth;
-      const stabilizer = createPoseStabilizer(THREE, markerWidth, options);
+      // Видео лежит В плоскости маркера: там сырая матрица воспроизводит
+      // гомографию точно, и выпрямление базиса только уводит картинку с
+      // сувенира. Модель стоит НАД плоскостью — ей жёсткая поза нужна.
+      const flat = experience.contentType === 'VIDEO';
+      const stabilizer = createPoseStabilizer(THREE, markerWidth, {
+        ...options,
+        rigid: !flat,
+      });
       const sourceMatrix = new THREE.Matrix4();
       const normal = new THREE.Vector3();
       const previousNormal = new THREE.Vector3();
@@ -621,8 +628,9 @@ export default function ARStage({
           while (rawSamples.length && rawSamples[0].time < timestampMs - 3000) rawSamples.shift();
           debugInfo.rawXY = 'x ' + e[12].toFixed(2) + ' y ' + e[13].toFixed(2) +
             ' | ширина ' + markerWidth.toFixed(1);
-          debugInfo.rigid = 'длина q ' + stabilizer.quaternion.length().toFixed(8) +
-            ' | ошибка осей входа ' + stabilizer.diagnostics.rawOrthogonalityError.toExponential(2);
+          debugInfo.rigid = (flat ? 'плоский (гомография)' : 'жёсткий') +
+            ' | скос входа ' +
+            (stabilizer.diagnostics.rawOrthogonalityError * 100).toFixed(2) + '%';
           // Сколько пикселей КАДРА занимает сам сувенир. Это и есть та
           // величина, по которой экран выигрывает у магнита: MindAR ведёт
           // трекинг по шаблонам с короткой стороной 256 и 128 px, и если
@@ -636,12 +644,16 @@ export default function ARStage({
               videoH / 2 / Math.tan((camera.fov * Math.PI) / 360);
             const widthPx = (focalPx * markerWidth) / depthNow;
             const shortPx = widthPx * Math.min(1, markerAspectRatio);
+            // Наклон укорачивает сувенир в кадре, и шаблону достаётся
+            // именно укороченный размер — считаем его, а не размер в анфас.
+            const facing = Math.abs(normal.z);
+            const seenPx = shortPx * Math.max(0.05, facing);
             debugInfo.size =
-              'сувенир в кадре ~' + widthPx.toFixed(0) + '×' +
-              (widthPx * markerAspectRatio).toFixed(0) + ' px' +
-              ' | короткая ' + shortPx.toFixed(0) +
-              (shortPx >= 256 ? ' (точный шаблон)' :
-                shortPx >= 128 ? ' (ГРУБЫЙ шаблон — поднести ближе)' :
+              'в кадре ~' + widthPx.toFixed(0) + '×' +
+              (widthPx * markerAspectRatio).toFixed(0) + ' px, с наклоном ~' +
+              seenPx.toFixed(0) +
+              (seenPx >= 256 ? ' (точный шаблон)' :
+                seenPx >= 128 ? ' (ГРУБЫЙ шаблон — поднести ближе)' :
                   ' (НИЖЕ 128 — трекинга почти нет)');
           }
         }
@@ -821,7 +833,7 @@ export default function ARStage({
       {/* диагностика раскладки: открыть /ar/{slug}?ardebug=1 */}
       <pre
         ref={debugRef}
-        className="pointer-events-none fixed left-1 top-14 z-40 max-w-[98vw] whitespace-pre rounded bg-black/85 px-2 py-1 text-[11px] font-bold leading-snug text-lime-300"
+        className="pointer-events-none fixed left-1 top-14 z-40 max-w-[98vw] whitespace-pre-wrap break-words rounded bg-black/85 px-2 py-1 text-[11px] font-bold leading-snug text-lime-300"
         style={{ display: 'none' }}
       />
     </>
