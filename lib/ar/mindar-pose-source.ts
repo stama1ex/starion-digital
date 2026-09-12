@@ -31,6 +31,37 @@ export type MindArPoseSample = (
   timestampMs: number,
 ) => void;
 
+/**
+ * Сколько точек трекер сопоставил в этом кадре. Это и есть качество признаков:
+ * поза считается по ним, и когда их мало, она шумит независимо от фильтров.
+ * Обёртка вокруг controller.tracker.track — только чтение, результат отдаётся
+ * дальше нетронутым; отсутствие метода не считается ошибкой, потому что это
+ * диагностика, а не работа.
+ */
+export function installMindArTrackerProbe(
+  value: unknown,
+  onTrack: (points: number) => void,
+): () => void {
+  const tracker = (value as { controller?: { tracker?: Record<string, unknown> } })
+    ?.controller?.tracker;
+  if (!tracker || typeof tracker.track !== 'function') return () => {};
+  const original = (tracker.track as (...args: unknown[]) => unknown).bind(tracker);
+  let active = true;
+  const patched = (...args: unknown[]) => {
+    const result = original(...args) as { worldCoords?: unknown } | null;
+    if (active) {
+      const coords = result?.worldCoords;
+      onTrack(Array.isArray(coords) ? coords.length : -1);
+    }
+    return result;
+  };
+  tracker.track = patched;
+  return () => {
+    active = false;
+    if (tracker.track === patched) tracker.track = original;
+  };
+}
+
 const incompatible = () => new Error(
   "Несовместимый API MindAR: источник позы рассчитан на mind-ar@1.2.5 после start().",
 );
