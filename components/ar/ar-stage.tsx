@@ -577,6 +577,7 @@ export default function ARStage({
       let drawCount = 0;
       let rateFrom = performance.now();
       let debugAt = rateFrom;
+      let lastRenderAt = 0;
       let flushFrames = 2;
       let syncTick = 0;
       const rawSamples: Array<{
@@ -774,7 +775,10 @@ export default function ARStage({
           trackPointsCount = 0;
           debugInfo.rate = 'трекинг ' + (trackCount / secs).toFixed(1) + '/с | отрисовка ' +
             (drawCount / secs).toFixed(1) + '/с';
-          debugInfo.filter = 'угол ' + options.angleMinCutoffHz + ' Гц | beta ' + options.angleBeta +
+          debugInfo.filter = 'угол ' + options.angleMinCutoffHz +
+            ' | плоскость ' + options.planeMinCutoffHz +
+            ' | глубина ' + options.depthMinCutoffHz + ' Гц' +
+            ' | beta ' + options.angleBeta +
             ' | удержание ' + holdMs + ' мс';
           debugInfo.camera = 'камера ' + (mindarThree.video?.videoWidth || 0) +
             'x' + (mindarThree.video?.videoHeight || 0) + ' (?arres=N)';
@@ -782,6 +786,18 @@ export default function ARStage({
           drawCount = 0;
           rateFrom = nowMs;
         }
+
+        // Отрисовка и трекинг у MindAR делят главный поток. Когда кадров
+        // рисуется больше, чем движок успевает уточнять позу, часть этой
+        // работы уходит впустую: показывать чаще, чем приходит поза, смысла
+        // немного, а уточнениям время нужно.
+        if (
+          options.renderFpsCap > 0 &&
+          nowMs - lastRenderAt < 1000 / options.renderFpsCap
+        ) {
+          return;
+        }
+        lastRenderAt = nowMs;
 
         if (visible) {
           if (mixerRef.current) mixerRef.current.update(delta);
