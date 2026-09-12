@@ -581,6 +581,12 @@ export default function ARStage({
       let freshTracking = false;
       let trackCount = 0;
       let drawCount = 0;
+      let tickCount = 0;
+      // Время пропущенных кадров нельзя терять: clock.getDelta() обнуляет
+      // счётчик при каждом вызове, и если пропущенный delta просто выбросить,
+      // анимация пойдёт во столько раз медленнее, во сколько мы срезали
+      // отрисовку. Копим и отдаём микшеру целиком.
+      let pendingDelta = 0;
       let rateFrom = performance.now();
       let debugAt = rateFrom;
       let lastRenderAt = 0;
@@ -746,7 +752,8 @@ export default function ARStage({
       renderer.setAnimationLoop(() => {
         const delta = Math.min(clock.getDelta(), 0.1);
         const nowMs = performance.now();
-        drawCount++;
+        tickCount++;
+        pendingDelta += delta;
         const ageMs = nowMs - lastPoseAt;
         const holdMs = rawMode ? 0 : options.holdMs;
         // Даже без события потери (например, зависшая обработка кадра)
@@ -793,8 +800,11 @@ export default function ARStage({
           trackPointsMin = Infinity;
           trackPointsSum = 0;
           trackPointsCount = 0;
-          debugInfo.rate = 'трекинг ' + (trackCount / secs).toFixed(1) + '/с | отрисовка ' +
-            (drawCount / secs).toFixed(1) + '/с';
+          // Отрисовка считается ПОСЛЕ ограничения, иначе строка показывала бы
+          // частоту rAF и по ней нельзя было бы понять, работает ли ?arfps.
+          debugInfo.rate = 'трекинг ' + (trackCount / secs).toFixed(1) +
+            '/с | отрисовка ' + (drawCount / secs).toFixed(1) +
+            '/с | кадров экрана ' + (tickCount / secs).toFixed(1) + '/с';
           debugInfo.filter = 'угол ' +
             (flat ? options.angleMinCutoffHz : options.modelAngleMinCutoffHz) +
             ' | плоскость ' + options.planeMinCutoffHz +
@@ -811,6 +821,7 @@ export default function ARStage({
             ' к/с (?arres=N ?arcamfps=N)';
           trackCount = 0;
           drawCount = 0;
+          tickCount = 0;
           rateFrom = nowMs;
         }
 
@@ -825,9 +836,12 @@ export default function ARStage({
           return;
         }
         lastRenderAt = nowMs;
+        drawCount++;
+        const frameDelta = pendingDelta;
+        pendingDelta = 0;
 
         if (visible) {
-          if (mixerRef.current) mixerRef.current.update(delta);
+          if (mixerRef.current) mixerRef.current.update(frameDelta);
           if (++syncTick >= 60) {
             syncTick = 0;
             const a = audioElRef.current;
