@@ -5,10 +5,12 @@ import { useEffect, useRef } from 'react';
 import {
   loadMindAr,
   loadGltfLoaderClass,
-  arTrackingOptions,
-  AR_STABILIZER,
-  AR_CAMERA_CONSTRAINTS,
+  arPoseOptions,
+  AR_TRACKING_OPTIONS,
+  arCameraConstraints,
 } from '@/lib/ar/config';
+import { createPoseStabilizer } from '@/lib/ar/pose-stabilizer';
+import { installMindArPoseSource } from '@/lib/ar/mindar-pose-source';
 import type { ARExperienceClient } from '@/lib/ar/types';
 import type { ARErrorKind } from './ar-errors';
 
@@ -135,6 +137,7 @@ export default function ARStage({
 
   useEffect(() => {
     let cancelled = false;
+    isTrackingRef.current = false;
     let mindarThree: any = null;
     let renderer: any = null;
     let scene: any = null;
@@ -173,7 +176,7 @@ export default function ARStage({
         (v?.style.width || '').includes('NaN') ||
         (v?.style.height || '').includes('NaN');
       box.textContent = [
-        'ardebug v6' + (bad ? '   !! NaN in video css !!' : ''),
+        'ardebug v7 · rigid pose' + (bad ? '   !! NaN in video css !!' : ''),
         'vv        ' + w + 'x' + h + '  dpr ' + window.devicePixelRatio,
         'inner     ' + window.innerWidth + 'x' + window.innerHeight,
         'container ' + el?.clientWidth + 'x' + el?.clientHeight,
@@ -286,7 +289,7 @@ export default function ARStage({
           uiScanning: 'no',
           uiError: 'no',
           maxTrack: 1,
-          ...arTrackingOptions(),
+          ...AR_TRACKING_OPTIONS,
         });
       } catch (err) {
         console.error('[AR] MindARThree ctor failed', err);
@@ -321,13 +324,13 @@ export default function ARStage({
       fill.position.set(-0.8, -0.4, 0.9);
       scene.add(hemi, key, fill);
 
-      const anchor = mindarThree.addAnchor(0);
+      mindarThree.addAnchor(0);
 
       // Контент живёт не на группе MindAR, а на своей. Движок каждый кадр
       // пишет в anchor.group сырую оценку позы со всем её шумом, и если
       // подвесить контент туда, этот шум видно один в один. Наша группа
-      // подтягивается к позе маркера в цикле рендера — с мёртвой зоной,
-      // адаптивным следованием и удержанием при кратком срыве.
+      // получает жёсткую позу на каждом новом измерении — с нормированным
+      // поворотом и коротким удержанием при потере признаков.
       const stage = new THREE.Group();
       stage.matrixAutoUpdate = false;
       stage.visible = false;
@@ -419,7 +422,8 @@ export default function ARStage({
         applySoundRef.current = null;
       });
 
-      anchor.onTargetFound = () => {
+      const handleTargetFound = () => {
+        if (cancelled || isTrackingRef.current) return;
         isTrackingRef.current = true;
         cb.onTargetFound();
         if (experience.autoplay) {
@@ -430,7 +434,8 @@ export default function ARStage({
         // после старта воспроизведения — снять немой режим, если звук нужен
         applySound();
       };
-      anchor.onTargetLost = () => {
+      const handleTargetLost = () => {
+        if (cancelled || !isTrackingRef.current) return;
         isTrackingRef.current = false;
         cb.onTargetLost();
         videoElRef.current?.pause();
@@ -444,7 +449,7 @@ export default function ARStage({
       const originalGetUserMedia = media.getUserMedia.bind(media);
       media.getUserMedia = (constraints?: MediaStreamConstraints) => {
         if (constraints?.video && typeof constraints.video === 'object') {
-          Object.assign(constraints.video, AR_CAMERA_CONSTRAINTS);
+          Object.assign(constraints.video, arCameraConstraints());
         }
         return originalGetUserMedia(constraints);
       };
@@ -545,398 +550,157 @@ export default function ARStage({
       cb.onScanning();
 
       const clock = new THREE.Clock();
-
-      // Рабочие объекты стабилизатора — создаём один раз, а не каждый кадр
-      const targetPos = new THREE.Vector3();
-      const targetQuat = new THREE.Quaternion();
-      const targetScale = new THREE.Vector3(1, 1, 1);
-      const posePos = new THREE.Vector3();
-      const poseQuat = new THREE.Quaternion();
-      const poseScale = new THREE.Vector3(1, 1, 1);
-      // Показываемая поза. Она отличается от отфильтрованной: фильтр шагает по
-      // кадрам ТРЕКИНГА, а рисуем мы чаще, и без этой развёртки движение шло бы
-      // ступеньками с частотой обновления позы.
-      const viewPos = new THREE.Vector3();
-      const viewQuat = new THREE.Quaternion();
-      const viewScale = new THREE.Vector3(1, 1, 1);
-      // прошлая СЫРАЯ поза — нужна для оценки скорости самой цели
-      const prevTargetPos = new THREE.Vector3();
-      const prevTargetQuat = new THREE.Quaternion();
-      // сглаженные скорости цели: вектор сдвига (в ширинах маркера за кадр
-      // трекинга) и вектор поворота (ось * угол, радианы за кадр)
-      const velAvg = new THREE.Vector3();
-      const angVelAvg = new THREE.Vector3();
-      const dVec = new THREE.Vector3();
-      const dQuat = new THREE.Quaternion();
-      // рабочие кватернионы для разложения поворота на twist/swing
-      const tTwist = new THREE.Quaternion();
-      const tSwing = new THREE.Quaternion();
-      const cTwist = new THREE.Quaternion();
-      const cSwing = new THREE.Quaternion();
-      const tmpQ = new THREE.Quaternion();
-      // Видео лежит в плоскости маркера, и сильное сглаживание наклона там
-      // видно как сползание. Модель стоит над плоскостью — ей наоборот нужно.
-      const flat = experience.contentType === 'VIDEO';
-      const swingRate = flat
-        ? AR_STABILIZER.videoSwing
-        : AR_STABILIZER.followSwing;
-      const depthRate = flat
-        ? AR_STABILIZER.videoDepth
-        : AR_STABILIZER.followDepth;
-      const planeRate = flat
-        ? AR_STABILIZER.videoFollow
-        : AR_STABILIZER.followMin;
-      const twistRate = flat
-        ? AR_STABILIZER.videoFollow
-        : AR_STABILIZER.followTwist;
-
-      // Разложение поворота относительно нормали маркера (его локальная +Z):
-      // q = swing * twist, где twist — вращение вокруг нормали.
-      const splitPose = (q: any, twist: any, swing: any) => {
-        twist.set(0, 0, q.z, q.w);
-        if (twist.lengthSq() < 1e-8) {
-          twist.set(0, 0, 0, 1);
-        } else {
-          twist.normalize();
-        }
-        swing.copy(q).multiply(tmpQ.copy(twist).invert());
-      };
+      const options = arPoseOptions();
+      const rawMode = new URLSearchParams(window.location.search).get('arraw') === '1';
+      const markerWidth = mindarThree.controller.markerDimensions[0][0];
+      const markerAspectRatio =
+        mindarThree.controller.markerDimensions[0][1] / markerWidth;
+      const stabilizer = createPoseStabilizer(THREE, markerWidth, options);
+      const sourceMatrix = new THREE.Matrix4();
+      const normal = new THREE.Vector3();
+      const previousNormal = new THREE.Vector3();
+      let hasPreviousNormal = false;
+      let lastPoseAt = -Infinity;
       let hasPose = false;
-      let hasView = false;
-      let hasPrevTarget = false;
-      let lostFrames = 0;
-      let stabTick = 0;
-      let flipFrames = 0;
-      let flipsRejected = 0;
-      // для панели диагностики: что реально получилось на последнем шаге
-      let lastSpeed = 0;
-      let lastDist = 0;
-      // Движок обновляет позу заметно реже, чем идёт отрисовка, и матрицу
-      // якоря пишет только в этот момент. Раньше фильтр крутился каждый кадр
-      // отрисовки по одной и той же сырой цели — за 2-4 кадра он до неё
-      // практически доходил, то есть сглаживание выходило втрое слабее
-      // заявленного и вдобавок зависело от частоты экрана. Сравниваем матрицу
-      // с прошлой и шагаем ровно один раз на свежую позу. Сравнение, а не
-      // onTargetUpdate: не зависит от версии MindAR.
-      const lastElements: number[] = new Array(16).fill(NaN);
-      const posePending = (m: any) => {
-        const e = m.elements;
-        let changed = false;
-        for (let i = 0; i < 16; i++) {
-          if (e[i] !== lastElements[i]) {
-            changed = true;
-            lastElements[i] = e[i];
-          }
-        }
-        return changed;
-      };
-      // счётчики частоты — именно они показывают, сколько кадров отрисовки
-      // приходится на одну позу движка
+      let freshTracking = false;
       let trackCount = 0;
       let drawCount = 0;
       let rateFrom = performance.now();
-
-      // --- измерение сырой позы, до всякого сглаживания ---
-      // Нужно, чтобы отличить «движок плохо считает» от «мы плохо фильтруем».
-      // Копим наклон плоскости и глубину за последние ~3 секунды и смотрим
-      // разброс: если сырой наклон гуляет на градусы, никакой фильтр не спасёт.
-      const RAW_WINDOW = 90;
-      const rawTilt: number[] = [];
-      const rawDepth: number[] = [];
-      let rawStepSum = 0;
-      let rawStepMax = 0;
-      let rawSteps = 0;
-      let prevTilt: number | null = null;
-      const markerNormal = new THREE.Vector3(0, 0, 1);
-      const normalNow = new THREE.Vector3();
-
-      const spread = (arr: number[]) => {
-        if (arr.length < 2) return { d: 0, sd: 0 };
-        let lo = Infinity;
-        let hi = -Infinity;
-        let sum = 0;
-        for (const v of arr) {
-          if (v < lo) lo = v;
-          if (v > hi) hi = v;
-          sum += v;
-        }
-        const mean = sum / arr.length;
-        let acc = 0;
-        for (const v of arr) acc += (v - mean) * (v - mean);
-        return { d: hi - lo, sd: Math.sqrt(acc / arr.length) };
-      };
-      // ?arraw=1 — отключить стабилизацию и смотреть сырую позу движка.
-      // Нужно, чтобы сравнить «до и после» на живом сувенире.
-      const rawMode =
-        typeof window !== 'undefined' &&
-        new URLSearchParams(window.location.search).get('arraw') === '1';
-
-      // Шаг фильтра. Вызывается РОВНО ОДИН РАЗ на свежую позу движка, а не
-      // каждый кадр отрисовки — иначе доли сближения ниже означают совсем не
-      // то, что написано, и зависят от частоты экрана.
-      const followPose = () => {
-        anchor.group.matrix.decompose(targetPos, targetQuat, targetScale);
-        if (!Number.isFinite(targetPos.x) || !Number.isFinite(targetScale.x)) {
-          return false;
-        }
-
-        // угол между нормалью маркера и осью камеры — это и есть «наклон»
-        normalNow.copy(markerNormal).applyQuaternion(targetQuat);
-        const tiltDeg = (Math.acos(Math.min(1, Math.abs(normalNow.z))) * 180) / Math.PI;
-        rawTilt.push(tiltDeg);
-        rawDepth.push(targetPos.z);
-        if (rawTilt.length > RAW_WINDOW) rawTilt.shift();
-        if (rawDepth.length > RAW_WINDOW) rawDepth.shift();
-        if (prevTilt !== null) {
-          const step = Math.abs(tiltDeg - prevTilt);
-          rawStepSum += step;
-          rawSteps++;
-          if (step > rawStepMax) rawStepMax = step;
-        }
-        prevTilt = tiltDeg;
-
-        // Скорость самой цели, усреднённая ВЕКТОРНО. Длину усреднять нельзя:
-        // она всегда положительна, и дрожание накачивало бы её так же, как
-        // настоящее движение. Направление у шума случайное, поэтому в среднем
-        // он гасится, а у движения руки — держится.
-        const unitNow = Math.max(1e-6, Math.abs(targetScale.x));
-        if (hasPrevTarget) {
-          dVec.subVectors(targetPos, prevTargetPos).divideScalar(unitNow);
-          velAvg.lerp(dVec, AR_STABILIZER.speedSmooth);
-
-          dQuat.copy(targetQuat).multiply(tmpQ.copy(prevTargetQuat).invert());
-          // кватернион двулистен: без этого «поворот на 1°» иногда приходит
-          // как «на 359°», и разгон срывает
-          if (dQuat.w < 0) {
-            dQuat.set(-dQuat.x, -dQuat.y, -dQuat.z, -dQuat.w);
-          }
-          const sin = Math.sqrt(Math.max(0, 1 - dQuat.w * dQuat.w));
-          if (sin < 1e-8) {
-            dVec.set(0, 0, 0);
-          } else {
-            const angle = 2 * Math.atan2(sin, dQuat.w);
-            dVec.set(dQuat.x, dQuat.y, dQuat.z).multiplyScalar(angle / sin);
-          }
-          angVelAvg.lerp(dVec, AR_STABILIZER.speedSmooth);
-        }
-        prevTargetPos.copy(targetPos);
-        prevTargetQuat.copy(targetQuat);
-        hasPrevTarget = true;
-
-        if (!hasPose || rawMode) {
-          posePos.copy(targetPos);
-          poseQuat.copy(targetQuat);
-          poseScale.copy(targetScale);
-          splitPose(poseQuat, cTwist, cSwing);
-          hasPose = true;
-        } else {
-          // Скорость сближения растёт с величиной расхождения: шум (доли
-          // процента ширины маркера) почти не двигает контент, а реальное
-          // движение руки отрабатывается за пару кадров. Порога нет намеренно
-          // — см. комментарий у AR_STABILIZER.
-          // ВАЖНО про единицы. Координаты MindAR не нормированы: масштаб
-          // группы бывает порядка тысячи, а позиции — в тысячах единиц.
-          // Все пороги ниже заданы в долях ширины маркера, поэтому расстояния
-          // нужно приводить к ней, иначе они завышены в тысячу раз: разгон
-          // улетает в сотни, следование каждый кадр упирается в максимум, и
-          // сглаживания фактически нет. Ровно это и происходило.
-          const unit = Math.max(1e-6, Math.abs(targetScale.x));
-          const dist = posePos.distanceTo(targetPos) / unit;
-          // Разгон ведём по СГЛАЖЕННОЙ скорости цели, а не по мгновенному
-          // расхождению. Расхождение при неподвижном сувенире — это и есть
-          // шум: он сам открывал разгону дверь и сам же через неё проходил,
-          // из-за чего следование почти каждый кадр упиралось в потолок.
-          // Догонять по расхождению всё же нужно — но только когда оно больше
-          // того, что шум может объяснить (например, после удержания при
-          // срыве).
-          const ang = poseQuat.angleTo(targetQuat);
-          const drift = Math.max(0, dist - AR_STABILIZER.driftFree);
-          const angDrift = Math.max(0, ang - AR_STABILIZER.angFree);
-          const move = velAvg.length() + drift;
-          const turn = angVelAvg.length() + angDrift;
-          // Надёжную часть позы двигает и сдвиг, и поворот.
-          const speedFast = move * AR_STABILIZER.speedGain + turn * 2;
-          // А наклон — только поворот. Сдвиг сувенира по столу наклона не
-          // меняет, и его шум, попадая сюда, открывал бы дрожанию ровно ту же
-          // дверь, что раньше открывало мгновенное расхождение. Расхождение по
-          // положению всё же учитываем — но лишь сверх порога: так глубина
-          // догоняет, когда телефон подносят ближе, и стоит на месте в покое.
-          const speedSlow = turn * 2 + drift * AR_STABILIZER.speedGain;
-          lastSpeed = speedFast;
-          lastDist = dist;
-          const fast = 1 + speedFast * AR_STABILIZER.boostFast;
-          const slow = 1 + speedSlow * AR_STABILIZER.boostSlow;
-          const clamp = (v: number) => Math.min(AR_STABILIZER.followMax, v);
-
-          const k = clamp(planeRate * fast);
-          const kTwist = clamp(twistRate * fast);
-          // У наклона и глубины своё движение и свой разгон: базовая скорость
-          // втрое медленнее, зато разгон сильнее — в покое он не включается.
-          const kSwing = clamp(swingRate * (flat ? fast : slow));
-          const kDepth = clamp(depthRate * (flat ? fast : slow));
-
-          // Сдвиг в плоскости маркера — быстро, глубина — медленно.
-          posePos.x += (targetPos.x - posePos.x) * k;
-          posePos.y += (targetPos.y - posePos.y) * k;
-          posePos.z += (targetPos.z - posePos.z) * kDepth;
-          // масштаб сглаживаем вместе с глубиной — это одна и та же величина
-
-          // Поворот: в плоскости быстро, наклон плоскости медленно.
-          splitPose(targetQuat, tTwist, tSwing);
-          cTwist.slerp(tTwist, kTwist);
-
-          // Переворот плоскости: наклон скакнул, а положение и поворот в
-          // плоскости стоят. Настоящий наклон так не выглядит, поэтому кадр
-          // по наклону пропускаем. Если это повторяется долго — значит
-          // сувенир правда повернули, и мы принимаем новую ориентацию.
-          const swingJump = cSwing.angleTo(tSwing);
-          const twistJump = cTwist.angleTo(tTwist);
-          const looksFlipped =
-            !flat &&
-            swingJump > AR_STABILIZER.flipAngle &&
-            dist < AR_STABILIZER.flipPos &&
-            twistJump < AR_STABILIZER.flipTwist;
-
-          if (looksFlipped && flipFrames < AR_STABILIZER.flipPatience) {
-            flipFrames++;
-            flipsRejected++;
-          } else {
-            if (!looksFlipped) flipFrames = 0;
-            cSwing.slerp(tSwing, kSwing);
-          }
-
-          poseQuat.copy(cSwing).multiply(cTwist);
-
-          // Масштаб идёт вместе с глубиной — они об одном и том же.
-          poseScale.lerp(targetScale, kDepth);
-        }
-
-        return true;
-      };
-      // Пока маркер не найден, сцена пуста, но кадр всё равно чистился и
-      // вычитывался композитором — это отнимало время у распознавания, которое
-      // крутится в том же rAF. Рисуем только когда есть что показать; ещё пара
-      // кадров после потери маркера нужна, чтобы стереть последний показанный
-      // (при preserveDrawingBuffer=false композитор иначе держит старую картинку).
+      let debugAt = rateFrom;
       let flushFrames = 2;
       let syncTick = 0;
+      const rawSamples: Array<{ time: number; tilt: number; depth: number; step: number }> = [];
+      const spread = (values: number[]) => {
+        if (!values.length) return { range: 0, sd: 0 };
+        const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+        return {
+          range: Math.max(...values) - Math.min(...values),
+          sd: Math.sqrt(values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length),
+        };
+      };
+
+      // Подписка получает только новые успешные измерения ДО матричного
+      // OneEuro. visible у MindAR не годится как признак свежести: движок
+      // продолжает выдавать старую матрицу во время missTolerance. Одинаковые
+      // успешные измерения, напротив, должны продолжать сближение фильтра.
+      disposables.push(installMindArPoseSource(mindarThree, (worldMatrix, timestampMs) => {
+        if (cancelled) return;
+        if (!worldMatrix) {
+          freshTracking = false;
+          return;
+        }
+        if (timestampMs - lastPoseAt > options.holdMs) {
+          stabilizer.reset();
+          rawSamples.length = 0;
+          hasPreviousNormal = false;
+        }
+        sourceMatrix.fromArray(worldMatrix).multiply(mindarThree.postMatrixs[0]);
+        if (!stabilizer.update(sourceMatrix, timestampMs)) {
+          freshTracking = false;
+          return;
+        }
+        lastPoseAt = timestampMs;
+        hasPose = true;
+        freshTracking = true;
+        trackCount++;
+        // arraw теперь действительно обходит ОБА фильтра. Обычный режим
+        // сохраняет фиксированный размер маркера и единичный quaternion;
+        // второго фильтра по кадрам экрана здесь больше нет.
+        stage.matrix.copy(rawMode ? sourceMatrix : stabilizer.matrix);
+        stage.matrixWorldNeedsUpdate = true;
+        handleTargetFound();
+
+        if (debugOn) {
+          const e = sourceMatrix.elements;
+          normal.set(e[8], e[9], e[10]).normalize();
+          const step = hasPreviousNormal ? previousNormal.angleTo(normal) * 180 / Math.PI : 0;
+          previousNormal.copy(normal);
+          hasPreviousNormal = true;
+          const tilt = Math.acos(Math.min(1, Math.abs(normal.z))) * 180 / Math.PI;
+          rawSamples.push({ time: timestampMs, tilt, depth: -e[14], step });
+          while (rawSamples.length && rawSamples[0].time < timestampMs - 3000) rawSamples.shift();
+          debugInfo.rawXY = 'x ' + e[12].toFixed(2) + ' y ' + e[13].toFixed(2) +
+            ' | ширина ' + markerWidth.toFixed(1);
+          debugInfo.rigid = 'длина q ' + stabilizer.quaternion.length().toFixed(8) +
+            ' | ошибка осей входа ' + stabilizer.diagnostics.rawOrthogonalityError.toExponential(2);
+          // Сколько пикселей КАДРА занимает сам сувенир. Это и есть та
+          // величина, по которой экран выигрывает у магнита: MindAR ведёт
+          // трекинг по шаблонам с короткой стороной 256 и 128 px, и если
+          // сувенир в кадре мельче — работает грубый шаблон, поза шумит.
+          // Считаем по вертикали: в портрете кадр камеры перекрывает
+          // контейнер по горизонтали, а по высоте виден целиком.
+          const videoH = mindarThree.video?.videoHeight || 0;
+          const depthNow = -e[14];
+          if (videoH > 0 && depthNow > 0 && camera?.fov) {
+            const focalPx =
+              videoH / 2 / Math.tan((camera.fov * Math.PI) / 360);
+            const widthPx = (focalPx * markerWidth) / depthNow;
+            const shortPx = widthPx * Math.min(1, markerAspectRatio);
+            debugInfo.size =
+              'сувенир в кадре ~' + widthPx.toFixed(0) + '×' +
+              (widthPx * markerAspectRatio).toFixed(0) + ' px' +
+              ' | короткая ' + shortPx.toFixed(0) +
+              (shortPx >= 256 ? ' (точный шаблон)' :
+                shortPx >= 128 ? ' (ГРУБЫЙ шаблон — поднести ближе)' :
+                  ' (НИЖЕ 128 — трекинга почти нет)');
+          }
+        }
+      }));
+
       renderer.setAnimationLoop(() => {
-        const delta = clock.getDelta();
-
-        // Поза обновляется, пока движок держит маркер; после потери держим
-        // последнюю ещё несколько кадров — короткие провалы при наклоне и
-        // бликах иначе читаются как обрыв.
+        const delta = Math.min(clock.getDelta(), 0.1);
+        const nowMs = performance.now();
         drawCount++;
-        const tracked = anchor.group.visible;
-        if (tracked) {
-          // MindAR может писать матрицу напрямую (matrixAutoUpdate=false) либо
-          // выставлять position/quaternion — во втором случае матрицу надо
-          // пересобрать самим, иначе прочитаем прошлый кадр.
-          const g = anchor.group;
-          if (g.matrixAutoUpdate) g.updateMatrix();
-          if (posePending(g.matrix)) {
-            trackCount++;
-            followPose();
-          }
-          lostFrames = 0;
-        } else if (hasPose) {
-          lostFrames++;
-        }
-        const hold = rawMode ? 0 : AR_STABILIZER.holdFrames;
-        const visible = hasPose && (tracked || lostFrames <= hold);
+        const ageMs = nowMs - lastPoseAt;
+        const holdMs = rawMode ? 0 : options.holdMs;
+        // Даже без события потери (например, зависшая обработка кадра)
+        // устаревшая поза исчезает. Время удержания не зависит от FPS экрана.
+        const visible = hasPose && ageMs <= options.holdMs && (freshTracking || ageMs <= holdMs);
         stage.visible = visible;
-
-        // Показ догоняет отфильтрованную позу по ВРЕМЕНИ, а не по кадрам:
-        // частота отрисовки и частота трекинга не совпадают и обе плавают.
-        if (hasPose) {
-          if (!hasView) {
-            viewPos.copy(posePos);
-            viewQuat.copy(poseQuat);
-            viewScale.copy(poseScale);
-            hasView = true;
-          } else {
-            const tau = rawMode ? 0 : AR_STABILIZER.viewTau / 1000;
-            const a = tau <= 0 ? 1 : 1 - Math.exp(-Math.max(0, delta) / tau);
-            viewPos.lerp(posePos, a);
-            viewQuat.slerp(poseQuat, a);
-            viewScale.lerp(poseScale, a);
-          }
-          stage.matrix.compose(viewPos, viewQuat, viewScale);
-          stage.matrixWorldNeedsUpdate = true;
+        if (hasPose && !visible) {
+          hasPose = false;
+          freshTracking = false;
+          stabilizer.reset();
+          handleTargetLost();
         }
 
-        // раз в ~четверть секунды пишем в панель, что делает стабилизатор
-        if (debugOn && ++stabTick >= 15) {
-          stabTick = 0;
-          debugInfo.track =
-            (rawMode ? 'СЫРАЯ ПОЗА' : 'стабилизация') +
-            ' | ' +
-            (tracked
-              ? 'маркер в кадре'
-              : 'удержание ' + lostFrames + '/' + hold) +
-            ' | перевороты отброшено: ' + flipsRejected;
-
-          const t = spread(rawTilt);
-          const d = spread(rawDepth);
-          debugInfo.raw =
-            'наклон ' + (prevTilt ?? 0).toFixed(1) + '° | ' +
-            'разброс ' + t.d.toFixed(1) + '° (ско ' + t.sd.toFixed(2) + '°)';
-          debugInfo.rawStep =
-            'скачок/кадр ср ' +
-            (rawSteps ? rawStepSum / rawSteps : 0).toFixed(2) +
-            '° макс ' + rawStepMax.toFixed(1) + '°';
-          // Абсолютные значения: разброс сам по себе не говорит, гуляет ли
-          // оценка вокруг разумной величины или уезжает в бессмыслицу.
-          debugInfo.rawZ =
-            'z ' + targetPos.z.toFixed(2) +
-            ' (от ' + (rawDepth.length ? Math.min(...rawDepth).toFixed(2) : '-') +
-            ' до ' + (rawDepth.length ? Math.max(...rawDepth).toFixed(2) : '-') + ')' +
-            ' | размах ' + d.d.toFixed(2);
-          debugInfo.rawXY =
-            'x ' + targetPos.x.toFixed(3) +
-            ' y ' + targetPos.y.toFixed(3) +
-            ' | масштаб ' + targetScale.x.toFixed(2);
-          debugInfo.follow =
-            'единица ' + Math.abs(targetScale.x).toFixed(1) +
-            ' | сдвиг ' + (posePos.distanceTo(targetPos) / Math.max(1e-6, Math.abs(targetScale.x))).toFixed(4) +
-            ' шир.маркера';
-          // Сколько кадров отрисовки приходится на одну позу движка. Если тут
-          // больше единицы — фильтр обязан шагать по трекингу, а не по
-          // отрисовке: ровно на этом он и терял силу.
-          const nowMs = performance.now();
+        if (debugOn && nowMs - debugAt >= 250) {
+          debugAt = nowMs;
+          while (rawSamples.length && rawSamples[0].time < nowMs - 3000) rawSamples.shift();
+          const tilt = spread(rawSamples.map((sample) => sample.tilt));
+          const depth = spread(rawSamples.map((sample) => sample.depth));
+          const steps = rawSamples.map((sample) => sample.step);
+          const last = rawSamples[rawSamples.length - 1];
           const secs = Math.max(0.001, (nowMs - rateFrom) / 1000);
-          debugInfo.rate =
-            'трекинг ' + (trackCount / secs).toFixed(0) + '/с | ' +
-            'отрисовка ' + (drawCount / secs).toFixed(0) + '/с | ' +
-            'кадров на позу ' +
-            (trackCount ? (drawCount / trackCount).toFixed(1) : '-');
+          debugInfo.track = (rawMode ? 'RAW до OneEuro' : 'жёсткая поза') + ' | ' +
+            (visible ? (freshTracking ? 'трек' : 'краткая потеря') : 'поиск') +
+            ' | возраст ' + (Number.isFinite(ageMs) ? ageMs.toFixed(0) : '-') + ' мс';
+          debugInfo.raw = 'наклон ' + (last?.tilt ?? 0).toFixed(2) + '° | размах ' +
+            tilt.range.toFixed(2) + '° (ско ' + tilt.sd.toFixed(2) + '°)';
+          debugInfo.rawStep = 'нормаль/кадр ср ' +
+            (steps.length ? steps.reduce((a, b) => a + b, 0) / steps.length : 0).toFixed(2) +
+            '° макс ' + (steps.length ? Math.max(...steps) : 0).toFixed(2) + '°';
+          debugInfo.rawZ = 'глубина ' + (last?.depth ?? 0).toFixed(2) +
+            ' | размах ' + depth.range.toFixed(2) + ' | окно ' + rawSamples.length + ' поз / 3 с';
+          debugInfo.rate = 'трекинг ' + (trackCount / secs).toFixed(1) + '/с | отрисовка ' +
+            (drawCount / secs).toFixed(1) + '/с';
+          debugInfo.filter = 'угол ' + options.angleMinCutoffHz + ' Гц | beta ' + options.angleBeta +
+            ' | удержание ' + holdMs + ' мс';
+          debugInfo.camera = 'камера ' + (mindarThree.video?.videoWidth || 0) +
+            'x' + (mindarThree.video?.videoHeight || 0) + ' (?arres=N)';
           trackCount = 0;
           drawCount = 0;
           rateFrom = nowMs;
-          debugInfo.boost =
-            'скорость ' + velAvg.length().toFixed(4) + ' шир/кадр' +
-            ' | поворот ' + ((angVelAvg.length() * 180) / Math.PI).toFixed(2) + '°/кадр' +
-            ' | разгон x' + (1 + lastSpeed * AR_STABILIZER.boostFast).toFixed(2) +
-            ' (расх. ' + lastDist.toFixed(4) + ')';
-          // максимум скачка копится с начала сессии и быстро становится
-          // бесполезным — сбрасываем на каждом отчёте
-          rawStepMax = 0;
-          rawStepSum = 0;
-          rawSteps = 0;
         }
 
         if (visible) {
           if (mixerRef.current) mixerRef.current.update(delta);
-          // Видео и озвучка — два независимых элемента и со временем расходятся.
-          // Раз в ~секунду подтягиваем дорожку к видео, если разбежались заметно.
           if (++syncTick >= 60) {
             syncTick = 0;
             const a = audioElRef.current;
             const v = videoElRef.current;
-            if (a && v && !v.paused && !a.paused && v.duration) {
-              if (Math.abs(a.currentTime - v.currentTime) > 0.3) {
-                a.currentTime = v.currentTime;
-              }
+            if (a && v && !v.paused && !a.paused && v.duration && Math.abs(a.currentTime - v.currentTime) > 0.3) {
+              a.currentTime = v.currentTime;
             }
           }
           flushFrames = 2;
@@ -947,7 +711,6 @@ export default function ARStage({
         }
         renderer.render(scene, camera);
       });
-
       if (debugOn) {
         const iv = setInterval(renderDebug, 1000);
         disposables.push(() => clearInterval(iv));
