@@ -10,6 +10,7 @@ import {
   arCameraConstraints,
 } from '@/lib/ar/config';
 import { createPoseStabilizer } from '@/lib/ar/pose-stabilizer';
+import { createPoseSpikeGate } from '@/lib/ar/pose-spike-gate';
 import {
   installMindArPoseSource,
   installMindArTrackerProbe,
@@ -598,8 +599,33 @@ export default function ARStage({
         [1, 1],
         [-1, 1],
       ];
-      const prevCorners = new Float64Array(8);
-      let hasPrevCorners = false;
+      const corners = new Float64Array(8);
+      const spikeGate = createPoseSpikeGate({
+        floorPx: options.spikeFloorPx,
+        factor: options.spikeFactor,
+        patience: options.spikePatience,
+      });
+      // Куда попадают углы маркера на кадре. Считаем всегда, а не только для
+      // панели: на этом стоит отбраковка выбросов.
+      const projectCorners = (matrix: any, out: Float64Array) => {
+        const videoH = mindarThree.video?.videoHeight || 0;
+        if (!(videoH > 0) || !camera?.fov) return false;
+        const focal = videoH / 2 / Math.tan((camera.fov * Math.PI) / 360);
+        for (let i = 0; i < 4; i++) {
+          cornerLocal
+            .set(
+              cornerSigns[i][0] * 0.5,
+              cornerSigns[i][1] * 0.5 * markerAspectRatio,
+              0
+            )
+            .applyMatrix4(matrix);
+          const far = -cornerLocal.z;
+          if (!(far > 0)) return false;
+          out[i * 2] = (focal * cornerLocal.x) / far;
+          out[i * 2 + 1] = (focal * cornerLocal.y) / far;
+        }
+        return true;
+      };
       // Сколько точек трекер реально сопоставляет. Печать против экрана
       // отличается именно здесь, а не в размерах и не в фильтрах.
       let trackPoints = -1;
@@ -639,8 +665,16 @@ export default function ARStage({
           stabilizer.reset();
           rawSamples.length = 0;
           hasPreviousNormal = false;
+          spikeGate.reset();
         }
         sourceMatrix.fromArray(worldMatrix).multiply(mindarThree.postMatrixs[0]);
+
+        // Одиночный промах трекера отбрасываем, не доводя до фильтра: усреднять
+        // выброс — значит размазать его на несколько кадров вместо одного.
+        if (projectCorners(sourceMatrix, corners) && !spikeGate.accept(corners)) {
+          return;
+        }
+
         if (!stabilizer.update(sourceMatrix, timestampMs)) {
           freshTracking = false;
           return;
@@ -663,35 +697,13 @@ export default function ARStage({
           previousNormal.copy(normal);
           hasPreviousNormal = true;
           const tilt = Math.acos(Math.min(1, Math.abs(normal.z))) * 180 / Math.PI;
-          const focal = (mindarThree.video?.videoHeight || 0) / 2 /
-            Math.tan((camera.fov * Math.PI) / 360);
-          let corner = 0;
-          for (let i = 0; i < 4; i++) {
-            cornerLocal
-              .set(
-                cornerSigns[i][0] * 0.5,
-                (cornerSigns[i][1] * 0.5) * markerAspectRatio,
-                0
-              )
-              .applyMatrix4(sourceMatrix);
-            const far = -cornerLocal.z;
-            if (!(far > 0)) {
-              corner = NaN;
-              break;
-            }
-            const px = (focal * cornerLocal.x) / far;
-            const py = (focal * cornerLocal.y) / far;
-            if (hasPrevCorners) {
-              corner = Math.max(
-                corner,
-                Math.hypot(px - prevCorners[i * 2], py - prevCorners[i * 2 + 1])
-              );
-            }
-            prevCorners[i * 2] = px;
-            prevCorners[i * 2 + 1] = py;
-          }
-          hasPrevCorners = true;
-          rawSamples.push({ time: timestampMs, tilt, depth: -e[14], step, corner });
+          rawSamples.push({
+            time: timestampMs,
+            tilt,
+            depth: -e[14],
+            step,
+            corner: spikeGate.lastJumpPx,
+          });
           while (rawSamples.length && rawSamples[0].time < timestampMs - 3000) rawSamples.shift();
           debugInfo.rawXY = 'x ' + e[12].toFixed(2) + ' y ' + e[13].toFixed(2) +
             ' | ширина ' + markerWidth.toFixed(1);
@@ -767,6 +779,9 @@ export default function ARStage({
           debugInfo.corner = 'УГЛЫ МАРКЕРА/кадр ср ' +
             (corners.length ? corners.reduce((a, b) => a + b, 0) / corners.length : 0).toFixed(2) +
             ' px макс ' + (corners.length ? Math.max(...corners) : 0).toFixed(2) + ' px';
+          debugInfo.spike = 'порог выброса ' + spikeGate.limitPx.toFixed(1) +
+            ' px | отброшено ' + spikeGate.rejected +
+            (options.spikeFactor > 0 ? '' : ' (ОТКЛЮЧЕНО ?arspike=0)');
           debugInfo.points = 'ТОЧЕК ТРЕКЕРА ' + trackPoints +
             ' | ср ' + (trackPointsCount ? trackPointsSum / trackPointsCount : 0).toFixed(1) +
             ' | мин ' + (Number.isFinite(trackPointsMin) ? trackPointsMin : '-');
