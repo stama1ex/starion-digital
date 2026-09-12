@@ -550,6 +550,39 @@ export default function ARStage({
         disposables.push(() => ro.disconnect());
       }
 
+      // Частоту кадров через getUserMedia просят «по возможности», и Android
+      // почти всегда молча отдаёт 30, сколько ни проси. А выдержка завязана
+      // ровно на неё: 30 кадров это до 33 мс, и движение руки превращается в
+      // смаз. Поэтому после старта спрашиваем у дорожки, что она вообще умеет,
+      // и если 60 доступны — требуем их уже жёстко, через applyConstraints.
+      // Неудача здесь не повод ронять сцену: просто останемся на 30.
+      let cameraNote = '';
+      try {
+        const stream = mindarThree.video?.srcObject as MediaStream | undefined;
+        const track = stream?.getVideoTracks?.()[0];
+        if (track) {
+          const caps = track.getCapabilities?.() as
+            | { frameRate?: { max?: number } }
+            | undefined;
+          const maxFps = caps?.frameRate?.max;
+          const now = track.getSettings?.().frameRate ?? 0;
+          const wanted = arCameraConstraints().frameRate as
+            | { ideal?: number }
+            | undefined;
+          const target = wanted?.ideal ?? 0;
+          cameraNote = 'умеет до ' + (maxFps ? Math.round(maxFps) : '?');
+          if (target >= 50 && now < target - 5 && (!maxFps || maxFps >= target - 5)) {
+            await track.applyConstraints({
+              frameRate: { min: Math.max(24, target - 10), ideal: target },
+            });
+            const after = track.getSettings?.().frameRate ?? 0;
+            cameraNote += after >= target - 5 ? ', поднято' : ', поднять не вышло';
+          }
+        }
+      } catch {
+        cameraNote += ', отказ';
+      }
+
       cb.onProgress(1);
       cb.onScanning();
 
@@ -818,7 +851,8 @@ export default function ARStage({
           debugInfo.camera = 'камера ' + (mindarThree.video?.videoWidth || 0) +
             'x' + (mindarThree.video?.videoHeight || 0) +
             ' @ ' + (settings.frameRate ? Math.round(settings.frameRate) : '?') +
-            ' к/с (?arres=N ?arcamfps=N)';
+            ' к/с' + (cameraNote ? ' | ' + cameraNote : '') +
+            ' (?arres=N ?arcamfps=N)';
           trackCount = 0;
           drawCount = 0;
           tickCount = 0;
