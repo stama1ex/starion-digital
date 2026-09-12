@@ -78,7 +78,10 @@ import {
   type GlbClip,
 } from '@/lib/ar/glb-clips';
 import { AR_DOMAIN_URL } from '@/lib/ar/domain';
-import { compileMindFile } from '@/lib/ar/compile-marker';
+import {
+  compileMindFile,
+  AR_MARKER_TRACK_INSET,
+} from '@/lib/ar/compile-marker';
 
 interface FormState {
   title: string;
@@ -256,6 +259,11 @@ export default function ARManagement() {
   const [markerFile, setMarkerFile] = useState<File | null>(null);
   const [compiling, setCompiling] = useState(false);
   const [compileProgress, setCompileProgress] = useState(0);
+  // Отступ от краёв в процентах: хранить его негде и незачем — результат
+  // целиком записан в сам .mind, размеры изображения не меняются.
+  const [trackInset, setTrackInset] = useState(
+    Math.round(AR_MARKER_TRACK_INSET * 100)
+  );
   // какая дорожка сейчас грузится: индекс существующей либо 'new'
   const [audioBusy, setAudioBusy] = useState<number | 'new' | null>(null);
   // язык, выбранный для следующей дорожки
@@ -461,7 +469,8 @@ export default function ARManagement() {
       const mind = await compileMindFile(
         file,
         setCompileProgress,
-        slugifyAr(form.slug || form.title) || 'marker'
+        slugifyAr(form.slug || form.title) || 'marker',
+        Math.min(20, Math.max(0, trackInset)) / 100
       );
       const path = await uploadArAsset('mind', mind, form.title);
       setAsset('mindFileUrl')(path);
@@ -949,10 +958,32 @@ export default function ARManagement() {
                       ? 'Скомпилировать из загруженного маркера'
                       : 'Скомпилировать из изображения'}
                 </Button>
+                <label className="flex w-fit items-center gap-2 text-xs text-muted-foreground">
+                  Отступ от краёв для трекинга
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    step={1}
+                    value={trackInset}
+                    disabled={compiling}
+                    onChange={(e) => setTrackInset(Number(e.target.value))}
+                    className="h-7 w-16 rounded border bg-background px-2 text-right"
+                  />
+                  %
+                </label>
                 <p className="text-xs text-muted-foreground">
                   Собирает .mind прямо в браузере и сразу загружает — ходить на
                   веб-компилятор MindAR не нужно. Занимает от нескольких секунд
                   до минуты, вкладку не закрывайте.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Отступ убирает из трекинга внешнюю полосу сувенира. Пальцы
+                  держат его как раз за края, а признаки там самые сильные —
+                  без отступа один палец на кромке роняет привязку. Платить
+                  приходится тем, что рабочая область меньше и сувенир надо
+                  держать чуть ближе. 0 % — как было раньше. Размер картинки и
+                  маска высечки не меняются, так что перекомпиляции достаточно.
                 </p>
               </div>
             </div>
